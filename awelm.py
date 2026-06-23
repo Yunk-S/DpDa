@@ -76,12 +76,12 @@ class AdaptiveWeightedEnsemble:
         self.base_models = {
             'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42, C=1.0),
             'Random Forest': RandomForestClassifier(
-                n_estimators=100, max_depth=10, random_state=42, n_jobs=-1
+                n_estimators=50, max_depth=8, random_state=42, n_jobs=-1
             ),
             'Gradient Boosting': GradientBoostingClassifier(
-                n_estimators=100, learning_rate=0.1, max_depth=5, random_state=42
+                n_estimators=50, learning_rate=0.1, max_depth=4, random_state=42
             ),
-            'SVM': SVC(probability=True, random_state=42, kernel='rbf', C=1.0),
+            'SVM': SVC(probability=False, random_state=42, kernel='rbf', C=1.0, cache_size=500),
         }
         logger.info(f"Created {len(self.base_models)} base models")
         return self.base_models
@@ -150,10 +150,16 @@ class AdaptiveWeightedEnsemble:
         for model_name, model in models.items():
             logger.info(f"Getting cross-validation predictions for {model_name}...")
             try:
-                # Use cross_val_predict to get OOF predictions
-                y_cv_pred_proba = cross_val_predict(
-                    model, X, y, cv=skf, method='predict_proba'
-                )[:, 1]  # Take positive class probability
+                if hasattr(model, 'predict_proba'):
+                    y_cv_pred_proba = cross_val_predict(
+                        model, X, y, cv=skf, method='predict_proba'
+                    )[:, 1]
+                else:
+                    y_cv_scores = cross_val_predict(
+                        model, X, y, cv=skf, method='decision_function'
+                    )
+                    y_cv_pred_proba = 1 / (1 + np.exp(-y_cv_scores))
+                    y_cv_pred_proba = np.clip(y_cv_pred_proba, 1e-15, 1-1e-15)
 
                 cv_predictions[model_name] = y_cv_pred_proba
                 logger.info(f"  {model_name} CV AUC: {roc_auc_score(y, y_cv_pred_proba):.4f}")
@@ -430,8 +436,12 @@ class AdaptiveWeightedEnsemble:
             logger.info(f"\nTraining model: {model_name}")
             try:
                 model.fit(X_train_bal, y_train_bal)
-                proba = model.predict_proba(X_test)[:, 1]
-                pred = model.predict(X_test)
+                if hasattr(model, 'predict_proba'):
+                    proba = model.predict_proba(X_test)[:, 1]
+                else:
+                    scores = model.decision_function(X_test)
+                    proba = 1 / (1 + np.exp(-np.clip(scores, -500, 500)))
+                pred = (proba >= 0.5).astype(int)
 
                 results = self.evaluate_model(y_test, pred, proba)
                 base_results[model_name] = results
@@ -455,8 +465,7 @@ class AdaptiveWeightedEnsemble:
         # Ensemble prediction
         logger.info(f"\nEnsemble prediction...")
         ensemble_pred, ensemble_proba = self.ensemble_predict(
-            {m: self.base_models[m].predict_proba(X_test)[:, 1]
-             for m in self.base_models if m in base_predictions},
+            base_predictions,
             optimal_weights
         )
         ensemble_result = self.evaluate_model(y_test, ensemble_pred, ensemble_proba)

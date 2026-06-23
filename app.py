@@ -22,6 +22,14 @@ from model_calibration import calibrate_probability
 from model_utilities import smooth_probability
 from multi_disease_model import robust_model_predict
 
+# Limit OpenBLAS/threading to reduce memory usage
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+
+CHECKPOINT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', 'checkpoints')
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -1018,67 +1026,17 @@ def weight_evaluation():
 @app.route('/api/weight-evaluation/<dataset>', methods=['GET'])
 def api_weight_evaluation(dataset):
     """
-    API: Get feature weight evaluation results for specified dataset
-
-    Parameters:
-        dataset: Dataset name (heart / stroke / cirrhosis)
+    API: Get feature weight evaluation results for specified dataset.
+    Loads from pre-trained checkpoint to avoid runtime training.
     """
     try:
-        from weight_evaluation import FeatureWeightEvaluator
-        import pandas as pd
+        checkpoint_path = os.path.join(CHECKPOINT_DIR, f'weight_eval_{dataset}.json')
+        if os.path.exists(checkpoint_path):
+            with open(checkpoint_path, 'r', encoding='utf-8') as f:
+                result = json.load(f)
+            return jsonify(result)
 
-        csv_map = {
-            'heart': ('heart.csv', 'HeartDisease'),
-            'stroke': ('stroke.csv', 'stroke'),
-            'cirrhosis': ('cirrhosis.csv', 'Stage'),
-        }
-
-        if dataset not in csv_map:
-            return jsonify({'error': 'Unknown dataset'}), 400
-
-        csv_file, target_col = csv_map[dataset]
-
-        if not os.path.exists(csv_file):
-            return jsonify({'error': f'Data file does not exist: {csv_file}'}), 404
-
-        df = pd.read_csv(csv_file)
-        evaluator = FeatureWeightEvaluator(dataset_name=dataset)
-
-        exclude_cols = ['id', 'ID', 'N_Days']
-        feature_cols = [c for c in df.columns if c != target_col and c not in exclude_cols]
-        categorical_cols = df[feature_cols].select_dtypes(include=['object']).columns.tolist()
-        numeric_cols = df[feature_cols].select_dtypes(include=[np.number]).columns.tolist()
-
-        # Run full pipeline
-        X, y, feature_names = evaluator.preprocess(
-            df, target_col, categorical_cols, numeric_cols
-        )
-        evaluator.univariate_analysis(X, y, feature_names)
-        evaluator.multivariate_analysis(X, y, feature_names)
-        summary = evaluator.calculate_weights()
-
-        # Convert to serializable format
-        result = {
-            'dataset': dataset,
-            'full_auc': float(evaluator.full_auc),
-            'features': []
-        }
-
-        for _, row in summary.iterrows():
-            result['features'].append({
-                'name': str(row['Feature']),
-                'coefficient': float(row['Coefficient_Full']),
-                'p_value': float(row['P_Value_Full']),
-                'odds_ratio': float(row['Odds_Ratio']),
-                'univariate_auc': float(row['AUC']),
-                'delta_auc': float(row['Delta_AUC']),
-                'raw_weight': float(row['Raw_Weight']),
-                'normalized_weight': float(row['Normalized_Weight_Pct']),
-                'cumulative_weight': float(row['Cumulative_Weight_Pct']),
-                'significant': bool(row['Significant']),
-            })
-
-        return jsonify(result)
+        return jsonify({'error': f'Checkpoint not found for {dataset}. Run generate_checkpoints.py first.'}), 404
 
     except Exception as e:
         logger.error(f"Weight evaluation failed: {e}\n{traceback.format_exc()}")
@@ -1102,89 +1060,20 @@ def awelm_page():
 @app.route('/api/awelm/<dataset>', methods=['GET', 'POST'])
 def api_awelm(dataset):
     """
-    API: Get/Run AWELM ensemble model for specified dataset
-
-    GET: Return saved results
-    POST: Re-run model training
+    API: Get AWELM ensemble model results.
+    Loads from pre-trained checkpoint to avoid runtime training.
     """
     try:
-        from awelm import AdaptiveWeightedEnsemble
-        import pandas as pd
-        from sklearn.preprocessing import StandardScaler, LabelEncoder
+        checkpoint_path = os.path.join(CHECKPOINT_DIR, f'awelm_{dataset}.json')
+        if os.path.exists(checkpoint_path):
+            with open(checkpoint_path, 'r', encoding='utf-8') as f:
+                result = json.load(f)
+            return jsonify(result)
 
-        csv_map = {
-            'heart': ('heart.csv', 'HeartDisease'),
-            'stroke': ('stroke.csv', 'stroke'),
-            'cirrhosis': ('cirrhosis.csv', 'Stage'),
-        }
-
-        if dataset not in csv_map:
-            return jsonify({'error': 'Unknown dataset'}), 400
-
-        csv_file, target_col = csv_map[dataset]
-
-        if not os.path.exists(csv_file):
-            return jsonify({'error': 'Data file does not exist'}), 404
-
-        df = pd.read_csv(csv_file)
-
-        exclude_cols = ['id', 'ID']
-        feature_cols = [c for c in df.columns if c != target_col and c not in exclude_cols]
-        X = df[feature_cols].copy()
-        y = df[target_col].copy()
-
-        # Encode categorical features
-        for col in X.select_dtypes(include=['object']).columns:
-            le = LabelEncoder()
-            X[col] = le.fit_transform(X[col].astype(str))
-
-        # Handle missing values
-        for col in X.columns:
-            if X[col].isnull().any():
-                X[col].fillna(X[col].median(), inplace=True)
-
-        # Standardize
-        scaler = StandardScaler()
-        X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
-
-        # Run AWELM
-        evaluator = AdaptiveWeightedEnsemble(dataset_name=dataset)
-        results = evaluator.run_full_pipeline(X_scaled.values, y.values)
-
-        # Serialize results
-        output = {
-            'dataset': dataset,
-            'base_models': {},
-            'ensemble': {},
-            'weights': {},
-            'best_model': results['best_model'],
-        }
-
-        for name, metrics in results['base_models'].items():
-            output['base_models'][name] = {
-                'accuracy': float(metrics['accuracy']),
-                'precision': float(metrics['precision']),
-                'recall': float(metrics['recall']),
-                'f1': float(metrics['f1']),
-                'auc': float(metrics['auc']) if metrics.get('auc') else None,
-            }
-
-        ens = results['ensemble']
-        output['ensemble'] = {
-            'accuracy': float(ens['accuracy']),
-            'precision': float(ens['precision']),
-            'recall': float(ens['recall']),
-            'f1': float(ens['f1']),
-            'auc': float(ens['auc']) if ens.get('auc') else None,
-        }
-
-        for name, w in results['weights'].items():
-            output['weights'][name] = float(w)
-
-        return jsonify(output)
+        return jsonify({'error': f'Checkpoint not found for {dataset}. Run generate_checkpoints.py first.'}), 404
 
     except Exception as e:
-        logger.error(f"AWELM execution failed: {e}\n{traceback.format_exc()}")
+        logger.error(f"AWELM failed: {e}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -1205,24 +1094,48 @@ def bnmdap_page():
 @app.route('/api/bnmdap/predict', methods=['POST'])
 def api_bnmdap_predict():
     """
-    API: Predict multi-disease association probability based on Bayesian network
-
-    Request parameters (JSON):
-        hypertension: Has hypertension (0/1)
-        heart_disease: Has heart disease (0/1)
-        cirrhosis: Has cirrhosis (0/1)
+    API: Predict multi-disease association probability based on Bayesian network.
+    Uses pre-computed scenarios from checkpoint for instant response.
     """
     try:
-        from bnmdap import BayesianDiseaseNetwork
-        import pandas as pd
-
         data = request.get_json() or {}
 
         hypertension = int(data.get('hypertension', 0))
         heart_disease = int(data.get('heart_disease', 0))
         cirrhosis = int(data.get('cirrhosis', 0))
 
-        # Load data to update priors
+        # Determine scenario key
+        scenario_keys = {
+            (0, 0, 0): 'none',
+            (1, 0, 0): 'hypertension_only',
+            (0, 1, 0): 'heart_only',
+            (0, 0, 1): 'cirrhosis_only',
+            (1, 1, 0): 'hypertension_heart',
+            (1, 0, 1): 'hypertension_cirrhosis',
+            (0, 1, 1): 'heart_cirrhosis',
+            (1, 1, 1): 'all_three',
+        }
+        scenario = scenario_keys.get((hypertension, heart_disease, cirrhosis), 'none')
+
+        checkpoint_path = os.path.join(CHECKPOINT_DIR, 'bnmdap_analysis.json')
+        if os.path.exists(checkpoint_path):
+            with open(checkpoint_path, 'r', encoding='utf-8') as f:
+                checkpoint = json.load(f)
+            probs = checkpoint.get('scenarios', {}).get(scenario, {})
+            return jsonify({
+                'status': 'success',
+                'input': {
+                    'hypertension': hypertension,
+                    'heart_disease': heart_disease,
+                    'cirrhosis': cirrhosis,
+                },
+                'probabilities': probs
+            })
+
+        # Fallback: real-time computation
+        from bnmdap import BayesianDiseaseNetwork
+        import pandas as pd
+
         dfs = {}
         for csv_file, name in [
             ('heart.csv', 'heart'), ('stroke.csv', 'stroke'), ('cirrhosis.csv', 'cirrhosis')
@@ -1243,7 +1156,6 @@ def api_bnmdap_predict():
             cirrhosis=cirrhosis
         )
 
-        # Convert to serializable format
         sanitized = {}
         for key, value in result.items():
             if hasattr(value, 'item'):

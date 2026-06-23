@@ -1,218 +1,705 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Disease Prediction and Big Data Analysis System{% endblock %}
+{% block title %}DpDa - 疾病预测与大数据分析系统{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        min-height: calc(100vh - 70px);
+        display: flex;
+        align-items: center;
+        padding: 60px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-glow {
+        position: absolute;
+        width: 600px; height: 600px;
+        border-radius: 50%;
+        filter: blur(120px);
+        opacity: 0.15;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+
+    .hero-glow-1 { background: var(--accent-cyan); }
+    .hero-glow-2 { background: var(--accent-purple); width: 400px; height: 400px; }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 212, 255, 0.08);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 100px;
+        padding: 8px 18px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--accent-cyan);
+        margin-bottom: 24px;
+    }
+
+    .hero-title {
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 24px;
+        letter-spacing: -0.02em;
+    }
+
+    .hero-title .gradient-text {
+        background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-subtitle {
+        font-size: 1.15rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+        max-width: 560px;
+        margin-bottom: 36px;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 60px;
+    }
+
+    .btn-hero-primary {
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+        border: none;
+        border-radius: 14px;
+        padding: 14px 32px;
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--bg-primary);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 30px rgba(0, 212, 255, 0.35);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-hero-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 40px rgba(0, 212, 255, 0.55);
+        color: var(--bg-primary);
+    }
+
+    .btn-hero-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 14px 32px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-hero-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--accent-cyan);
+        color: var(--text-primary);
+    }
+
+    /* Stats Row */
+    .hero-stats {
+        display: flex;
+        gap: 40px;
+        flex-wrap: wrap;
+    }
+
+    .hero-stat {
+        text-align: left;
+    }
+
+    .hero-stat-number {
+        font-size: 2.2rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+
+    .hero-stat-label {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    /* 3D Floating Cards */
+    .hero-visual {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .floating-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 24px;
+        position: absolute;
+        transition: all 0.4s ease;
+    }
+
+    .floating-card:hover {
+        transform: translateY(-8px) scale(1.03);
+        border-color: var(--border-glow);
+        z-index: 10;
+    }
+
+    .fc-1 {
+        width: 280px;
+        top: 0; left: 50%;
+        transform: translateX(-50%) rotate(-2deg);
+        animation: floatCard 6s ease-in-out infinite;
+    }
+
+    .fc-2 {
+        width: 260px;
+        top: 120px; left: 10%;
+        transform: rotate(3deg);
+        animation: floatCard 6s ease-in-out infinite 1s;
+    }
+
+    .fc-3 {
+        width: 260px;
+        top: 120px; right: 10%;
+        transform: rotate(-3deg);
+        animation: floatCard 6s ease-in-out infinite 2s;
+    }
+
+    @keyframes floatCard {
+        0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+        50% { transform: translateY(-15px) rotate(var(--rot, 0deg)); }
+    }
+
+    .fc-1 { --rot: -2deg; }
+    .fc-2 { --rot: 3deg; }
+    .fc-3 { --rot: -3deg; }
+
+    .fc-icon {
+        width: 48px; height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+
+    .fc-title { font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+    .fc-desc { font-size: 0.8rem; color: var(--text-secondary); }
+
+    .fc-metric {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-top: 12px;
+    }
+
+    .fc-metric-value {
+        font-size: 1.8rem;
+        font-weight: 900;
+    }
+
+    .fc-metric-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    /* Feature Cards */
+    .features-section {
+        padding: 80px 0;
+    }
+
+    .feature-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 32px 28px;
+        height: 100%;
+        transition: all 0.35s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .feature-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(0,212,255,0.2), transparent, rgba(168,85,247,0.2));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+    }
+
+    .feature-card:hover::after { opacity: 1; }
+
+    .feature-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-icon {
+        width: 56px; height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    .feature-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+
+    .feature-desc {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+
+    /* Models Section */
+    .models-section {
+        padding: 80px 0;
+        background: linear-gradient(180deg, transparent, rgba(0,212,255,0.02), transparent);
+    }
+
+    .model-showcase-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        padding: 36px 32px;
+        height: 100%;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .model-showcase-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: 24px 24px 0 0;
+    }
+
+    .model-showcase-card:hover {
+        transform: translateY(-6px);
+        border-color: var(--border-glow);
+    }
+
+    .model-card-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .model-card-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .model-card-title { font-weight: 800; font-size: 1.05rem; }
+    .model-card-subtitle { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+    .model-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 20px 0;
+    }
+
+    .model-metric-item {
+        background: rgba(0,0,0,0.3);
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+    }
+
+    .model-metric-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+    }
+
+    .model-metric-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    /* Workflow */
+    .workflow-section { padding: 80px 0; }
+
+    .workflow-step {
+        text-align: center;
+        padding: 0 16px;
+        position: relative;
+    }
+
+    .workflow-step::after {
+        content: '';
+        position: absolute;
+        top: 40px; right: -20%;
+        width: 40%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-cyan), transparent);
+    }
+
+    .workflow-step:last-child::after { display: none; }
+
+    .workflow-number {
+        width: 80px; height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 900;
+        margin: 0 auto 20px;
+        position: relative;
+    }
+
+    .workflow-title { font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
+    .workflow-desc { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* CTA Section */
+    .cta-section {
+        padding: 80px 0;
+    }
+
+    .cta-card {
+        background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(168,85,247,0.1));
+        border: 1px solid rgba(0,212,255,0.2);
+        border-radius: 28px;
+        padding: 60px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
 <section class="hero-section">
-    <h1 class="hero-title white-heading">Disease Prediction and Big Data Analysis System</h1>
-    <p class="hero-subtitle white-heading">Stroke, heart disease, and cirrhosis prediction and risk assessment based on machine learning and deep learning</p>
-    <p class="hero-text white-heading">This system uses advanced machine learning algorithms to predict and analyze three major diseases, helping achieve early disease detection and prevention.</p>
-    <div class="hero-buttons">
-        <a class="btn btn-primary btn-lg floating-btn me-2" href="/predict" role="button">Single Disease Prediction</a>
-        <a class="btn btn-success btn-lg floating-btn" href="/multi-predict" role="button">Multi-Disease Prediction</a>
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6" data-aos="fade-right" data-aos-delay="100">
+                <div class="hero-badge">
+                    <i class="fas fa-circle text-success" style="font-size:8px"></i>
+                    System Online &bull; 3 Datasets Loaded
+                </div>
+                <h1 class="hero-title">
+                    疾病预测<br>
+                    <span class="gradient-text">智能分析系统</span>
+                </h1>
+                <p class="hero-subtitle">
+                    基于机器学习与贝叶斯网络的多病种预测平台，整合数据可视化、模型评估、特征分析，提供全面的疾病风险评估与健康洞察。
+                </p>
+                <div class="hero-actions">
+                    <a href="/predict" class="btn-hero-primary">
+                        <i class="fas fa-play"></i> 开始预测
+                    </a>
+                    <a href="/data-analysis" class="btn-hero-secondary">
+                        <i class="fas fa-chart-pie"></i> 数据分析
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-number">3</div>
+                        <div class="hero-stat-label">疾病数据集</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-number">5+</div>
+                        <div class="hero-stat-label">预测模型</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-number">10+</div>
+                        <div class="hero-stat-label">可视化图表</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6" data-aos="fade-left" data-aos-delay="300">
+                <div class="hero-visual" style="min-height: 400px;">
+                    <div class="floating-card fc-1">
+                        <div class="fc-icon" style="background:rgba(239,68,68,0.12); color:var(--accent-red);">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="fc-title">中风风险评估</div>
+                        <div class="fc-desc">基于多维度健康指标</div>
+                        <div class="fc-metric">
+                            <span class="fc-metric-value" style="color:var(--accent-red)">92%</span>
+                            <span class="fc-metric-label">预测准确率</span>
+                        </div>
+                    </div>
+                    <div class="floating-card fc-2">
+                        <div class="fc-icon" style="background:rgba(239,68,68,0.12); color:var(--accent-red);">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div class="fc-title">心脏病预测</div>
+                        <div class="fc-desc">心血管健康指数分析</div>
+                        <div class="fc-metric">
+                            <span class="fc-metric-value" style="color:var(--accent-red)">95%</span>
+                            <span class="fc-metric-label">AUC 评分</span>
+                        </div>
+                    </div>
+                    <div class="floating-card fc-3">
+                        <div class="fc-icon" style="background:rgba(245,158,11,0.12); color:var(--accent-yellow);">
+                            <i class="fas fa-liver"></i>
+                        </div>
+                        <div class="fc-title">肝硬化分期</div>
+                        <div class="fc-desc">纤维化程度评估</div>
+                        <div class="fc-metric">
+                            <span class="fc-metric-value" style="color:var(--accent-yellow)">88%</span>
+                            <span class="fc-metric-label">回归精度</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
-<!-- Content in Semi-transparent Cards -->
-<div class="container">
-    <!-- Disease Cards -->
-    <section class="content-block fade-in-section">
-        <h2 class="text-center mb-4 animated-title white-heading">Three Major Diseases</h2>
-        <div class="row">
-            <!-- Stroke Card -->
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">Stroke</div>
-                    <div class="card-body text-center">
-                        <div class="disease-icon"><i class="fas fa-brain"></i></div>
-                        <h5 class="card-title">Second leading cause of death globally</h5>
-                        <p class="card-text">Stroke is caused by a sudden interruption or rupture of blood supply to the brain, accounting for approximately 11% of total global deaths.</p>
-                        <p class="card-text"><strong>Risk factors:</strong> Hypertension, diabetes, smoking, age, unhealthy diet, etc.</p>
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="text-center mb-5" data-aos="fade-up">
+            <h2 class="section-title">系统核心功能</h2>
+            <p class="section-subtitle">从数据探索到智能预测的完整分析流程</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:rgba(0,212,255,0.1); color:var(--accent-cyan);">
+                        <i class="fas fa-chart-line"></i>
                     </div>
-                    <div class="card-footer">
-                        <a href="/predict?disease=stroke" class="btn btn-outline-primary">Predict Stroke Risk</a>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Heart Disease Card -->
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header bg-danger text-white">Heart Disease</div>
-                    <div class="card-body text-center">
-                        <div class="disease-icon"><i class="fas fa-heartbeat"></i></div>
-                        <h5 class="card-title">Leading cause of death globally</h5>
-                        <p class="card-text">Cardiovascular diseases claim 17.9 million lives annually, accounting for 31% of global deaths.</p>
-                        <p class="card-text"><strong>Risk factors:</strong> Hypertension, hyperlipidemia, diabetes, smoking, obesity, etc.</p>
-                    </div>
-                    <div class="card-footer">
-                        <a href="/predict?disease=heart" class="btn btn-outline-danger">Predict Heart Disease Risk</a>
+                    <div class="feature-title">数据可视化分析</div>
+                    <div class="feature-desc">
+                        缺失值检测、异常值识别、特征分布、相关性矩阵，多维度数据探索与预处理
                     </div>
                 </div>
             </div>
-            
-            <!-- Cirrhosis Card -->
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header bg-warning text-dark">Cirrhosis</div>
-                    <div class="card-body text-center">
-                        <div class="disease-icon"><i class="fas fa-notes-medical"></i></div>
-                        <h5 class="card-title">Late-stage manifestation of liver disease</h5>
-                        <p class="card-text">Cirrhosis is the late stage of scarring (fibrosis) of the liver caused by various forms of liver disease and conditions.</p>
-                        <p class="card-text"><strong>Risk factors:</strong> Long-term heavy drinking, viral hepatitis, non-alcoholic fatty liver disease, etc.</p>
+            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:rgba(168,85,247,0.1); color:var(--accent-purple);">
+                        <i class="fas fa-trophy"></i>
                     </div>
-                    <div class="card-footer">
-                        <a href="/predict?disease=cirrhosis" class="btn btn-outline-warning">Predict Cirrhosis Risk</a>
+                    <div class="feature-title">模型性能评估</div>
+                    <div class="feature-desc">
+                        ROC曲线、PR曲线、SHAP值、特征重要性，多角度评估模型可解释性
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:rgba(16,185,129,0.1); color:var(--accent-green);">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="feature-title">单病种预测</div>
+                    <div class="feature-desc">
+                        输入个人健康指标，获取心脏病、中风、肝硬化等疾病的风险评估
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="400">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:rgba(59,130,246,0.1); color:var(--accent-blue);">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <div class="feature-title">多病种联合预测</div>
+                    <div class="feature-desc">
+                        考虑疾病间关联性，一次输入预测多种疾病风险
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="500">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:rgba(245,158,11,0.1); color:var(--accent-yellow);">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div class="feature-title">多因素权重评估</div>
+                    <div class="feature-desc">
+                        量化各因素对疾病的影响权重，识别关键风险因素
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="600">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background:rgba(236,72,153,0.1); color:var(--accent-pink);">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="feature-title">自适应集成学习</div>
+                    <div class="feature-desc">
+                        AWELM模型自动优化多分类器权重融合，提升整体预测精度
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- System Features Introduction -->
-    <section class="content-block fade-in-section">
-        <h2 class="text-center mb-4 animated-title white-heading">System Features</h2>
-        <div class="row">
-            <!-- Data Analysis Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-chart-bar disease-icon"></i>
-                        <h5 class="card-title">Data Analysis</h5>
-                        <p class="card-text">Preprocessing, statistical analysis, and visualization of three disease datasets, analyzing factors affecting disease probability.</p>
-                        <a href="/data-analysis" class="btn btn-primary">View Analysis</a>
+<!-- Models Section -->
+<section class="models-section">
+    <div class="container">
+        <div class="text-center mb-5" data-aos="fade-up">
+            <h2 class="section-title">三大核心模型</h2>
+            <p class="section-subtitle">针对不同分析需求设计的专业模型</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="model-showcase-card">
+                    <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent-green), transparent); border-radius:24px 24px 0 0;"></div>
+                    <div class="model-card-header">
+                        <div class="model-card-icon" style="background:rgba(16,185,129,0.12); color:var(--accent-green);">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div>
+                            <div class="model-card-title">多因素权重评估</div>
+                            <div class="model-card-subtitle">Feature Weight Evaluation</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Prediction Model Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-brain disease-icon"></i>
-                        <h5 class="card-title">Prediction Models</h5>
-                        <p class="card-text">Building high-accuracy prediction models for stroke, heart disease, and cirrhosis disease probability.</p>
-                        <a href="/model-performance" class="btn btn-primary">Model Performance</a>
+                    <p style="color:var(--text-secondary); font-size:0.85rem; line-height:1.6; margin-bottom:16px;">
+                        基于多元回归与AUC衰减分析，量化每个特征对疾病的影响权重，综合考虑回归系数、P值和特征重要性。
+                    </p>
+                    <div class="model-metrics">
+                        <div class="model-metric-item">
+                            <div class="model-metric-value" style="color:var(--accent-green);">Full AUC</div>
+                            <div class="model-metric-label">模型整体性能</div>
+                        </div>
+                        <div class="model-metric-item">
+                            <div class="model-metric-value" style="color:var(--accent-cyan);">ΔAUC</div>
+                            <div class="model-metric-label">特征边际贡献</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Disease Prediction Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-heartbeat disease-icon"></i>
-                        <h5 class="card-title">Disease Prediction</h5>
-                        <p class="card-text">Predict disease risk based on user-entered personal health indicators, with corresponding prevention recommendations.</p>
-                        <a href="/predict" class="btn btn-primary">Make Prediction</a>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Multi-Disease Association Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-project-diagram disease-icon"></i>
-                        <h5 class="card-title">Multi-Disease Association</h5>
-                        <p class="card-text">Analyze comorbidity relationships between the three diseases, assessing the risk of having multiple diseases simultaneously.</p>
-                        <a href="/multi-disease" class="btn btn-primary">View Associations</a>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Multi-Disease Combined Prediction Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100 border-success">
-                    <div class="card-body text-center">
-                        <i class="fas fa-diagnoses disease-icon text-success"></i>
-                        <h5 class="card-title">Multi-Disease Combined Prediction</h5>
-                        <p class="card-text">Predict combined risk probability of having multiple diseases based on multi-disease associations.</p>
-                        <a href="/multi-predict" class="btn btn-success">Combined Prediction</a>
-                    </div>
+                    <a href="/weight-evaluation" class="btn btn-hero-primary w-100" style="padding:10px 20px; font-size:0.85rem; justify-content:center;">
+                        <i class="fas fa-arrow-right"></i> 进入模型
+                    </a>
                 </div>
             </div>
 
-            <!-- Weight Evaluation Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100 border-info">
-                    <div class="card-body text-center">
-                        <i class="fas fa-balance-scale disease-icon text-info"></i>
-                        <h5 class="card-title">Weight Evaluation</h5>
-                        <p class="card-text">Quantify the impact of various factors on disease risk, identifying key risk factors.</p>
-                        <a href="/weight-evaluation" class="btn btn-info text-white">View Weights</a>
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="model-showcase-card">
+                    <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent-yellow), transparent); border-radius:24px 24px 0 0;"></div>
+                    <div class="model-card-header">
+                        <div class="model-card-icon" style="background:rgba(245,158,11,0.12); color:var(--accent-yellow);">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div>
+                            <div class="model-card-title">自适应加权集成</div>
+                            <div class="model-card-subtitle">AWELM</div>
+                        </div>
                     </div>
+                    <p style="color:var(--text-secondary); font-size:0.85rem; line-height:1.6; margin-bottom:16px;">
+                        通过梯度下降优化逻辑回归、随机森林、梯度提升、SVM四个基模型的融合权重，最小化加权交叉熵损失。
+                    </p>
+                    <div class="model-metrics">
+                        <div class="model-metric-item">
+                            <div class="model-metric-value" style="color:var(--accent-yellow);">F1 Score</div>
+                            <div class="model-metric-label">综合分类性能</div>
+                        </div>
+                        <div class="model-metric-item">
+                            <div class="model-metric-value" style="color:var(--accent-purple);">Ensemble</div>
+                            <div class="model-metric-label">权重融合模型</div>
+                        </div>
+                    </div>
+                    <a href="/awelm" class="btn btn-hero-primary w-100" style="padding:10px 20px; font-size:0.85rem; justify-content:center; background:linear-gradient(135deg,var(--accent-yellow),var(--accent-red));">
+                        <i class="fas fa-arrow-right"></i> 进入模型
+                    </a>
                 </div>
             </div>
 
-            <!-- Ensemble Learning Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
-                        <i class="fas fa-layer-group disease-icon text-warning"></i>
-                        <h5 class="card-title">Ensemble Learning</h5>
-                        <p class="card-text">Build high-accuracy disease prediction models through gradient descent optimization of ensemble weights.</p>
-                        <a href="/awelm" class="btn btn-warning text-dark">Run AWELM</a>
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="model-showcase-card">
+                    <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent-pink), transparent); border-radius:24px 24px 0 0;"></div>
+                    <div class="model-card-header">
+                        <div class="model-card-icon" style="background:rgba(236,72,153,0.12); color:var(--accent-pink);">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <div>
+                            <div class="model-card-title">贝叶斯网络</div>
+                            <div class="model-card-subtitle">BNMDAP</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Bayesian Network Feature -->
-            <div class="col-md-6 col-lg-3 mb-4">
-                <div class="card h-100 border-secondary">
-                    <div class="card-body text-center">
-                        <i class="fas fa-project-diagram disease-icon" style="color:#8e44ad"></i>
-                        <h5 class="card-title">Bayesian Network</h5>
-                        <p class="card-text">Quantify comorbidity associations between diseases, predicting probability of multiple diseases occurring simultaneously.</p>
-                        <a href="/bnmdap" class="btn" style="background:#8e44ad;color:white">Comorbidity Analysis</a>
+                    <p style="color:var(--text-secondary); font-size:0.85rem; line-height:1.6; margin-bottom:16px;">
+                        构建高血压→心脏病→中风、肝病的有向无环图，计算给定风险因素下的多疾病联合概率分布。
+                    </p>
+                    <div class="model-metrics">
+                        <div class="model-metric-item">
+                            <div class="model-metric-value" style="color:var(--accent-pink);">P(D|σ)</div>
+                            <div class="model-metric-label">条件概率预测</div>
+                        </div>
+                        <div class="model-metric-item">
+                            <div class="model-metric-value" style="color:var(--accent-blue);">RR</div>
+                            <div class="model-metric-label">相对危险度</div>
+                        </div>
                     </div>
+                    <a href="/bnmdap" class="btn btn-hero-primary w-100" style="padding:10px 20px; font-size:0.85rem; justify-content:center; background:linear-gradient(135deg,var(--accent-pink),var(--accent-purple));">
+                        <i class="fas fa-arrow-right"></i> 进入模型
+                    </a>
                 </div>
             </div>
         </div>
-    </section>
-    
-    <!-- Technical Highlights Section -->
-    <section class="content-block fade-in-section">
-        <h2 class="text-center mb-4 animated-title white-heading">Technical Highlights</h2>
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="chart-container">
-                    <h4 class="text-center">Deep Learning Models</h4>
-                    <p>This system not only uses traditional machine learning algorithms but also combines deep neural networks and attention mechanisms, improving prediction accuracy through multi-layer feature extraction.</p>
-                    <div class="text-center">
-                        <i class="fas fa-network-wired fa-4x text-primary mb-3"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="chart-container">
-                    <h4 class="text-center">Ensemble Learning Optimization</h4>
-                    <p>Using various ensemble techniques (voting, stacking, hybrid fusion), combining the strengths of different models to significantly improve prediction performance.</p>
-                    <div class="text-center">
-                        <i class="fas fa-layer-group fa-4x text-success mb-3"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="chart-container">
-                    <h4 class="text-center">Knowledge Distillation</h4>
-                    <p>Through teacher-student model architecture, transferring knowledge from large complex models to smaller ones, improving model efficiency.</p>
-                    <div class="text-center">
-                        <i class="fas fa-graduation-cap fa-4x text-info mb-3"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="chart-container">
-                    <h4 class="text-center">Advanced Feature Engineering</h4>
-                    <p>Using domain knowledge to create derived features, capturing complex nonlinear relationships, enhancing model prediction capability.</p>
-                    <div class="text-center">
-                        <i class="fas fa-cogs fa-4x text-warning mb-3"></i>
-                    </div>
-                </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-card" data-aos="zoom-in">
+            <h2 style="font-weight:800; font-size:2rem; margin-bottom:16px;">
+                准备好开始分析了吗？
+            </h2>
+            <p style="color:var(--text-secondary); margin-bottom:32px; max-width:480px; margin-left:auto; margin-right:auto;">
+                输入您的健康数据，获取基于机器学习的疾病风险评估
+            </p>
+            <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+                <a href="/predict" class="btn-hero-primary" style="padding:14px 36px; font-size:1rem;">
+                    <i class="fas fa-heartbeat"></i> 立即预测
+                </a>
+                <a href="/model-performance" class="btn-hero-secondary" style="padding:14px 36px; font-size:1rem;">
+                    <i class="fas fa-chart-bar"></i> 查看模型
+                </a>
             </div>
         </div>
-    </section>
-</div>
+    </div>
+</section>
 {% endblock %}

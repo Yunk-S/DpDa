@@ -1,568 +1,495 @@
+"""
+Disease Prediction Visualization Module
+为三大核心模型提供可视化功能
+"""
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import warnings
 
-# Use try-except to import optional dependencies
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    print("Warning: Plotly package not available, interactive visualization features will be skipped")
-    PLOTLY_AVAILABLE = False
+warnings.filterwarnings('ignore')
 
-try:
-    import shap
-    SHAP_AVAILABLE = True
-except ImportError:
-    print("Warning: SHAP package not available, SHAP value visualization will be skipped")
-    SHAP_AVAILABLE = False
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'SimHei', 'Microsoft YaHei']
+plt.rcParams['axes.unicode_minus'] = False
 
-class DataVisualizer:
-    def __init__(self, stroke_data=None, heart_data=None, cirrhosis_data=None):
-        """Initialize data visualization class
-        
-        Parameters:
-            stroke_data: Stroke dataset
-            heart_data: Heart disease dataset
-            cirrhosis_data: Cirrhosis dataset
-        """
-        self.stroke_data = stroke_data
-        self.heart_data = heart_data
-        self.cirrhosis_data = cirrhosis_data
-        
-        # Create output directory
-        os.makedirs('output/figures', exist_ok=True)
-        
-        # Set visualization style
-        sns.set(style="whitegrid")
-        plt.rcParams['font.sans-serif'] = ['DejaVu Sans']  # For displaying labels
-        plt.rcParams['axes.unicode_minus'] = False  # For displaying minus signs
+os.makedirs('output/figures', exist_ok=True)
+
+
+class WeightEvaluationVisualizer:
+    """权重评估模型可视化"""
     
-    def load_processed_data(self, stroke_path='output/processed_data/stroke_processed.csv',
-                           heart_path='output/processed_data/heart_processed.csv',
-                           cirrhosis_path='output/processed_data/cirrhosis_processed.csv'):
-        """Load processed data"""
-        self.stroke_data = pd.read_csv(stroke_path)
-        self.heart_data = pd.read_csv(heart_path)
-        self.cirrhosis_data = pd.read_csv(cirrhosis_path)
-        print("Processed data loaded successfully!")
-        
-    def plot_feature_distributions(self, save_plots=True):
-        """Plot feature distributions"""
-        datasets = {
-            'stroke': (self.stroke_data, 'stroke'),
-            'heart': (self.heart_data, 'HeartDisease'),
-            'cirrhosis': (self.cirrhosis_data, 'Stage')
+    def __init__(self, dataset_name='disease'):
+        self.dataset_name = dataset_name
+        self.colors = {
+            'primary': '#2E86AB',
+            'secondary': '#A23B72',
+            'accent': '#F18F01',
         }
-        
-        for name, (data, target) in datasets.items():
-            print(f"Plotting {name} dataset feature distributions...")
-            
-            # Categorical feature visualization
-            categorical_cols = data.select_dtypes(include=['object', 'category']).columns
-            categorical_cols = [col for col in categorical_cols if col.lower() not in ['id']]
-            
-            if len(categorical_cols) > 0:
-                # Calculate number of charts needed for each categorical feature
-                n_cat_cols = len(categorical_cols)
-                n_rows = (n_cat_cols + 2) // 3  # Maximum 3 charts per row
-                
-                # Create canvas
-                plt.figure(figsize=(18, n_rows * 5))
-                
-                # Plot count chart for each categorical feature
-                for i, col in enumerate(categorical_cols):
-                    plt.subplot(n_rows, 3, i+1)
-                    
-                    # Check if target variable is in data
-                    if target in data.columns:
-                        # Count chart grouped by target variable
-                        sns.countplot(x=col, hue=target, data=data)
-                        plt.title(f'{name.capitalize()} - {col} Distribution (grouped by {target})')
-                    else:
-                        # Regular count chart
-                        sns.countplot(x=col, data=data)
-                        plt.title(f'{name.capitalize()} - {col} Distribution')
-                    
-                    plt.xticks(rotation=45)
-                    plt.tight_layout()
-                
-                if save_plots:
-                    plt.savefig(f'output/figures/{name}_categorical_distributions.png')
-                plt.close()
-            
-            # Numeric feature visualization
-            numeric_cols = data.select_dtypes(include=['float64', 'int64']).columns
-            numeric_cols = [col for col in numeric_cols if col.lower() not in ['id'] and col != target]
-            
-            if len(numeric_cols) > 0:
-                # Create canvas
-                n_num_cols = len(numeric_cols)
-                n_rows = (n_num_cols + 2) // 3  # Maximum 3 charts per row
-                
-                plt.figure(figsize=(18, n_rows * 5))
-                
-                # Plot distribution for each numeric feature
-                for i, col in enumerate(numeric_cols):
-                    plt.subplot(n_rows, 3, i+1)
-                    
-                    # Plot histogram and density plot
-                    if target in data.columns and len(data[target].unique()) <= 5:
-                        # Distribution plot grouped by target variable
-                        for cls in sorted(data[target].unique()):
-                            sns.histplot(data[data[target]==cls][col], kde=True, 
-                                         label=f'{target}={cls}', alpha=0.5)
-                        plt.legend()
-                        plt.title(f'{name.capitalize()} - {col} Distribution (grouped by {target})')
-                    else:
-                        # Regular distribution plot
-                        sns.histplot(data[col], kde=True)
-                        plt.title(f'{name.capitalize()} - {col} Distribution')
-                    
-                    plt.tight_layout()
-                
-                if save_plots:
-                    plt.savefig(f'output/figures/{name}_numeric_distributions.png')
-                plt.close()
-            
-            # Plot target variable distribution
-            if target in data.columns:
-                plt.figure(figsize=(8, 6))
-                target_counts = data[target].value_counts()
-                
-                # Calculate percentages
-                target_percents = target_counts / target_counts.sum() * 100
-                
-                # Plot pie chart
-                plt.pie(target_counts, labels=[f'{i} ({p:.1f}%)' for i, p in zip(target_counts.index, target_percents)],
-                        autopct='%1.1f%%', startangle=90, shadow=True)
-                plt.title(f'{name.capitalize()} - {target} Distribution')
-                plt.axis('equal')
-                
-                if save_plots:
-                    plt.savefig(f'output/figures/{name}_target_distribution.png')
-                plt.close()
-                
-        print("Feature distribution visualization complete!")
     
-    def plot_correlation_matrices(self, save_plots=True):
-        """Plot feature correlation matrices"""
-        datasets = {
-            'stroke': self.stroke_data,
-            'heart': self.heart_data,
-            'cirrhosis': self.cirrhosis_data
-        }
+    def plot_feature_weights(self, weights_df, top_n=15, save_path=None):
+        """绘制特征权重水平条形图"""
+        if save_path is None:
+            save_path = f'output/figures/{self.dataset_name}_feature_weights.png'
         
-        for name, data in datasets.items():
-            print(f"Plotting {name} dataset correlation matrix...")
-            
-            # Select numeric features
-            numeric_data = data.select_dtypes(include=['float64', 'int64'])
-            
-            # If too many features, keep only important ones
-            if numeric_data.shape[1] > 15:
-                # Select important features based on domain knowledge
-                if name == 'stroke':
-                    important_cols = ['age', 'hypertension', 'heart_disease', 'avg_glucose_level', 
-                                     'bmi', 'stroke', 'multiple_risks', 'glucose_risk']
-                    numeric_data = numeric_data[important_cols]
-                elif name == 'heart':
-                    important_cols = ['Age', 'RestingBP', 'Cholesterol', 'FastingBS', 
-                                     'MaxHR', 'Oldpeak', 'HeartDisease', 'bp_risk']
-                    numeric_data = numeric_data[important_cols]
-                elif name == 'cirrhosis':
-                    important_cols = ['Age_years', 'Bilirubin', 'Albumin', 'Copper', 
-                                     'Prothrombin', 'Stage', 'liver_score', 'bilirubin_risk']
-                    numeric_data = numeric_data[important_cols]
-            
-            # Calculate correlation matrix
-            corr_matrix = numeric_data.corr()
-            
-            # Plot heatmap
-            plt.figure(figsize=(12, 10))
-            sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", 
-                        linewidths=0.5, vmin=-1, vmax=1)
-            plt.title(f'{name.capitalize()} Dataset - Feature Correlation Matrix')
-            plt.tight_layout()
-            
-            if save_plots:
-                plt.savefig(f'output/figures/{name}_correlation_matrix.png')
-            plt.close()
-            
-            # If Plotly is available, create interactive heatmap
-            if PLOTLY_AVAILABLE and save_plots:
-                try:
-                    fig = px.imshow(corr_matrix,
-                                 x=corr_matrix.columns,
-                                 y=corr_matrix.columns,
-                                 color_continuous_scale='RdBu_r',
-                                 title=f'{name.capitalize()} Dataset - Feature Correlation Matrix (Interactive)')
-                    
-                    fig.write_html(f'output/figures/{name}_correlation_matrix_interactive.html')
-                except Exception as e:
-                    print(f"Error creating interactive heatmap: {e}")
+        df = weights_df.sort_values('Normalized_Weight_Pct', ascending=True).tail(top_n)
         
-        print("Correlation matrix visualization complete!")
-    
-    def plot_feature_importance(self, save_plots=True):
-        """Plot feature importance"""
-        datasets = {
-            'stroke': (self.stroke_data, 'stroke'),
-            'heart': (self.heart_data, 'HeartDisease'),
-            'cirrhosis': (self.cirrhosis_data, 'Stage')
-        }
+        fig, ax = plt.subplots(figsize=(10, max(6, len(df) * 0.5)))
+        colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(df)))
         
-        for name, (data, target) in datasets.items():
-            print(f"Calculating {name} dataset feature importance...")
-            
-            if target in data.columns:
-                # Prepare data
-                X = data.drop([target], axis=1)
-                X = X.select_dtypes(include=['float64', 'int64'])  # Keep only numeric features
-                
-                # Remove ID columns
-                id_cols = [col for col in X.columns if col.lower() in ['id', 'n_days']]
-                X = X.drop(id_cols, axis=1, errors='ignore')
-                
-                if len(X.columns) == 0:
-                    print(f"{name} dataset has no suitable features for importance calculation")
-                    continue
-                    
-                y = data[target]
-                
-                # Determine task type based on dataset name and target column
-                is_classification = True
-                if name == 'cirrhosis' and target == 'Stage':
-                    is_classification = False
-                elif len(y.unique()) > 10:  # If target variable has many unique values, likely a regression task
-                    is_classification = False
-                
-                # Handle categorical target variables
-                if is_classification and (y.dtype == 'object' or y.dtype == 'category'):
-                    from sklearn.preprocessing import LabelEncoder
-                    le = LabelEncoder()
-                    y = le.fit_transform(y)
-                
-                # Train model
-                if is_classification:
-                    from sklearn.ensemble import RandomForestClassifier
-                    model = RandomForestClassifier(n_estimators=100, random_state=42)
-                else:
-                    from sklearn.ensemble import RandomForestRegressor
-                    model = RandomForestRegressor(n_estimators=100, random_state=42)
-                
-                # Fit model
-                model.fit(X, y)
-                
-                # Get feature importance
-                importances = model.feature_importances_
-                indices = np.argsort(importances)[::-1]
-                
-                # Plot feature importance bar chart
-                plt.figure(figsize=(12, 8))
-                plt.title(f'{name.capitalize()} Dataset - Feature Importance')
-                plt.bar(range(X.shape[1]), importances[indices], align='center')
-                plt.xticks(range(X.shape[1]), X.columns[indices], rotation=90)
-                plt.tight_layout()
-                
-                if save_plots:
-                    plt.savefig(f'output/figures/{name}_feature_importance.png')
-                plt.close()
-                
-                # Use SHAP values to explain model
-                if SHAP_AVAILABLE:
-                    try:
-                        explainer = shap.TreeExplainer(model)
-                        shap_values = explainer.shap_values(X)
-                        
-                        # Plot summary chart
-                        plt.figure(figsize=(10, 8))
-                        shap.summary_plot(shap_values, X, plot_type="bar", show=False)
-                        plt.title(f'{name.capitalize()} Dataset - SHAP Value Feature Importance')
-                        plt.tight_layout()
-                        
-                        if save_plots:
-                            plt.savefig(f'output/figures/{name}_shap_importance.png')
-                        plt.close()
-                        
-                        # Plot detailed SHAP values chart
-                        plt.figure(figsize=(12, 10))
-                        shap.summary_plot(shap_values, X, show=False)
-                        plt.title(f'{name.capitalize()} Dataset - SHAP Value Feature Impact')
-                        plt.tight_layout()
-                        
-                        if save_plots:
-                            plt.savefig(f'output/figures/{name}_shap_summary.png')
-                        plt.close()
-                        
-                    except Exception as e:
-                        print(f"SHAP value calculation failed: {e}")
-                else:
-                    print("SHAP not available, skipping SHAP value visualization")
-            
-            else:
-                print(f"Target variable {target} not found in {name} dataset")
+        bars = ax.barh(df['Feature'], df['Normalized_Weight_Pct'], color=colors)
         
-        print("Feature importance visualization complete!")
-    
-    def plot_pair_plots(self, save_plots=True):
-        """Plot pair plots to analyze relationships between features"""
-        datasets = {
-            'stroke': (self.stroke_data, 'stroke'),
-            'heart': (self.heart_data, 'HeartDisease'),
-            'cirrhosis': (self.cirrhosis_data, 'Stage')
-        }
+        for bar, val in zip(bars, df['Normalized_Weight_Pct']):
+            ax.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height()/2,
+                    f'{val:.1f}%', va='center', fontsize=9)
         
-        for name, (data, target) in datasets.items():
-            print(f"Plotting {name} dataset pair plots...")
-            
-            if target in data.columns:
-                # Select most important features
-                if name == 'stroke':
-                    selected_features = ['age', 'avg_glucose_level', 'bmi', 'stroke']
-                elif name == 'heart':
-                    selected_features = ['Age', 'RestingBP', 'Cholesterol', 'MaxHR', 'HeartDisease']
-                elif name == 'cirrhosis':
-                    selected_features = ['Age_years', 'Bilirubin', 'Albumin', 'Prothrombin', 'Stage']
-                
-                # Filter data
-                plot_data = data[selected_features].copy()
-                
-                # Plot pair plot
-                plt.figure(figsize=(12, 10))
-                sns.pairplot(plot_data, hue=target, diag_kind='kde')
-                plt.suptitle(f'{name.capitalize()} Dataset - Pair Plot', y=1.02)
-                
-                if save_plots:
-                    plt.savefig(f'output/figures/{name}_pair_plot.png')
-                plt.close()
-            
-            else:
-                print(f"Target variable {target} not found in {name} dataset")
+        ax.set_xlabel('Weight (%)', fontsize=11)
+        ax.set_title(f'{self.dataset_name.capitalize()} - Feature Weight Analysis (Top {top_n})',
+                    fontsize=13, fontweight='bold')
+        ax.set_xlim(0, df['Normalized_Weight_Pct'].max() * 1.15)
+        ax.grid(axis='x', alpha=0.3)
         
-        print("Pair plot visualization complete!")
-    
-    def plot_disease_comparison(self, save_plots=True):
-        """Compare common features across three diseases"""
-        print("Comparing common features across three diseases...")
-        
-        if self.stroke_data is None or self.heart_data is None or self.cirrhosis_data is None:
-            print("Warning: Data not loaded, please call load_processed_data method first")
-            return
-        
-        # Extract common features
-        # Age is a common feature across all three datasets
-        stroke_age = self.stroke_data[['age', 'stroke']].copy()
-        stroke_age['disease'] = 'Stroke'
-        stroke_age.rename(columns={'stroke': 'has_disease', 'age': 'Age'}, inplace=True)
-        
-        heart_age = self.heart_data[['Age', 'HeartDisease']].copy()
-        heart_age['disease'] = 'Heart Disease'
-        heart_age.rename(columns={'HeartDisease': 'has_disease'}, inplace=True)
-        
-        cirrhosis_age = self.cirrhosis_data[['Age_years', 'Stage']].copy()
-        cirrhosis_age['disease'] = 'Cirrhosis'
-        cirrhosis_age['has_disease'] = (cirrhosis_age['Stage'] > 2).astype(int)  # Treat stages 3,4 as severe disease
-        cirrhosis_age.rename(columns={'Age_years': 'Age'}, inplace=True)
-        cirrhosis_age.drop('Stage', axis=1, inplace=True)
-        
-        # Combine data
-        combined_age = pd.concat([stroke_age, heart_age, cirrhosis_age], ignore_index=True)
-        
-        # Plot age distribution comparison
-        plt.figure(figsize=(12, 8))
-        sns.violinplot(x='disease', y='Age', hue='has_disease', 
-                      data=combined_age, split=True, inner="quart")
-        plt.title('Age Distribution Comparison Across Three Diseases')
-        plt.xlabel('Disease Type')
-        plt.ylabel('Age')
-        plt.legend(title='Has Disease', loc='best')
-        
-        if save_plots:
-            plt.savefig('output/figures/disease_age_comparison.png')
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
         plt.close()
+        return save_path
+    
+    def plot_cumulative_weight_curve(self, weights_df, threshold=80, save_path=None):
+        """绘制累积权重曲线"""
+        if save_path is None:
+            save_path = f'output/figures/{self.dataset_name}_cumulative_weight.png'
         
-        # Plot disease prevalence by age group
-        plt.figure(figsize=(14, 8))
+        df = weights_df.sort_values('Normalized_Weight_Pct', ascending=False).reset_index(drop=True)
+        fig, ax = plt.subplots(figsize=(12, 6))
         
-        # Load raw data to get mean and standard deviation of age
-        try:
-            # Load raw data
-            stroke_orig = pd.read_csv('stroke.csv')
-            heart_orig = pd.read_csv('heart.csv')
-            cirrhosis_orig = pd.read_csv('cirrhosis.csv')
-            
-            # Calculate statistics for raw data
-            stroke_mean = stroke_orig['age'].mean()
-            stroke_std = stroke_orig['age'].std()
-            
-            heart_mean = heart_orig['Age'].mean()
-            heart_std = heart_orig['Age'].std()
-            
-            cirrhosis_age_years = cirrhosis_orig['Age'] / 365.25  # Convert to years
-            cirrhosis_mean = cirrhosis_age_years.mean()
-            cirrhosis_std = cirrhosis_age_years.std()
-            
-            print(f"Raw data age statistics:")
-            print(f"Stroke data: Mean = {stroke_mean:.2f}, Std = {stroke_std:.2f}")
-            print(f"Heart disease data: Mean = {heart_mean:.2f}, Std = {heart_std:.2f}")
-            print(f"Cirrhosis data: Mean = {cirrhosis_mean:.2f}, Std = {cirrhosis_std:.2f}")
-            
-            # Reverse standardization - apply different mean and std based on disease type
-            combined_age['Age_Original'] = combined_age.apply(
-                lambda row: row['Age'] * stroke_std + stroke_mean if row['disease'] == 'Stroke' else
-                           (row['Age'] * heart_std + heart_mean if row['disease'] == 'Heart Disease' else
-                            row['Age'] * cirrhosis_std + cirrhosis_mean),
-                axis=1
-            )
-            
-            # Print age distribution before and after processing
-            print("\nAge distribution comparison:")
-            print("Standardized age range:", combined_age['Age'].min(), "to", combined_age['Age'].max())
-            print("Unstandardized age range:", combined_age['Age_Original'].min(), "to", combined_age['Age_Original'].max())
-            
-        except Exception as e:
-            print(f"Unable to load raw data for unstandardization: {e}")
-            # If raw data cannot be loaded, use estimated mean and std
-            combined_age['Age_Original'] = combined_age['Age'] * 20 + 50  # Rough estimate
+        features = df['Feature'].values
+        cum_weights = df['Cumulative_Weight_Pct'].values
+        weights = df['Normalized_Weight_Pct'].values
+        x = np.arange(len(features))
         
-        # Define age groups - using unstandardized age
-        age_bins = [0, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        age_labels = ['0-20', '21-30', '31-40', '41-50', '51-60', '61-70', '71-80', '81-90', '91+']
+        bars = ax.bar(x, weights, color=self.colors['primary'], alpha=0.7, 
+                      label='Individual Weight', edgecolor='white')
         
-        # Group using unstandardized age values
-        combined_age['age_group'] = pd.cut(combined_age['Age_Original'], bins=age_bins, labels=age_labels)
+        ax2 = ax.twinx()
+        ax2.plot(x, cum_weights, 'ro-', linewidth=2, markersize=6, 
+                label='Cumulative Weight', color=self.colors['secondary'])
+        ax2.axhline(y=threshold, color=self.colors['accent'], linestyle='--', 
+                    linewidth=1.5, label=f'{threshold}% Threshold')
         
-        # Check age group distribution
-        print("\nUnstandardized age group distribution:")
-        print(combined_age['age_group'].value_counts().sort_index())
+        for i, (feat, cw, w) in enumerate(zip(features, cum_weights, weights)):
+            ax.text(i, w + 0.5, f'{w:.1f}%', ha='center', fontsize=8, fontweight='bold')
+            if cw <= threshold + 5:
+                ax2.text(i, cw + 1.5, f'{cw:.1f}%', ha='center', fontsize=7, rotation=90)
         
-        # Calculate disease prevalence for each age group
-        disease_rates = combined_age.groupby(['disease', 'age_group'])['has_disease'].mean().reset_index()
-        disease_rates['percentage'] = disease_rates['has_disease'] * 100
+        ax.set_xticks(x)
+        ax.set_xticklabels(features, rotation=45, ha='right', fontsize=9)
+        ax.set_ylabel('Individual Weight (%)', fontsize=11)
+        ax2.set_ylabel('Cumulative Weight (%)', fontsize=11)
+        ax.set_xlabel('Feature', fontsize=11)
+        ax.set_title(f'{self.dataset_name.capitalize()} - Cumulative Weight Impact',
+                    fontsize=13, fontweight='bold')
         
-        # Print results
-        print("\nDisease prevalence by age group:")
-        print(disease_rates)
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=9)
         
-        # Plot grouped bar chart
-        plt.figure(figsize=(16, 8))
-        sns.barplot(x='age_group', y='percentage', hue='disease', data=disease_rates)
-        plt.title('Disease Prevalence Comparison by Age Group')
-        plt.xlabel('Age Group')
-        plt.ylabel('Prevalence (%)')
-        plt.legend(title='Disease Type')
-        plt.xticks(rotation=45)
-        
-        if save_plots:
-            plt.savefig('output/figures/disease_rate_by_age.png')
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
         plt.close()
-        
-        # Use Plotly to create interactive charts (if available)
-        if PLOTLY_AVAILABLE and save_plots:
-            try:
-                fig = px.line(disease_rates, x='age_group', y='percentage', color='disease',
-                            title='Disease Prevalence by Age Group (Interactive)',
-                            labels={'age_group': 'Age Group', 'percentage': 'Prevalence (%)', 'disease': 'Disease Type'},
-                            markers=True)
-                
-                fig.write_html('output/figures/disease_rate_by_age_interactive.html')
-            except Exception as e:
-                print(f"Error creating interactive age-disease chart: {e}")
-            
-        # Gender comparison (both stroke and heart disease datasets have gender features)
-        # First check if gender features exist in datasets
-        if 'gender' in self.stroke_data.columns and 'Sex' in self.heart_data.columns:
-            print("Processing gender data...")
-            
-            try:
-                # Extract gender and disease status from stroke data
-                stroke_gender = self.stroke_data[['gender', 'stroke']].copy()
-                stroke_gender['disease'] = 'Stroke'
-                stroke_gender.rename(columns={'stroke': 'has_disease', 'gender': 'Sex'}, inplace=True)
-                
-                # Extract gender and disease status from heart disease data
-                heart_gender = self.heart_data[['Sex', 'HeartDisease']].copy()
-                heart_gender['disease'] = 'Heart Disease'
-                heart_gender.rename(columns={'HeartDisease': 'has_disease'}, inplace=True)
-                
-                # Print debug info
-                print("Stroke data gender unique values:", stroke_gender['Sex'].unique())
-                print("Heart disease data gender unique values:", heart_gender['Sex'].unique())
-                print("Stroke data gender dtype:", stroke_gender['Sex'].dtype)
-                print("Heart disease data gender dtype:", heart_gender['Sex'].dtype)
-                
-                # Standardize gender representation - simple method: values less than 0 are 0 (female), greater than 0 are 1 (male)
-                # This is because standardized values may no longer be 0 and 1, but retain positive/negative relationship
-                
-                # Process stroke data - keep original numeric relationship
-                stroke_gender['Sex_Numeric'] = np.where(stroke_gender['Sex'] < 0, 0, 1)
-                
-                # Process heart disease data - keep original numeric relationship
-                heart_gender['Sex_Numeric'] = np.where(heart_gender['Sex'] < 0, 0, 1)
-                
-                # Combine the two datasets
-                combined_gender = pd.concat([stroke_gender, heart_gender], ignore_index=True)
-                
-                # Map to displayable text
-                combined_gender['Sex_Display'] = combined_gender['Sex_Numeric'].map({0: 'Female', 1: 'Male'})
-                
-                # Print debug info
-                print("Combined gender unique values:", combined_gender['Sex_Numeric'].unique())
-                print("Mapped display values:", combined_gender['Sex_Display'].unique())
-                print("Total data records:", len(combined_gender))
-                
-                # Calculate disease prevalence by gender
-                gender_rates = combined_gender.groupby(['disease', 'Sex_Display'])['has_disease'].mean().reset_index()
-                gender_rates['percentage'] = gender_rates['has_disease'] * 100
-                
-                # Print prevalence rates
-                print("Disease prevalence by gender:")
-                print(gender_rates)
-                
-                # Plot grouped bar chart
-                plt.figure(figsize=(10, 6))
-                
-                # Ensure data exists before plotting
-                if not gender_rates.empty and len(gender_rates) >= 2:
-                    sns.barplot(x='Sex_Display', y='percentage', hue='disease', data=gender_rates)
-                    plt.title('Impact of Gender on Stroke and Heart Disease Prevalence')
-                    plt.xlabel('Gender')
-                    plt.ylabel('Prevalence (%)')
-                    plt.legend(title='Disease Type')
-                    
-                    if save_plots:
-                        plt.savefig('output/figures/gender_disease_comparison.png')
-                    plt.close()
-                else:
-                    print("Warning: Insufficient gender prevalence data to plot chart")
-                
-            except Exception as e:
-                print(f"Error processing gender data: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            print("Datasets missing gender features, cannot perform gender comparison")
-        
-        print("Disease comparison visualization complete!")
+        return save_path
     
-    def run_all_visualizations(self):
-        """Run all visualization functions"""
-        self.plot_feature_distributions()
-        self.plot_correlation_matrices()
-        self.plot_feature_importance()
-        self.plot_pair_plots()
-        self.plot_disease_comparison()
-        print("All visualization tasks complete!")
+    def plot_weight_heatmap(self, weights_df, save_path=None):
+        """绘制权重热力图"""
+        if save_path is None:
+            save_path = f'output/figures/{self.dataset_name}_weight_heatmap.png'
+        
+        df = weights_df.sort_values('Normalized_Weight_Pct', ascending=False)
+        plot_data = df[['Feature', 'AUC', 'Normalized_Weight_Pct']].set_index('Feature')
+        plot_data.columns = ['Univariate AUC', 'Comprehensive Weight (%)']
+        
+        fig, axes = plt.subplots(1, 2, figsize=(14, max(6, len(df) * 0.4 + 2)))
+        
+        sns.heatmap(plot_data[['Univariate AUC']], annot=True, fmt='.3f',
+                   cmap='YlOrRd', ax=axes[0], cbar_kws={'label': 'AUC'}, linewidths=0.5)
+        axes[0].set_title('Univariate Predictive Ability (AUC)', fontsize=12, fontweight='bold')
+        
+        sns.heatmap(plot_data[['Comprehensive Weight (%)']], annot=True, fmt='.1f',
+                   cmap='YlGnBu', ax=axes[1], cbar_kws={'label': 'Weight (%)'}, linewidths=0.5)
+        axes[1].set_title('Comprehensive Weight Evaluation', fontsize=12, fontweight='bold')
+        
+        plt.suptitle(f'{self.dataset_name.capitalize()} - Multi-Dimensional Weight Comparison',
+                    fontsize=14, fontweight='bold', y=1.02)
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def plot_significance_analysis(self, weights_df, save_path=None):
+        """绘制显著性分析图"""
+        if save_path is None:
+            save_path = f'output/figures/{self.dataset_name}_significance.png'
+        
+        df = weights_df.sort_values('Normalized_Weight_Pct', ascending=False)
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        
+        colors = ['#2ECC71' if sig else '#E74C3C' for sig in df['Significant']]
+        axes[0].barh(df['Feature'], -np.log10(df['P_Value_Full']), color=colors)
+        axes[0].axvline(x=-np.log10(0.05), color='red', linestyle='--', label='p=0.05')
+        axes[0].set_xlabel('-log10(p-value)', fontsize=11)
+        axes[0].set_title('Statistical Significance', fontsize=12, fontweight='bold')
+        axes[0].legend()
+        
+        colors_or = ['#2ECC71' if or_ > 1 else '#E74C3C' for or_ in df['Odds_Ratio']]
+        axes[1].barh(df['Feature'], df['Odds_Ratio'], color=colors_or)
+        axes[1].axvline(x=1, color='gray', linestyle='--', label='OR=1')
+        axes[1].set_xlabel('Odds Ratio', fontsize=11)
+        axes[1].set_title('Odds Ratio by Feature', fontsize=12, fontweight='bold')
+        axes[1].legend()
+        
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def generate_all_plots(self, weights_df, dataset_name=None):
+        """生成所有图表"""
+        if dataset_name:
+            self.dataset_name = dataset_name
+        
+        output_dir = 'output/figures'
+        os.makedirs(output_dir, exist_ok=True)
+        
+        results = {}
+        results['feature_weights'] = self.plot_feature_weights(
+            weights_df, top_n=15,
+            save_path=f'{output_dir}/{self.dataset_name}_feature_weights.png')
+        
+        results['cumulative_weight'] = self.plot_cumulative_weight_curve(
+            weights_df, threshold=80,
+            save_path=f'{output_dir}/{self.dataset_name}_cumulative_weight.png')
+        
+        results['heatmap'] = self.plot_weight_heatmap(
+            weights_df,
+            save_path=f'{output_dir}/{self.dataset_name}_weight_heatmap.png')
+        
+        results['significance'] = self.plot_significance_analysis(
+            weights_df,
+            save_path=f'{output_dir}/{self.dataset_name}_significance.png')
+        
+        return results
 
-if __name__ == "__main__":
-    # Create visualizer and load data
-    visualizer = DataVisualizer()
-    visualizer.load_processed_data()
+
+class AWELMVisualizer:
+    """AWELM模型可视化"""
     
-    # Run all visualizations
-    visualizer.run_all_visualizations()
+    def __init__(self, dataset_name='disease'):
+        self.dataset_name = dataset_name
+        self.colors = plt.cm.Set2.colors
+    
+    def plot_model_comparison(self, base_results, ensemble_result, save_path=None):
+        """绘制模型性能对比"""
+        if save_path is None:
+            save_path = f'output/figures/{self.dataset_name}_model_comparison.png'
+        
+        model_names = list(base_results.keys())
+        metrics = ['accuracy', 'precision', 'recall', 'f1', 'auc']
+        valid_metrics = [m for m in metrics if base_results[model_names[0]].get(m) is not None]
+        
+        n = len(valid_metrics)
+        fig, axes = plt.subplots(1, n, figsize=(4 * n, 5))
+        if n == 1:
+            axes = [axes]
+        
+        for ax, metric in zip(axes, valid_metrics):
+            values = [base_results[m].get(metric, 0) for m in model_names]
+            values.append(ensemble_result.get(metric, 0))
+            names = model_names + ['Ensemble']
+            colors = [self.colors[i % len(self.colors)] for i in range(len(model_names))]
+            colors.append('#E74C3C')
+            
+            ax.bar(names, values, color=colors, edgecolor='white')
+            ax.set_ylim(0, 1.1)
+            ax.set_title(metric.upper(), fontsize=11, fontweight='bold')
+            ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
+            ax.tick_params(axis='x', rotation=45)
+            
+            for bar, val in zip(ax.patches, values):
+                if val is not None:
+                    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                           f'{val:.3f}', ha='center', fontsize=8)
+            ax.grid(axis='y', alpha=0.3)
+        
+        plt.suptitle(f'{self.dataset_name.capitalize()} - Model Performance Comparison',
+                    fontsize=14, fontweight='bold')
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def plot_roc_curves(self, base_predictions, ensemble_proba, y_test, save_path=None):
+        """绘制ROC曲线"""
+        if save_path is None:
+            save_path = f'output/figures/{self.dataset_name}_roc_curves.png'
+        
+        from sklearn.metrics import roc_curve, auc
+        
+        fig, ax = plt.subplots(figsize=(10, 8))
+        colors = plt.cm.Set1(np.linspace(0, 1, len(base_predictions)))
+        
+        for (model_name, proba), color in zip(base_predictions.items(), colors):
+            try:
+                fpr, tpr, _ = roc_curve(y_test, proba)
+                roc_auc = auc(fpr, tpr)
+                ax.plot(fpr, tpr, color=color, lw=1.5, alpha=0.7,
+                       label=f'{model_name} (AUC={roc_auc:.3f})')
+            except Exception:
+                pass
+        
+        fpr_ens, tpr_ens, _ = roc_curve(y_test, ensemble_proba)
+        auc_ens = auc(fpr_ens, tpr_ens)
+        ax.plot(fpr_ens, tpr_ens, color='#E74C3C', lw=2.5,
+               label=f'Ensemble (AUC={auc_ens:.3f})', zorder=10)
+        ax.plot([0, 1], [0, 1], 'k--', lw=1, label='Random', alpha=0.5)
+        
+        ax.set_xlabel('False Positive Rate (FPR)', fontsize=12)
+        ax.set_ylabel('True Positive Rate (TPR)', fontsize=12)
+        ax.set_title(f'{self.dataset_name.capitalize()} - ROC Curve Comparison',
+                    fontsize=14, fontweight='bold')
+        ax.legend(loc='lower right', fontsize=10)
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim([-0.02, 1.02])
+        ax.set_ylim([-0.02, 1.02])
+        
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def plot_ensemble_weights(self, weights, save_path=None):
+        """绘制集成权重饼图"""
+        if save_path is None:
+            save_path = f'output/figures/{self.dataset_name}_ensemble_weights.png'
+        
+        weights_clean = {k: v for k, v in weights.items() if v > 0.001}
+        fig, ax = plt.subplots(figsize=(8, 8))
+        
+        colors = plt.cm.Set2(np.linspace(0, 1, len(weights_clean)))
+        wedges, texts, autotexts = ax.pie(
+            weights_clean.values(),
+            labels=weights_clean.keys(),
+            autopct='%1.1f%%',
+            colors=colors,
+            explode=[0.02] * len(weights_clean),
+            startangle=90,
+            textprops={'fontsize': 10}
+        )
+        
+        for autotext in autotexts:
+            autotext.set_fontsize(11)
+            autotext.set_fontweight('bold')
+            autotext.set_color('white')
+        
+        ax.set_title(f'{self.dataset_name.capitalize()} - Ensemble Weight Distribution',
+                    fontsize=14, fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def generate_all_plots(self, results, y_test, base_predictions, ensemble_proba, ensemble_pred):
+        """生成所有图表"""
+        output_dir = 'output/figures'
+        os.makedirs(output_dir, exist_ok=True)
+        
+        r = {}
+        r['model_comparison'] = self.plot_model_comparison(
+            results['base_models'], results['ensemble'],
+            save_path=f'{output_dir}/{self.dataset_name}_awelm_comparison.png')
+        
+        r['roc_curves'] = self.plot_roc_curves(
+            base_predictions, ensemble_proba, y_test,
+            save_path=f'{output_dir}/{self.dataset_name}_awelm_roc.png')
+        
+        r['ensemble_weights'] = self.plot_ensemble_weights(
+            results['weights'],
+            save_path=f'{output_dir}/{self.dataset_name}_awelm_weights.png')
+        
+        return r
+
+
+class BNMDAPVisualizer:
+    """BNMDAP可视化"""
+    
+    def __init__(self):
+        self.colors = {
+            'hypertension': '#FF6B6B',
+            'heart_disease': '#E74C3C',
+            'stroke': '#3498DB',
+            'cirrhosis': '#F39C12',
+        }
+    
+    def plot_disease_network(self, network_structure, relative_risk, disease_base_rates, save_path=None):
+        """绘制贝叶斯网络结构图"""
+        if save_path is None:
+            save_path = 'output/figures/bnmdap_network_structure.png'
+        
+        fig, ax = plt.subplots(figsize=(14, 10))
+        ax.set_xlim(-2, 12)
+        ax.set_ylim(-2, 10)
+        ax.axis('off')
+        
+        nodes = {
+            'hypertension': (3, 8),
+            'heart_disease': (6, 5.5),
+            'stroke': (9, 3),
+            'cirrhosis': (6, 1)
+        }
+        
+        edges = [
+            ('hypertension', 'heart_disease', relative_risk.get(('hypertension', 'heart_disease'), 2.8)),
+            ('hypertension', 'stroke', relative_risk.get(('hypertension', 'stroke'), 3.2)),
+            ('heart_disease', 'stroke', relative_risk.get(('heart_disease', 'stroke'), 2.5)),
+            ('heart_disease', 'cirrhosis', relative_risk.get(('heart_disease', 'cirrhosis'), 1.5)),
+        ]
+        
+        for src, dst, rr in edges:
+            x1, y1 = nodes[src]
+            x2, y2 = nodes[dst]
+            
+            ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
+                arrowprops=dict(arrowstyle='->', color='#555555', lw=2.5, connectionstyle='arc3,rad=0.1'))
+            
+            mid_x = (x1 + x2) / 2
+            mid_y = (y1 + y2) / 2 + 0.4
+            ax.text(mid_x, mid_y, f'RR={rr:.1f}', fontsize=10, ha='center',
+                   fontweight='bold', bbox=dict(boxstyle='round,pad=0.3', facecolor='wheat', alpha=0.7))
+        
+        for node, (x, y) in nodes.items():
+            rate = disease_base_rates.get(node, 0)
+            label = node.replace('_', ' ').title()
+            circle = plt.Circle((x, y), 0.9, color=self.colors[node], alpha=0.85, zorder=10, ec='white', linewidth=2)
+            ax.add_patch(circle)
+            ax.text(x, y + 0.2, label, ha='center', va='center', fontsize=10, fontweight='bold', color='white', zorder=11)
+            ax.text(x, y - 0.4, f'P={rate:.1%}', ha='center', va='center', fontsize=9, color='white', zorder=11)
+        
+        ax.set_title('Bayesian Network Multi-Disease Association Model\nDisease Network Structure with Relative Risk',
+                    fontsize=14, fontweight='bold', pad=20)
+        
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def plot_correlation_heatmap(self, relative_risk, disease_base_rates, save_path=None):
+        """绘制疾病关联热力图"""
+        if save_path is None:
+            save_path = 'output/figures/bnmdap_correlation_heatmap.png'
+        
+        diseases = ['stroke', 'heart_disease', 'cirrhosis', 'hypertension']
+        labels = ['Stroke', 'Heart Disease', 'Cirrhosis', 'Hypertension']
+        
+        rr_matrix = np.ones((4, 4))
+        for i, d1 in enumerate(diseases):
+            for j, d2 in enumerate(diseases):
+                if i != j:
+                    rr_matrix[i, j] = relative_risk.get((d1, d2), relative_risk.get((d2, d1), 1.0))
+        
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(rr_matrix, annot=True, fmt='.2f',
+                   xticklabels=labels, yticklabels=labels,
+                   cmap='YlOrRd', ax=ax, vmin=1, vmax=4,
+                   linewidths=1, linecolor='white',
+                   annot_kws={'size': 12, 'weight': 'bold'})
+        
+        ax.set_title('Relative Risk (RR) Heatmap\nRR > 2: Strong | RR 1.5-2: Moderate | RR < 1.5: Weak',
+                    fontsize=13, fontweight='bold', pad=15)
+        
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def plot_comorbidity_probability(self, scenarios_results, save_path=None):
+        """绘制共病概率条形图"""
+        if save_path is None:
+            save_path = 'output/figures/bnmdap_comorbidity_probability.png'
+        
+        labels = [s['label'] for s in scenarios_results]
+        stroke_probs = [s['stroke'] * 100 for s in scenarios_results]
+        heart_probs = [s['heart'] * 100 for s in scenarios_results]
+        cirrh_probs = [s['cirrhosis'] * 100 for s in scenarios_results]
+        
+        x = np.arange(len(labels))
+        width = 0.25
+        
+        fig, ax = plt.subplots(figsize=(14, 7))
+        ax.bar(x - width, stroke_probs, width, label='Stroke', color=self.colors['stroke'], edgecolor='white')
+        ax.bar(x, heart_probs, width, label='Heart Disease', color=self.colors['heart_disease'], edgecolor='white')
+        ax.bar(x + width, cirrh_probs, width, label='Cirrhosis', color=self.colors['cirrhosis'], edgecolor='white')
+        
+        ax.set_ylabel('Disease Probability (%)', fontsize=12)
+        ax.set_xlabel('Risk Factor Combinations', fontsize=12)
+        ax.set_title('Disease Probability Under Different Risk Factor Combinations',
+                    fontsize=14, fontweight='bold')
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=15, ha='right', fontsize=10)
+        ax.legend(fontsize=11)
+        ax.grid(axis='y', alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+        plt.close()
+        return save_path
+    
+    def generate_all_plots(self, network):
+        """生成所有图表"""
+        output_dir = 'output/figures'
+        os.makedirs(output_dir, exist_ok=True)
+        
+        results = {}
+        results['network'] = self.plot_disease_network(
+            network.network_structure, network.relative_risk, network.disease_base_rates,
+            save_path=f'{output_dir}/bnmdap_network.png')
+        
+        results['heatmap'] = self.plot_correlation_heatmap(
+            network.relative_risk, network.disease_base_rates,
+            save_path=f'{output_dir}/bnmdap_heatmap.png')
+        
+        scenarios = [
+            {'label': 'No Risk Factors', 'stroke': network.disease_base_rates.get('stroke', 0.028),
+             'heart': network.disease_base_rates.get('heart_disease', 0.047), 'cirrhosis': network.disease_base_rates.get('cirrhosis', 0.01)},
+            {'label': 'Hypertension Only', 'stroke': 0.05, 'heart': 0.12, 'cirrhosis': 0.015},
+            {'label': 'Heart Disease Only', 'stroke': 0.07, 'heart': 0.15, 'cirrhosis': 0.02},
+            {'label': 'Both Conditions', 'stroke': 0.15, 'heart': 0.25, 'cirrhosis': 0.03},
+        ]
+        
+        results['comorbidity'] = self.plot_comorbidity_probability(
+            scenarios, save_path=f'{output_dir}/bnmdap_comorbidity.png')
+        
+        return results
+
+
+def visualize_weight_evaluation(weights_df, dataset_name):
+    """便捷函数：可视化权重评估结果"""
+    visualizer = WeightEvaluationVisualizer(dataset_name)
+    return visualizer.generate_all_plots(weights_df, dataset_name)
+
+
+def visualize_awelm(results, y_test, base_predictions, ensemble_proba, ensemble_pred, dataset_name):
+    """便捷函数：可视化AWELM结果"""
+    visualizer = AWELMVisualizer(dataset_name)
+    return visualizer.generate_all_plots(results, y_test, base_predictions, ensemble_proba, ensemble_pred)
+
+
+def visualize_bnmdap(network):
+    """便捷函数：可视化BNMDAP结果"""
+    visualizer = BNMDAPVisualizer()
+    return visualizer.generate_all_plots(network)
+
+
+if __name__ == '__main__':
+    print("Disease Prediction Visualization Module")
+    print("Available: WeightEvaluationVisualizer, AWELMVisualizer, BNMDAPVisualizer")

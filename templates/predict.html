@@ -1,683 +1,807 @@
 {% extends "base.html" %}
 
-{% block title %}Disease Risk Prediction - Disease Prediction and Big Data Analysis System{% endblock %}
-
-{% block meta_description %}Providing stroke, heart disease, and cirrhosis risk prediction, assessing disease risk based on personal health indicators and providing prevention recommendations.{% endblock %}
+{% block title %}疾病预测 - DpDa{% endblock %}
 
 {% block extra_head %}
 <style>
-    .prediction-form {
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 30px;
+    .predict-hero {
+        padding: 60px 0 40px;
+        text-align: center;
+    }
+
+    .disease-tabs {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+    }
+
+    .disease-tab {
+        padding: 14px 32px;
+        border-radius: 16px;
+        border: 2px solid var(--border-subtle);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
         transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
-    .prediction-form:hover {
-        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+
+    .disease-tab:hover {
+        border-color: var(--accent-cyan);
+        color: var(--text-primary);
     }
-    .result-card {
-        display: none;
-        margin-top: 20px;
-        margin-bottom: 30px;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    .disease-tab.active {
+        border-color: var(--accent-cyan);
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--accent-cyan);
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.15);
     }
-    .result-card.show {
-        transform: scale(1.02);
+
+    .form-section {
+        padding: 20px 0;
     }
-    .high-risk {
-        background-color: #f8d7da;
-        border-color: #f5c6cb;
-        color: #721c24;
+
+    .input-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        padding: 36px;
+        margin-bottom: 24px;
     }
-    .moderate-risk {
-        background-color: #fff3cd;
-        border-color: #ffeeba;
-        color: #856404;
+
+    .input-card-title {
+        font-weight: 800;
+        font-size: 1.1rem;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
-    .low-risk {
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-        color: #155724;
+
+    .input-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
     }
-    .form-label {
-        font-weight: 500;
+
+    .input-group {
+        margin-bottom: 0;
     }
-    .result-title {
-        font-size: 24px;
-        font-weight: bold;
-    }
-    .result-probability {
-        font-size: 20px;
-        font-weight: bold;
-        margin: 15px 0;
-    }
-    .progress {
-        height: 25px;
-        margin-bottom: 15px;
-        transition: all 1s ease;
-    }
-    .nav-pills .nav-link {
-        transition: all 0.3s ease;
-    }
-    .nav-pills .nav-link:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .nav-pills .nav-link.active {
-        background-color: #0d6efd;
-        transform: translateY(-3px);
-        box-shadow: 0 6px 12px rgba(13, 110, 253, 0.3);
-    }
-    /* Enhanced Text Visibility Styles */
-    .hero-text-enhanced {
-        color: #ffffff;
-        text-shadow: 0 0 10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6);
+
+    .input-group label {
+        display: block;
+        margin-bottom: 8px;
         font-weight: 600;
-        background-color: rgba(0, 0, 0, 0.4);
-        padding: 10px 20px;
-        border-radius: 8px;
-        display: inline-block;
-        margin-bottom: 15px;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
     }
+
+    .input-group input,
+    .input-group select {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+        outline: none;
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        background: rgba(0, 0, 0, 0.4);
+    }
+
+    .input-range-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .input-range-wrapper input[type="range"] {
+        flex: 1;
+        -webkit-appearance: none;
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(0, 212, 255, 0.15);
+        border: none;
+        padding: 0;
+    }
+
+    .input-range-wrapper input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+    }
+
+    .input-range-value {
+        min-width: 50px;
+        text-align: right;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--accent-cyan);
+    }
+
+    .btn-predict {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        border-radius: 16px;
+        border: none;
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+        color: var(--bg-primary);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 30px rgba(0, 212, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .btn-predict:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 40px rgba(0, 212, 255, 0.5);
+    }
+
+    .btn-predict:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Result Section */
+    .result-section {
+        padding: 20px 0;
+    }
+
+    .result-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        padding: 36px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.5s ease;
+    }
+
+    .result-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+        transition: all 0.5s ease;
+    }
+
+    .result-card.risk-high::before {
+        background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow));
+    }
+
+    .result-card.risk-medium::before {
+        background: linear-gradient(90deg, var(--accent-yellow), var(--accent-green));
+    }
+
+    .result-card.risk-low::before {
+        background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+    }
+
+    .result-gauge-wrapper {
+        position: relative;
+        width: 240px;
+        height: 140px;
+        margin: 0 auto 24px;
+    }
+
+    .result-gauge-bg {
+        width: 240px;
+        height: 120px;
+        border-radius: 120px 120px 0 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .gauge-segment {
+        position: absolute;
+        bottom: 0;
+        width: 240px;
+        height: 120px;
+        border-radius: 120px 120px 0 0;
+        clip-path: polygon(0 100%, 50% 0, 100% 100%);
+    }
+
+    .gauge-low { background: conic-gradient(from 180deg at 50% 100%, #10b981 0deg, transparent 60deg); transform-origin: center bottom; }
+    .gauge-med { background: conic-gradient(from 240deg at 50% 100%, #f59e0b 0deg, transparent 60deg); transform-origin: center bottom; }
+    .gauge-high { background: conic-gradient(from 300deg at 50% 100%, #ef4444 0deg, transparent 60deg); transform-origin: center bottom; }
+
+    .result-percentage {
+        font-size: 4rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 8px;
+        transition: all 0.5s ease;
+    }
+
+    .result-label {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    .result-advice {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        padding: 16px;
+        background: rgba(0,0,0,0.2);
+        border-radius: 12px;
+        margin-top: 16px;
+        text-align: left;
+    }
+
+    .result-probs {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin: 24px 0;
+    }
+
+    .result-prob-item {
+        text-align: center;
+    }
+
+    .result-prob-value {
+        font-size: 2rem;
+        font-weight: 800;
+    }
+
+    .result-prob-label {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .result-detail-card {
+        background: rgba(0,0,0,0.2);
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 24px;
+        text-align: left;
+    }
+
+    .result-detail-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 16px;
+        color: var(--text-secondary);
+    }
+
+    .result-factor {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .result-factor:last-child { border-bottom: none; }
+
+    .result-factor-name {
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+    }
+
+    .result-factor-impact {
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 100px;
+    }
+
+    .impact-high { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+    .impact-medium { background: rgba(245,158,11,0.15); color: var(--accent-yellow); }
+    .impact-low { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+
+    /* Sidebar */
+    .sidebar-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        padding: 28px;
+        margin-bottom: 24px;
+    }
+
+    .sidebar-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .disease-info-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 0.85rem;
+    }
+
+    .disease-info-item:last-child { border-bottom: none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4 fade-in">
-    <h1 class="text-center mb-4 animated-title white-heading">Disease Risk Prediction</h1>
-    <p class="lead text-center hero-text-enhanced">Please enter your health indicators, and the system will assess your risk of developing specific diseases.</p>
+<!-- Header -->
+<section class="predict-hero">
+    <div class="container">
+        <div class="hero-badge" style="margin: 0 auto 16px;">
+            <i class="fas fa-heartbeat"></i> 智能疾病预测
+        </div>
+        <h1 class="section-title" style="font-size:2.2rem;" data-aos="fade-up">单病种风险评估</h1>
+        <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
+            输入您的健康指标，获取基于机器学习的疾病风险预测
+        </p>
 
-    <!-- Disease Type Selection Tabs -->
-    <ul class="nav nav-pills mb-4 justify-content-center" id="disease-tab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="stroke-tab" data-bs-toggle="pill" data-bs-target="#stroke" type="button" role="tab">
-                <i class="fas fa-brain me-2"></i>Stroke Prediction
+        <!-- Disease Tabs -->
+        <div class="disease-tabs" data-aos="fade-up" data-aos-delay="200">
+            <button class="disease-tab active" data-disease="stroke" onclick="switchDisease('stroke')">
+                <i class="fas fa-brain"></i> 中风预测
             </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="heart-tab" data-bs-toggle="pill" data-bs-target="#heart" type="button" role="tab">
-                <i class="fas fa-heartbeat me-2"></i>Heart Disease Prediction
+            <button class="disease-tab" data-disease="heart" onclick="switchDisease('heart')">
+                <i class="fas fa-heart"></i> 心脏病预测
             </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="cirrhosis-tab" data-bs-toggle="pill" data-bs-target="#cirrhosis" type="button" role="tab">
-                <i class="fas fa-pills me-2"></i>Cirrhosis Prediction
+            <button class="disease-tab" data-disease="cirrhosis" onclick="switchDisease('cirrhosis')">
+                <i class="fas fa-liver"></i> 肝硬化分期
             </button>
-        </li>
-    </ul>
-
-    <!-- Prediction Result Display Area -->
-    <div id="prediction-result" class="result-card fade-in-section">
-        <h2 class="result-title text-center mb-4">Prediction Result</h2>
-        <div id="result-content"></div>
+        </div>
     </div>
+</section>
 
-    <!-- Disease Prediction Form -->
-    <div class="tab-content" id="disease-tabContent">
-        <!-- Stroke Prediction Form -->
-        <div class="tab-pane fade show active" id="stroke" role="tabpanel">
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="prediction-form fade-in-section is-visible">
-                        <h3 class="text-center mb-4">Stroke Risk Assessment</h3>
-                        <form id="stroke-form" class="prediction-form-element">
-                            <input type="hidden" name="disease_type" value="stroke">
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="age" class="form-label">Age</label>
-                                    <input type="number" class="form-control" id="age" name="age" min="1" max="120" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="gender" class="form-label">Gender</label>
-                                    <select class="form-select" id="gender" name="gender" required>
-                                        <option value="">Please Select</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="hypertension" class="form-label">Hypertension</label>
-                                    <select class="form-select" id="hypertension" name="hypertension" required>
-                                        <option value="">Please Select</option>
-                                        <option value="0">No</option>
-                                        <option value="1">Yes</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="heart_disease" class="form-label">Heart Disease</label>
-                                    <select class="form-select" id="heart_disease" name="heart_disease" required>
-                                        <option value="">Please Select</option>
-                                        <option value="0">No</option>
-                                        <option value="1">Yes</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="avg_glucose_level" class="form-label">Average Glucose Level (mg/dL)</label>
-                                    <input type="number" class="form-control" id="avg_glucose_level" name="avg_glucose_level" min="50" max="300" step="0.1" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="bmi" class="form-label">BMI (Body Mass Index)</label>
-                                    <input type="number" class="form-control" id="bmi" name="bmi" min="10" max="60" step="0.1" required>
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="smoking_status" class="form-label">Smoking Status</label>
-                                    <select class="form-select" id="smoking_status" name="smoking_status" required>
-                                        <option value="">Please Select</option>
-                                        <option value="never smoked">Never Smoked</option>
-                                        <option value="formerly smoked">Formerly Smoked</option>
-                                        <option value="smokes">Currently Smokes</option>
-                                        <option value="Unknown">Unknown</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="text-center">
-                                <button type="submit" class="btn btn-primary">Predict Risk</button>
-                                <button type="reset" class="btn btn-secondary ms-2">Reset</button>
-                            </div>
-                        </form>
+<!-- Prediction Form -->
+<section class="form-section">
+    <div class="container">
+        <form id="predictForm" onsubmit="submitPrediction(event)">
+            <input type="hidden" id="diseaseType" value="stroke">
+
+            <!-- Stroke Form -->
+            <div id="form-stroke" class="input-card">
+                <div class="input-card-title">
+                    <i class="fas fa-user" style="color:var(--accent-cyan)"></i>
+                    基本信息
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>性别</label>
+                        <select name="gender" id="stroke-gender">
+                            <option value="Male">男</option>
+                            <option value="Female">女</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>年龄</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="age" id="stroke-age" min="1" max="100" value="55" oninput="updateVal('stroke-age')">
+                            <span class="input-range-value" id="stroke-age-val">55</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>高血压 (0=无, 1=有)</label>
+                        <select name="hypertension">
+                            <option value="0">无</option>
+                            <option value="1">有</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>心脏病 (0=无, 1=有)</label>
+                        <select name="heart_disease">
+                            <option value="0">无</option>
+                            <option value="1">有</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>平均血糖水平</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="avg_glucose_level" id="stroke-glucose" min="50" max="250" value="120" oninput="updateVal('stroke-glucose')">
+                            <span class="input-range-value" id="stroke-glucose-val">120</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>BMI 身体质量指数</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="bmi" id="stroke-bmi" min="10" max="60" value="25" step="0.1" oninput="updateVal('stroke-bmi')">
+                            <span class="input-range-value" id="stroke-bmi-val">25.0</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>吸烟状况</label>
+                        <select name="smoking_status">
+                            <option value="never smoked">从不吸烟</option>
+                            <option value="formerly smoked">曾吸烟</option>
+                            <option value="smokes">吸烟</option>
+                            <option value="Unknown">未知</option>
+                        </select>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Heart Disease Prediction Form -->
-        <div class="tab-pane fade" id="heart" role="tabpanel">
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="prediction-form fade-in-section">
-                        <h3 class="text-center mb-4">Heart Disease Risk Assessment</h3>
-                        <form id="heart-form" class="prediction-form-element">
-                            <input type="hidden" name="disease_type" value="heart">
-                            
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="heart-age" class="form-label">Age</label>
-                                        <input type="number" class="form-control" id="heart-age" name="age" min="1" max="120" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="heart-gender" class="form-label">Gender</label>
-                                        <select class="form-select" id="heart-gender" name="gender" required>
-                                            <option value="">Please Select</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="chest_pain_type" class="form-label">Chest Pain Type</label>
-                                        <select class="form-select" id="chest_pain_type" name="chest_pain_type" required>
-                                            <option value="">Please Select</option>
-                                            <option value="TA">Typical Angina (TA)</option>
-                                            <option value="ATA">Atypical Angina (ATA)</option>
-                                            <option value="NAP">Non-Anginal Pain (NAP)</option>
-                                            <option value="ASY">Asymptomatic (ASY)</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="resting_bp" class="form-label">Resting Blood Pressure (mmHg)</label>
-                                        <input type="number" class="form-control" id="resting_bp" name="resting_bp" min="80" max="220" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="cholesterol" class="form-label">Cholesterol (mg/dL)</label>
-                                        <input type="number" class="form-control" id="cholesterol" name="cholesterol" min="100" max="600" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="fasting_bs" class="form-label">Fasting Blood Sugar > 120 mg/dL</label>
-                                        <select class="form-select" id="fasting_bs" name="fasting_bs" required>
-                                            <option value="">Please Select</option>
-                                            <option value="0">No</option>
-                                            <option value="1">Yes</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="resting_ecg" class="form-label">Resting ECG</label>
-                                        <select class="form-select" id="resting_ecg" name="resting_ecg" required>
-                                            <option value="">Please Select</option>
-                                            <option value="Normal">Normal</option>
-                                            <option value="ST">ST-T Wave Abnormality</option>
-                                            <option value="LVH">Left Ventricular Hypertrophy</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="max_hr" class="form-label">Maximum Heart Rate</label>
-                                        <input type="number" class="form-control" id="max_hr" name="max_hr" min="60" max="220" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="exercise_angina" class="form-label">Exercise-Induced Angina</label>
-                                        <select class="form-select" id="exercise_angina" name="exercise_angina" required>
-                                            <option value="">Please Select</option>
-                                            <option value="N">No</option>
-                                            <option value="Y">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="oldpeak" class="form-label">ST Depression</label>
-                                        <input type="number" class="form-control" id="oldpeak" name="oldpeak" min="0" max="10" step="0.1" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="st_slope" class="form-label">ST Segment Slope</label>
-                                        <select class="form-select" id="st_slope" name="st_slope" required>
-                                            <option value="">Please Select</option>
-                                            <option value="Up">Up</option>
-                                            <option value="Flat">Flat</option>
-                                            <option value="Down">Down</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="text-center">
-                                    <button type="submit" class="btn btn-danger">Predict Risk</button>
-                                    <button type="reset" class="btn btn-secondary ms-2">Reset</button>
-                                </div>
-                            </form>
+            <!-- Heart Form -->
+            <div id="form-heart" class="input-card" style="display:none;">
+                <div class="input-card-title">
+                    <i class="fas fa-heart" style="color:var(--accent-red)"></i>
+                    心脏病检测指标
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>年龄</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="age" id="heart-age" min="1" max="100" value="55" oninput="updateVal('heart-age')">
+                            <span class="input-range-value" id="heart-age-val">55</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>性别</label>
+                        <select name="sex">
+                            <option value="1">男</option>
+                            <option value="0">女</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>静息血压 (mm Hg)</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="RestingBP" id="heart-bp" min="80" max="200" value="130" oninput="updateVal('heart-bp')">
+                            <span class="input-range-value" id="heart-bp-val">130</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>胆固醇 (mg/dl)</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Cholesterol" id="heart-chol" min="100" max="400" value="200" oninput="updateVal('heart-chol')">
+                            <span class="input-range-value" id="heart-chol-val">200</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>空腹血糖 > 120 mg/dl</label>
+                        <select name="FastingBS">
+                            <option value="0">否</option>
+                            <option value="1">是</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>静息心电图</label>
+                        <select name="RestingECG">
+                            <option value="Normal">正常</option>
+                            <option value="ST">ST段异常</option>
+                            <option value="LVH">左心室肥大</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>最大心率</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="MaxHR" id="heart-hr" min="60" max="220" value="150" oninput="updateVal('heart-hr')">
+                            <span class="input-range-value" id="heart-hr-val">150</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>运动诱发心绞痛</label>
+                        <select name="ExerciseAngina">
+                            <option value="N">否</option>
+                            <option value="Y">是</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>旧峰 ST段</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Oldpeak" id="heart-oldpeak" min="0" max="6" value="0" step="0.1" oninput="updateVal('heart-oldpeak')">
+                            <span class="input-range-value" id="heart-oldpeak-val">0.0</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>ST斜率</label>
+                        <select name="ST_Slope">
+                            <option value="Up">上升</option>
+                            <option value="Flat">平直</option>
+                            <option value="Down">下降</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cirrhosis Form -->
+            <div id="form-cirrhosis" class="input-card" style="display:none;">
+                <div class="input-card-title">
+                    <i class="fas fa-liver" style="color:var(--accent-yellow)"></i>
+                    肝功能检测指标
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>年龄</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="age" id="cirr-age" min="1" max="100" value="55" oninput="updateVal('cirr-age')">
+                            <span class="input-range-value" id="cirr-age-val">55</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>性别</label>
+                        <select name="Sex">
+                            <option value="M">男</option>
+                            <option value="F">女</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>白蛋白</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Albumin" id="cirr-alb" min="1" max="6" value="3.5" step="0.1" oninput="updateVal('cirr-alb')">
+                            <span class="input-range-value" id="cirr-alb-val">3.5</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>胆红素</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Bilirubin" id="cirr-bili" min="0" max="10" value="1" step="0.1" oninput="updateVal('cirr-bili')">
+                            <span class="input-range-value" id="cirr-bili-val">1.0</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>碱性磷酸酶</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Alk_Phos" id="cirr-ap" min="0" max="500" value="85" oninput="updateVal('cirr-ap')">
+                            <span class="input-range-value" id="cirr-ap-val">85</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>SGOT 酶</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="SGOT" id="cirr-sgot" min="0" max="500" value="50" oninput="updateVal('cirr-sgot')">
+                            <span class="input-range-value" id="cirr-sgot-val">50</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>凝血酶原时间</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Prothrombin" id="cirr-pt" min="0" max="20" value="10" step="0.1" oninput="updateVal('cirr-pt')">
+                            <span class="input-range-value" id="cirr-pt-val">10.0</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>水肿</label>
+                        <select name="Edema">
+                            <option value="N">无</option>
+                            <option value="S">轻度</option>
+                            <option value="Y">重度</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>铜含量 (mcg/day)</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Copper" id="cirr-cu" min="0" max="300" value="100" oninput="updateVal('cirr-cu')">
+                            <span class="input-range-value" id="cirr-cu-val">100</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>胆固醇</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Cholesterol" id="cirr-chol" min="100" max="500" value="250" oninput="updateVal('cirr-chol')">
+                            <span class="input-range-value" id="cirr-chol-val">250</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>血小板计数</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Platelets" id="cirr-plt" min="50" max="500" value="250" oninput="updateVal('cirr-plt')">
+                            <span class="input-range-value" id="cirr-plt-val">250</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>三酸甘油酯</label>
+                        <div class="input-range-wrapper">
+                            <input type="range" name="Tryglicerides" id="cirr-tg" min="0" max="500" value="150" oninput="updateVal('cirr-tg')">
+                            <span class="input-range-value" id="cirr-tg-val">150</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Cirrhosis Prediction Form -->
-            <div class="tab-pane fade" id="cirrhosis" role="tabpanel">
-                <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <div class="prediction-form fade-in-section">
-                            <h3 class="text-center mb-4">Cirrhosis Risk Assessment</h3>
-                            <form id="cirrhosis-form" class="prediction-form-element">
-                                <input type="hidden" name="disease_type" value="cirrhosis">
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="cirrhosis-age" class="form-label">Age (Days)</label>
-                                        <input type="number" class="form-control" id="cirrhosis-age" name="age" min="1000" max="40000" required>
-                                        <small class="form-text text-muted">Please enter days (e.g., 18250 = 50 years old)</small>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="cirrhosis-gender" class="form-label">Gender</label>
-                                        <select class="form-select" id="cirrhosis-gender" name="gender" required>
-                                            <option value="">Please Select</option>
-                                            <option value="Male">Male (M)</option>
-                                            <option value="Female">Female (F)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label for="ascites" class="form-label">Ascites</label>
-                                        <select class="form-select" id="ascites" name="ascites" required>
-                                            <option value="">Please Select</option>
-                                            <option value="N">No (N)</option>
-                                            <option value="Y">Yes (Y)</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="hepatomegaly" class="form-label">Hepatomegaly</label>
-                                        <select class="form-select" id="hepatomegaly" name="hepatomegaly" required>
-                                            <option value="">Please Select</option>
-                                            <option value="N">No (N)</option>
-                                            <option value="Y">Yes (Y)</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="spiders" class="form-label">Spider Angiomas</label>
-                                        <select class="form-select" id="spiders" name="spiders" required>
-                                            <option value="">Please Select</option>
-                                            <option value="N">No (N)</option>
-                                            <option value="Y">Yes (Y)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="edema" class="form-label">Edema</label>
-                                        <select class="form-select" id="edema" name="edema" required>
-                                            <option value="">Please Select</option>
-                                            <option value="N">No Edema (N)</option>
-                                            <option value="S">Mild Edema (S)</option>
-                                            <option value="Y">Edema Despite Diuretics (Y)</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="bilirubin" class="form-label">Bilirubin (mg/dL)</label>
-                                        <input type="number" class="form-control" id="bilirubin" name="bilirubin" min="0" max="30" step="0.1" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="albumin" class="form-label">Albumin (g/dL)</label>
-                                        <input type="number" class="form-control" id="albumin" name="albumin" min="1" max="6" step="0.01" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="prothrombin" class="form-label">Prothrombin Time (Seconds)</label>
-                                        <input type="number" class="form-control" id="prothrombin" name="prothrombin" min="8" max="20" step="0.1" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="copper" class="form-label">Urine Copper (μg/day)</label>
-                                        <input type="number" class="form-control" id="copper" name="copper" min="0" max="600" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="drug" class="form-label">Drug Treatment</label>
-                                        <select class="form-select" id="drug" name="drug" required>
-                                            <option value="">Please Select</option>
-                                            <option value="D-penicillamine">D-Penicillamine</option>
-                                            <option value="Placebo">Placebo</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="text-center">
-                                    <button type="submit" class="btn btn-warning">Predict Risk</button>
-                                    <button type="reset" class="btn btn-secondary ms-2">Reset</button>
-                                </div>
-                            </form>
+            <button type="submit" class="btn-predict" id="predictBtn">
+                <i class="fas fa-search"></i>
+                开始预测
+            </button>
+        </form>
+    </div>
+</section>
+
+<!-- Result Section -->
+<section class="result-section" id="resultSection" style="display:none;">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="result-card" id="resultCard" data-aos="zoom-in">
+                    <div class="result-gauge-wrapper">
+                        <canvas id="gaugeCanvas" width="240" height="120" style="margin:0 auto; display:block;"></canvas>
+                    </div>
+
+                    <div class="result-percentage" id="resultPercentage" style="color:var(--accent-cyan)">--%</div>
+                    <div class="result-label" id="resultLabel">预测中...</div>
+
+                    <div class="result-probs" id="resultProbs">
+                        <div class="result-prob-item">
+                            <div class="result-prob-value" id="probNormal" style="color:var(--accent-green)">--</div>
+                            <div class="result-prob-label">正常概率</div>
                         </div>
+                        <div class="result-prob-item">
+                            <div class="result-prob-value" id="probDisease" style="color:var(--accent-red)">--</div>
+                            <div class="result-prob-label">疾病概率</div>
+                        </div>
+                    </div>
+
+                    <div class="result-advice" id="resultAdvice">
+                        <i class="fas fa-lightbulb me-2" style="color:var(--accent-yellow)"></i>
+                        <span id="adviceText">正在分析...</span>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Data and Concept Diagram Display -->
-        <div class="row mt-5 content-section">
-            <div class="col-md-6 mb-4">
-                <div class="chart-container">
-                    <h4 class="text-center">Risk Factor Association Analysis</h4>
-                    <img src="{{ url_for('static', filename='images/concept_healthcare.jpg') }}" class="img-fluid concept-image" alt="Risk Factor Association Analysis">
-                    <p class="mt-3">Through machine learning technology, we have analyzed the complex associations between various risk factors, providing a more comprehensive understanding for prediction models.</p>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="chart-container">
-                    <h4 class="text-center">Deep Learning and Prediction</h4>
-                    <img src="{{ url_for('static', filename='images/concept_prediction.jpg') }}" class="img-fluid concept-image" alt="Deep Learning and Prediction">
-                    <p class="mt-3">Our deep learning models can identify hidden patterns and risk signals that are difficult to discover through traditional methods by analyzing large amounts of health data.</p>
-                </div>
-            </div>
-        </div>
     </div>
-    
-    <!-- Bottom Navigation Button -->
-    <div class="action-button-container">
-        <a href="/multi-predict" class="action-button">
-            <i class="fas fa-sitemap"></i> Go to Multi-Disease Prediction
-        </a>
-    </div>
-</div>
+</section>
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add form handling
-    document.querySelectorAll('.prediction-form-element').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerText;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Predicting...';
-            
-            // Collect form data
-            const formData = new FormData(this);
-            
-            // Send AJAX request
-            fetch('/predict', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response error');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Restore button state
-                submitBtn.disabled = false;
-                submitBtn.innerText = originalText;
-                
-                // Show prediction result
-                showPredictionResult(data);
-            })
-            .catch(error => {
-                // Restore button state
-                submitBtn.disabled = false;
-                submitBtn.innerText = originalText;
-                
-                // Show error message
-                showError(error.message);
-            });
-        });
-    });
-    
-    // Show error message
-    function showError(message) {
-        const resultContainer = document.getElementById('prediction-result');
-        const resultContent = document.getElementById('result-content');
-        
-        // Show result container
-        resultContainer.style.display = 'block';
-        
-        // Clear previous results
-        resultContent.innerHTML = `
-            <div class="alert alert-danger">
-                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Error Occurred</h4>
-                <p>Sorry, an issue occurred during prediction: ${message}</p>
-                <p>Please check your input data and try again.</p>
-            </div>
-        `;
-        
-        // Scroll to result area
-        resultContainer.scrollIntoView({behavior: 'smooth'});
+let gaugeChart = null;
+
+function updateVal(id) {
+    const input = document.getElementById(id);
+    const val = document.getElementById(id + '-val');
+    if (input && val) {
+        val.textContent = input.value;
     }
-    
-    // Show prediction result
-    function showPredictionResult(data) {
-        const resultContainer = document.getElementById('prediction-result');
-        const resultContent = document.getElementById('result-content');
-        
-        if (data.error) {
-            showError(data.error);
-            return;
+}
+
+function switchDisease(disease) {
+    document.querySelectorAll('.disease-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.disease-tab[data-disease="${disease}"]`).classList.add('active');
+
+    document.getElementById('form-stroke').style.display = disease === 'stroke' ? 'block' : 'none';
+    document.getElementById('form-heart').style.display = disease === 'heart' ? 'block' : 'none';
+    document.getElementById('form-cirrhosis').style.display = disease === 'cirrhosis' ? 'block' : 'none';
+    document.getElementById('diseaseType').value = disease;
+    document.getElementById('resultSection').style.display = 'none';
+}
+
+function drawGauge(probability) {
+    const ctx = document.getElementById('gaugeCanvas').getContext('2d');
+    if (gaugeChart) gaugeChart.destroy();
+
+    const pct = Math.round(probability * 100);
+    const color = pct >= 60 ? '#ef4444' : pct >= 30 ? '#f59e0b' : '#10b981';
+
+    gaugeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [probability, 1 - probability],
+                backgroundColor: [color, 'rgba(255,255,255,0.05)'],
+                borderWidth: 0,
+                circumference: 180,
+                rotation: 270,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: false,
+            cutout: '75%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            animation: { duration: 1200, easing: 'easeOutQuart' }
         }
-        
-        // Clear previous results
-        resultContent.innerHTML = '';
-        
-        // Show different results based on disease type
-        if (data.disease_type === 'stroke' || data.disease_type === 'heart') {
-            const isPredicted = data.prediction === 1;
-            const probability = data.probability["1"] * 100;
-            const riskLevel = probability < 30 ? 'low' : probability < 70 ? 'moderate' : 'high';
-            
-            let html = `
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="card mb-4 ${riskLevel}-risk">
-                            <div class="card-header bg-${isPredicted ? 'danger' : 'success'} text-white">
-                                <h3 class="card-title mb-0">${data.disease_type === 'stroke' ? 'Stroke' : 'Heart Disease'} Risk Prediction Result</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="text-center mb-4">
-                                    <div class="display-4">${probability.toFixed(2)}%</div>
-                                    <h4>Disease Risk</h4>
-                                </div>
-                                <div class="progress mb-4">
-                                    <div class="progress-bar bg-${isPredicted ? 'danger' : 'success'}" 
-                                        role="progressbar" style="width: ${probability}%" 
-                                        aria-valuenow="${probability}" aria-valuemin="0" aria-valuemax="100">
-                                    </div>
-                                </div>
-                                <div class="alert alert-${isPredicted ? 'warning' : 'info'}">
-                                    ${isPredicted ? 
-                                        `<p><strong>High Risk Notice:</strong> Based on your data, the model predicts you have a higher ${data.disease_type === 'stroke' ? 'stroke' : 'heart disease'} risk.</p>
-                                        <p>We recommend consulting a professional doctor for further evaluation.</p>` : 
-                                        `<p><strong>Low Risk Notice:</strong> Based on your data, the model predicts your current ${data.disease_type === 'stroke' ? 'stroke' : 'heart disease'} risk is low.</p>
-                                        <p>Please continue to maintain a healthy lifestyle.</p>`
-                                    }
-                                </div>
-                                <div class="mt-4">
-                                    <h5>Prevention Recommendations:</h5>
-                                    <ul>
-                                        <li>Maintain healthy eating habits, control salt and fat intake</li>
-                                        <li>Exercise moderately, at least 150 minutes per week</li>
-                                        <li>Avoid smoking, limit alcohol consumption</li>
-                                        <li>Have regular check-ups, monitor blood pressure and lipid levels</li>
-                                        <li>Maintain good sleep habits and mental state</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // If mock data was used, add a notice
-            if (data.note && data.note.includes('Mock Data')) {
-                html += `
-                    <div class="alert alert-info mt-3">
-                        <small><i class="fas fa-info-circle"></i> Notice: ${data.note}. Actual results may vary.</small>
-                    </div>
-                `;
-            }
-            
-            resultContent.innerHTML = html;
-        } else if (data.disease_type === 'cirrhosis') {
-            const stagePrediction = Math.round(data.prediction);
-            const stageDescriptions = {
-                1: 'Early-stage cirrhosis, liver still functioning normally',
-                2: 'Moderate cirrhosis, mildly impaired liver function',
-                3: 'Advanced cirrhosis, moderately impaired liver function',
-                4: 'Late-stage cirrhosis, severely impaired liver function'
-            };
-            
-            const stageColors = {
-                1: 'success',
-                2: 'info',
-                3: 'warning',
-                4: 'danger'
-            };
-            
-            let html = `
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="card mb-4">
-                            <div class="card-header bg-${stageColors[stagePrediction]} text-${stagePrediction === 4 ? 'white' : 'dark'}">
-                                <h3 class="card-title mb-0">Cirrhosis Stage Prediction Result</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="text-center mb-4">
-                                    <div class="display-4">Stage ${stagePrediction}</div>
-                                    <h4>${stageDescriptions[stagePrediction]}</h4>
-                                </div>
-                                <div class="progress mb-4">
-                                    <div class="progress-bar bg-${stageColors[stagePrediction]}" 
-                                        role="progressbar" style="width: ${stagePrediction * 25}%" 
-                                        aria-valuenow="${stagePrediction * 25}" aria-valuemin="0" aria-valuemax="100">
-                                    </div>
-                                </div>
-                                <div class="alert alert-${stageColors[stagePrediction]}">
-                                    <p><strong>Cirrhosis Stage Assessment:</strong> Based on your data, the model predicts your cirrhosis is at Stage ${stagePrediction}.</p>
-                                    <p>${stagePrediction <= 2 ? 'Early detection is important, we recommend regular follow-ups and following medical advice.' : 'Please be sure to follow treatment recommendations from professional doctors and have regular liver function checks.'}</p>
-                                </div>
-                                <div class="mt-4">
-                                    <h5>Health Management Recommendations:</h5>
-                                    <ul>
-                                        <li>Strictly follow medical advice for medication</li>
-                                        <li>Maintain a healthy diet, limit salt intake</li>
-                                        <li>Avoid alcohol and other hepatotoxic substances</li>
-                                        <li>Regularly monitor liver function</li>
-                                        <li>Get adequate rest, avoid overexertion</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // If mock data was used, add a notice
-            if (data.note && data.note.includes('Mock Data')) {
-                html += `
-                    <div class="alert alert-info mt-3">
-                        <small><i class="fas fa-info-circle"></i> Notice: ${data.note}. Actual results may vary.</small>
-                    </div>
-                `;
-            }
-            
-            resultContent.innerHTML = html;
-        }
-        
-        // Show result container and scroll to result area
-        resultContainer.style.display = 'block';
-        resultContainer.scrollIntoView({behavior: 'smooth'});
-    }
-    
-    // Initialize risk gauges
-    function initRiskGauges() {
-        document.querySelectorAll('.risk-gauge').forEach(gauge => {
-            const risk = parseFloat(gauge.dataset.risk);
-            const angle = (risk / 100) * 180 - 90;
-            
-            let color;
-            if (risk < 30) color = '#28a745'; // Green
-            else if (risk < 70) color = '#ffc107'; // Yellow
-            else color = '#dc3545'; // Red
-            
-            gauge.style.background = `conic-gradient(
-                ${color} ${angle}deg,
-                #e0e0e0 ${angle}deg
-            )`;
-        });
-    }
-    
-    // Handle tab switching events - ensure corresponding form shows animation when switching tabs
-    document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tabLink => {
-        tabLink.addEventListener('shown.bs.tab', function (e) {
-            const targetId = e.target.getAttribute('data-bs-target');
-            const targetPane = document.querySelector(targetId);
-            if (targetPane) {
-                targetPane.querySelectorAll('.fade-in-section').forEach(el => {
-                    el.classList.add('is-visible');
-                });
-            }
-        });
     });
-});
+}
+
+function showLoading() {
+    const btn = document.getElementById('predictBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-ring" style="width:24px;height:24px;border-width:3px;margin:0;"></div> 分析中...';
+}
+
+function hideLoading() {
+    const btn = document.getElementById('predictBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search"></i> 开始预测';
+}
+
+function getAdvice(disease, prob) {
+    const pct = Math.round(prob * 100);
+    if (disease === 'stroke') {
+        if (pct >= 60) return '属于高危人群，建议立即就医并进行详细检查。控制血压、血糖，戒烟限酒，保持健康生活方式。';
+        if (pct >= 30) return '存在一定中风风险，建议定期体检，密切关注血压、血糖指标，适当运动，低盐低脂饮食。';
+        return '风险较低，但仍需保持健康生活方式，定期体检，关注血压和血糖水平。';
+    } else if (disease === 'heart') {
+        if (pct >= 60) return '心脏病风险较高，建议尽快就医进行心电图、心脏彩超等检查。控制饮食，加强锻炼，避免剧烈运动。';
+        if (pct >= 30) return '心血管健康需关注，建议定期检查，戒烟限酒，控制体重，保持适度运动。';
+        return '心血管健康状况良好，继续保持健康的生活方式，定期体检即可。';
+    } else {
+        if (pct >= 60) return '肝硬化分期可能较高，建议进行肝功能全面检查，包括腹部超声和肝纤维化检测。';
+        if (pct >= 30) return '肝脏指标需关注，建议减少饮酒，清淡饮食，适当补充蛋白质，定期复查肝功能。';
+        return '肝功能指标在正常范围，请继续保持健康的生活方式，适度饮酒或不饮酒。';
+    }
+}
+
+function submitPrediction(e) {
+    e.preventDefault();
+    showLoading();
+
+    const disease = document.getElementById('diseaseType').value;
+    const form = document.getElementById('predictForm');
+    const formData = new FormData(form);
+    const data = { disease_type: disease };
+
+    for (let [key, val] of formData.entries()) {
+        if (key !== 'disease_type') {
+            data[key] = val;
+        }
+    }
+
+    fetch('/predict', {
+        method: 'POST',
+        body: new URLSearchParams(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        hideLoading();
+        if (result.error) { alert('预测失败: ' + result.error); return; }
+
+        const prob = result.probability[1] || result.probability[result.probability.length - 1] || 0;
+        const pct = Math.round(prob * 100);
+
+        const card = document.getElementById('resultCard');
+        card.className = 'result-card';
+        if (pct >= 60) {
+            card.classList.add('risk-high');
+            document.getElementById('resultLabel').style.color = 'var(--accent-red)';
+            document.getElementById('resultLabel').textContent = '高风险';
+        } else if (pct >= 30) {
+            card.classList.add('risk-medium');
+            document.getElementById('resultLabel').style.color = 'var(--accent-yellow)';
+            document.getElementById('resultLabel').textContent = '中等风险';
+        } else {
+            card.classList.add('risk-low');
+            document.getElementById('resultLabel').style.color = 'var(--accent-green)';
+            document.getElementById('resultLabel').textContent = '低风险';
+        }
+
+        document.getElementById('resultPercentage').textContent = pct + '%';
+        document.getElementById('probNormal').textContent = ((1 - prob) * 100).toFixed(1) + '%';
+        document.getElementById('probDisease').textContent = (prob * 100).toFixed(1) + '%';
+        document.getElementById('adviceText').textContent = getAdvice(disease, prob);
+
+        drawGauge(prob);
+
+        const section = document.getElementById('resultSection');
+        section.style.display = 'block';
+        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    })
+    .catch(err => {
+        hideLoading();
+        alert('预测失败: ' + err);
+    });
+}
 </script>
 {% endblock %}

@@ -123,7 +123,9 @@ class FeatureWeightEvaluator:
         # Standardize numeric features
         if numeric_cols:
             scaler = StandardScaler()
-            X_raw[numeric_cols] = scaler.fit_transform(X_raw[numeric_cols])
+            scaled = scaler.fit_transform(X_raw[numeric_cols])
+            for i, col in enumerate(numeric_cols):
+                X_raw[col] = scaled[:, i]
 
         X = X_raw[categorical_cols + numeric_cols].values
         feature_names = categorical_cols + numeric_cols
@@ -185,6 +187,14 @@ class FeatureWeightEvaluator:
             })
 
         df = pd.DataFrame(results)
+        df = pd.DataFrame({
+            'Feature': [str(r['Feature']) for r in results],
+            'Coefficient': [r['Coefficient'] for r in results],
+            'P_Value': [r['P_Value'] for r in results],
+            'Odds_Ratio': [r['Odds_Ratio'] for r in results],
+            'AUC': [r['AUC'] for r in results],
+            'Significant': [r['Significant'] for r in results],
+        })
 
         # Multiple testing correction (Bonferroni)
         reject, pvals_corrected, _, _ = multipletests(
@@ -227,14 +237,16 @@ class FeatureWeightEvaluator:
         # Get coefficients and p-values
         coefs = full_model.params[1:]  # Skip intercept
         pvalues = full_model.pvalues[1:]
-        conf_int = full_model.conf_int()[1:]
+        conf_int_arr = full_model.conf_int()[1:]  # skip intercept row, shape (n_features, 2)
+        assert len(feature_names) == len(coefs) == len(pvalues) == len(conf_int_arr), \
+            f"Length mismatch: fn={len(feature_names)}, coef={len(coefs)}, pval={len(pvalues)}, ci={len(conf_int_arr)}"
 
         multivariate_results = pd.DataFrame({
             'Feature': feature_names,
-            'Coefficient_Full': coefs.values,
-            'P_Value_Full': pvalues.values,
-            'CI_Lower': conf_int[0].values,
-            'CI_Upper': conf_int[1].values,
+            'Coefficient_Full': np.asarray(coefs),
+            'P_Value_Full': np.asarray(pvalues),
+            'CI_Lower': conf_int_arr[:, 0],
+            'CI_Upper': conf_int_arr[:, 1],
         })
 
         # Calculate ΔAUC (AUC drop after feature removal)

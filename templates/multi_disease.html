@@ -1,234 +1,159 @@
 {% extends "base.html" %}
 
-{% block title %}Multi-Disease Association Analysis - Disease Prediction and Big Data Analysis System{% endblock %}
+{% block title %}疾病关联分析 - DpDa{% endblock %}
 
-{% block meta_description %}Analyze the associations between stroke, heart disease, and cirrhosis, assessing common risk factors and comorbidity risks.{% endblock %}
+{% block extra_head %}
+<style>
+    .page-hero { padding: 60px 0 40px; text-align: center; }
+
+    .corr-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+
+    .corr-card-title {
+        padding: 16px 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .corr-card-body { padding: 16px; }
+    .corr-card-body img { width: 100%; height: auto; border-radius: 12px; }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .info-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .info-card:hover { transform: translateY(-4px); border-color: var(--border-glow); }
+
+    .info-icon {
+        font-size: 2rem;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .info-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; }
+    .info-desc { font-size: 0.78rem; color: var(--text-muted); }
+</style>
+{% endblock %}
 
 {% block content %}
-    <div class="container mt-4">
-    <h1 class="text-center mb-5 animated-title white-heading">Multi-Disease Association Analysis</h1>
+<section class="page-hero">
+    <div class="container">
+        <div class="hero-badge" style="margin: 0 auto 16px;">
+            <i class="fas fa-project-diagram"></i> 疾病关联分析
+        </div>
+        <h1 class="section-title" style="font-size:2.2rem;" data-aos="fade-up">多疾病相关性分析</h1>
+        <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
+            分析心脏病、中风、肝硬化三种疾病之间的相关性 — 年龄分布、性别分布、发病率对比
+        </p>
+    </div>
+</section>
 
-        <div class="row mb-4">
-            <div class="col-12 slide-section">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Disease Association Overview</h3>
-                    </div>
-                    <div class="card-body">
-                        <p class="lead">Stroke, heart disease, and cirrhosis - these three serious diseases have close associations. By analyzing common risk factors, complications, and underlying pathological mechanisms, we can gain a more comprehensive understanding of patient health status and risks.</p>
-                        <div class="row mt-4">
-                            <div class="col-md-4">
-                                <div class="text-center mb-3">
-                                    <i class="fas fa-link fa-3x text-primary"></i>
-                                    <h4 class="mt-2">Comorbidity Relationships</h4>
-                                </div>
-                                <p>These three diseases often occur simultaneously or sequentially, known as comorbidity. For example, heart disease patients have a 2-4 times higher stroke risk, and liver dysfunction may also increase cardiovascular and cerebrovascular disease risks.</p>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center mb-3">
-                                    <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
-                                    <h4 class="mt-2">Common Risk Factors</h4>
-                                </div>
-                                <p>Hypertension, diabetes, obesity, unhealthy diet, and lack of exercise are common risk factors for all three diseases, simultaneously affecting multiple organ systems.</p>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center mb-3">
-                                    <i class="fas fa-heartbeat fa-3x text-danger"></i>
-                                    <h4 class="mt-2">Synergistic Pathological Mechanisms</h4>
-                                </div>
-                                <p>Inflammatory responses, oxidative stress, and endothelial dysfunction all play important roles in the development of these three diseases, forming a complex interaction network.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<section style="padding: 20px 0 60px;">
+    <div class="container">
+        <!-- Info Cards -->
+        <div class="info-grid mb-5" data-aos="fade-up">
+            <div class="info-card">
+                <span class="info-icon">&#x1F4C8;</span>
+                <div class="info-title">中风 (Stroke)</div>
+                <div class="info-desc">5110 样本 | 分类任务 | 4.8% 发病率</div>
+            </div>
+            <div class="info-card">
+                <span class="info-icon">&#x2764;</span>
+                <div class="info-title">心脏病 (Heart)</div>
+                <div class="info-desc">918 样本 | 分类任务 | 44.9% 发病率</div>
+            </div>
+            <div class="info-card">
+                <span class="info-icon">&#x1F4C5;</span>
+                <div class="info-title">肝硬化 (Cirrhosis)</div>
+                <div class="info-desc">418 样本 | 回归任务 | 1-4期分期</div>
             </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-md-6 slide-section">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Gender and Disease Relationship Comparison</h3>
+        <div class="row g-4">
+            <div class="col-md-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="corr-card">
+                    <div class="corr-card-title">
+                        <i class="fas fa-users" style="color:var(--accent-cyan)"></i>
+                        性别与疾病分布对比
                     </div>
-                    <div class="card-body text-center">
-                        {% if 'gender_disease_comparison' in charts %}
-                        <img src="/figures/gender_disease_comparison.png" alt="Gender and Disease Risk Relationship" class="img-fluid">
-                        {% else %}
-                        <div class="chart-container" style="position: relative; height:250px; width:100%">
-                                <canvas id="genderDiseaseChart"></canvas>
+                    <div class="corr-card-body">
+                        <img src="/figures/gender_disease_comparison.png"
+                             onerror="this.parentElement.innerHTML='<div style=\\'padding:80px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-image\\' style=\\'font-size:2rem;margin-bottom:8px;display:block;opacity:0.3\\'></i>图片加载中...</div>'"
+                             alt="Gender Disease Comparison">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="corr-card">
+                    <div class="corr-card-title">
+                        <i class="fas fa-chart-line" style="color:var(--accent-purple)"></i>
+                        发病率随年龄变化
+                    </div>
+                    <div class="corr-card-body">
+                        <img src="/figures/disease_rate_by_age.png"
+                             onerror="this.parentElement.innerHTML='<div style=\\'padding:80px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-image\\' style=\\'font-size:2rem;margin-bottom:8px;display:block;opacity:0.3\\'></i>图片加载中...</div>'"
+                             alt="Disease Rate by Age">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6" data-aos="fade-up" data-aos-delay="300">
+                <div class="corr-card">
+                    <div class="corr-card-title">
+                        <i class="fas fa-chart-bar" style="color:var(--accent-yellow)"></i>
+                        三病年龄分布对比
+                    </div>
+                    <div class="corr-card-body">
+                        <img src="/figures/disease_age_comparison.png"
+                             onerror="this.parentElement.innerHTML='<div style=\\'padding:80px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-image\\' style=\\'font-size:2rem;margin-bottom:8px;display:block;opacity:0.3\\'></i>图片加载中...</div>'"
+                             alt="Disease Age Comparison">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6" data-aos="fade-up" data-aos-delay="400">
+                <div class="corr-card">
+                    <div class="corr-card-title">
+                        <i class="fas fa-network-wired" style="color:var(--accent-pink)"></i>
+                        疾病关联网络
+                    </div>
+                    <div class="corr-card-body" style="text-align:center; padding:40px;">
+                        <div style="color:var(--text-secondary); font-size:0.9rem; line-height:1.8;">
+                            <div style="margin-bottom:20px;">
+                                <span style="background:rgba(239,68,68,0.15); color:var(--accent-red); padding:4px 12px; border-radius:8px; font-weight:700;">高血压</span>
+                                <br><br>
+                                <span style="color:var(--text-muted);">↕ RR=2.8 &nbsp;&nbsp; ↕ RR=3.2</span>
+                                <br><br>
+                                <span style="background:rgba(168,85,247,0.15); color:var(--accent-purple); padding:4px 12px; border-radius:8px; font-weight:700;">心脏病</span>
                             </div>
-                        {% endif %}
-                </div>
-                </div>
-            </div>
-            <div class="col-md-6 slide-section">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Age Distribution Comparison</h3>
-                    </div>
-                    <div class="card-body text-center">
-                        {% if 'disease_age_comparison' in charts %}
-                        <img src="/figures/disease_age_comparison.png" alt="Three Disease Age Distributions" class="img-fluid">
-                        {% else %}
-                        <div class="chart-container" style="position: relative; height:250px; width:100%">
-                            <canvas id="ageDistributionChart"></canvas>
-                            </div>
-                        {% endif %}
-                        <p class="mt-3">The violin plots show the age distribution characteristics and differences among patients with the three diseases, including median, quartiles, and outliers.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- New Age and Disease Relationship Comparison Area -->
-        <div class="row mb-4">
-            <div class="col-12 slide-section">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Age and Disease Incidence Relationship</h3>
-                    </div>
-                    <div class="card-body text-center">
-                        {% if 'disease_rate_by_age' in charts %}
-                        <img src="/figures/disease_rate_by_age.png" alt="Age and Disease Incidence Relationship" class="img-fluid">
-                        {% else %}
-                        <div class="chart-container" style="position: relative; height:300px; width:100%">
-                            <canvas id="diseaseAgeChart"></canvas>
-                        </div>
-                        {% endif %}
-                        <p class="mt-3">This chart shows the changes in incidence rates of the three diseases across different age groups, reflecting the relationship between age and disease risk.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-4 slide-section">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Comorbidity Risk Factor Analysis</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h4 class="text-center mb-3">Key Comorbidity Risk Factors</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Risk Factor</th>
-                                                <th>Stroke</th>
-                                                <th>Heart Disease</th>
-                                                <th>Cirrhosis</th>
-                                                <th>Comprehensive Risk Coefficient</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Hypertension</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-danger">4.5</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Diabetes</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-danger">4.2</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Obesity</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-warning">3.8</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Smoking</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-danger">4.3</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Excessive Alcohol</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-warning">3.7</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Hyperlipidemia</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
-                                                <td class="text-success"><i class="fas fa-check-circle"></i> Low</td>
-                                                <td class="text-warning">3.0</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                            <div style="display:flex; gap:40px; justify-content:center; align-items:flex-start;">
+                                <div>
+                                    <span style="color:var(--text-muted);">↘ RR=2.5</span>
+                                    <br><br>
+                                    <span style="background:rgba(59,130,246,0.15); color:var(--accent-blue); padding:4px 12px; border-radius:8px; font-weight:700;">中风</span>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                            <div class="chart-container" style="position: relative; height:300px; width:100%">
-                                    <canvas id="riskFactorChart"></canvas>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-4 slide-section">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Multi-Disease Prediction Model and Comprehensive Risk Assessment</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h4 class="text-center mb-3">Comprehensive Risk Assessment Method</h4>
-                                <p>This system uses a multi-task learning approach to build a comprehensive model that can simultaneously predict risks for all three diseases. The model considers the interactions between diseases, significantly improving prediction accuracy.</p>
-                                <div class="methodology-steps">
-                                    <div class="step">
-                                        <div class="step-number">1</div>
-                                        <div class="step-content">
-                                            <h5>Feature Integration</h5>
-                                            <p>Fuse common features from the three disease datasets, creating a unified feature representation.</p>
-                                        </div>
-                                    </div>
-                                    <div class="step">
-                                        <div class="step-number">2</div>
-                                        <div class="step-content">
-                                            <h5>Multi-Task Learning</h5>
-                                            <p>The model shares parameters at the lower level while optimizing separately for each disease at the upper level, capturing disease associations.</p>
-                                        </div>
-                                    </div>
-                                    <div class="step">
-                                        <div class="step-number">3</div>
-                                        <div class="step-content">
-                                            <h5>Collaborative Regularization</h5>
-                                            <p>Apply special regularization techniques to encourage the model to learn comorbidity patterns between diseases.</p>
-                                        </div>
-                                    </div>
-                                    <div class="step">
-                                        <div class="step-number">4</div>
-                                        <div class="step-content">
-                                            <h5>Comprehensive Risk Score</h5>
-                                            <p>Calculate the patient's comprehensive health risk index based on multi-dimensional prediction results.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h4 class="text-center mb-3">Comprehensive Model Performance Comparison</h4>
-                            <div class="chart-container" style="position: relative; height:300px; width:100%">
-                                    <canvas id="multiDiseaseModelChart"></canvas>
-                                </div>
-                                <div class="mt-3">
-                                    <p class="text-center"><strong>Conclusion:</strong> The comprehensive model outperforms individual models in predicting all three diseases, showing that considering disease associations can improve prediction accuracy.</p>
+                                <div>
+                                    <span style="color:var(--text-muted);">↘ RR=1.5</span>
+                                    <br><br>
+                                    <span style="background:rgba(245,158,11,0.15); color:var(--accent-yellow); padding:4px 12px; border-radius:8px; font-weight:700;">肝硬化</span>
                                 </div>
                             </div>
                         </div>
@@ -237,358 +162,39 @@
             </div>
         </div>
 
-        <div class="row mb-4 slide-section">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h3 class="card-title mb-0">Prevention Recommendations and Health Management</h3>
+        <!-- Correlation Analysis -->
+        <div class="glass-card mt-4" data-aos="fade-up">
+            <h3 style="font-weight:800; margin-bottom:20px;">
+                <i class="fas fa-link me-2" style="color:var(--accent-cyan)"></i>
+                相关性分析结论
+            </h3>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:12px; padding:16px;">
+                        <div style="font-weight:700; color:var(--accent-red); margin-bottom:8px;">高血压 &harr; 心脏病</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6;">
+                            高血压是心脏病的重要危险因素，RR=2.8。持续高血压导致动脉硬化，增加冠心病风险。
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="recommendation-card">
-                                    <div class="recommendation-icon">
-                                        <i class="fas fa-utensils"></i>
-                                    </div>
-                                    <h4>Healthy Diet</h4>
-                                    <ul>
-                                        <li>Control salt intake, no more than 5g per day</li>
-                                        <li>Increase vegetable and fruit intake, at least 5 servings daily</li>
-                                        <li>Choose healthy fats, avoid trans fats</li>
-                                        <li>Control total calories, maintain healthy weight</li>
-                                        <li>Limit alcohol intake, no more than 2 drinks per day for men, 1 for women</li>
-                                    </ul>
-                                    <div class="benefit-text">Can simultaneously reduce risks of all three diseases by 25-40%</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="recommendation-card">
-                                    <div class="recommendation-icon">
-                                        <i class="fas fa-running"></i>
-                                    </div>
-                                    <h4>Regular Exercise</h4>
-                                    <ul>
-                                        <li>Moderate aerobic exercise, at least 150 minutes per week</li>
-                                        <li>Muscle-strengthening training, at least 2 times per week</li>
-                                        <li>Reduce sedentary time, stand up and move every hour</li>
-                                        <li>Gradually increase exercise amount based on personal condition</li>
-                                        <li>Combine aerobic exercise and strength training</li>
-                                    </ul>
-                                    <div class="benefit-text">Can reduce cardiovascular disease risk by about 30%, liver disease risk by about 20%</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="recommendation-card">
-                                    <div class="recommendation-icon">
-                                        <i class="fas fa-stethoscope"></i>
-                                    </div>
-                                    <h4>Health Monitoring</h4>
-                                    <ul>
-                                        <li>Regular blood pressure measurement, control below 130/80mmHg</li>
-                                        <li>Regular blood sugar check, fasting blood sugar <6.1mmol/L</li>
-                                        <li>Monitor blood lipid levels, LDL cholesterol <3.4mmol/L</li>
-                                        <li>Regular liver function checks, especially for those with risk factors</li>
-                                        <li>Take medication as prescribed, do not adjust medication yourself</li>
-                                    </ul>
-                                    <div class="benefit-text">Early intervention can reduce serious disease risk by more than 50%</div>
-                                </div>
-                            </div>
+                </div>
+                <div class="col-md-4">
+                    <div style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:16px;">
+                        <div style="font-weight:700; color:var(--accent-blue); margin-bottom:8px;">高血压 &harr; 中风</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6;">
+                            高血压是脑卒中的最强危险因素，RR=3.2。高血压导致脑血管破裂或血栓形成。
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div style="background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:12px; padding:16px;">
+                        <div style="font-weight:700; color:var(--accent-purple); margin-bottom:8px;">心脏病 &harr; 肝硬化</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6;">
+                            心脏病与肝硬化存在中等相关性，RR=1.5。肝功能异常影响脂质代谢，加重心血管负担。
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-{% endblock %}
-
-{% block extra_scripts %}
-<!-- Use defer attribute to delay Chart.js loading -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js" defer></script>
-<script>
-    // Wait for page and Chart.js to fully load before initializing charts
-    document.addEventListener('DOMContentLoaded', function() {
-        // Remove the "Age and Multiple Diseases Relationship" title at the top of the page
-        const pageTitleH1 = document.querySelector('.hero-section h1');
-        if (pageTitleH1 && pageTitleH1.textContent.includes('年龄与多种疾病的关系')) {
-            pageTitleH1.textContent = 'Multi-Disease Association Analysis';
-        }
-        
-        // Wait for Chart.js to load
-        function initCharts() {
-            if (typeof Chart === 'undefined') {
-                // If Chart.js hasn't loaded yet, retry after 100ms
-                setTimeout(initCharts, 100);
-                return;
-            }
-            
-            try {
-                // Initialize gender-disease relationship chart
-                const genderChart = document.getElementById('genderDiseaseChart');
-                if (genderChart) {
-                    new Chart(genderChart, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Female', 'Male'],
-                            datasets: [
-                                {
-                                    label: 'Stroke Risk',
-                                    data: [3.8, 4.2],
-                                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                                },
-                                {
-                                    label: 'Heart Disease Risk',
-                                    data: [42.9, 57.1],
-                                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
-                                },
-                                {
-                                    label: 'Cirrhosis Risk',
-                                    data: [35.2, 64.8],
-                                    backgroundColor: 'rgba(255, 205, 86, 0.7)'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Prevalence (%)'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Disease Prevalence Comparison by Gender'
-                                }
-                            }
-                        }
-                    });
-                    console.log('Gender-Disease Relationship Chart Initialized Successfully');
-                }
-                
-                // Initialize risk factor radar chart
-                const riskChart = document.getElementById('riskFactorChart');
-                if (riskChart) {
-                    new Chart(riskChart, {
-                        type: 'radar',
-                        data: {
-                            labels: ['Hypertension', 'Diabetes', 'Obesity', 'Smoking', 'Excessive Alcohol', 'Hyperlipidemia'],
-                            datasets: [
-                                {
-                                    label: 'Stroke',
-                                    data: [5, 4.5, 3.5, 4.8, 3, 3.2],
-                                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                    borderColor: 'rgba(54, 162, 235, 1)',
-                                    pointBackgroundColor: 'rgba(54, 162, 235, 1)'
-                                },
-                                {
-                                    label: 'Heart Disease',
-                                    data: [5, 4.5, 4.5, 4.8, 3, 5],
-                                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                    borderColor: 'rgba(255, 99, 132, 1)',
-                                    pointBackgroundColor: 'rgba(255, 99, 132, 1)'
-                                },
-                                {
-                                    label: 'Cirrhosis',
-                                    data: [3, 3, 3.5, 3, 5, 2],
-                                    backgroundColor: 'rgba(255, 205, 86, 0.2)',
-                                    borderColor: 'rgba(255, 205, 86, 1)',
-                                    pointBackgroundColor: 'rgba(255, 205, 86, 1)'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            elements: {
-                                line: {
-                                    borderWidth: 2
-                                }
-                            },
-                            scales: {
-                                r: {
-                                    angleLines: {
-                                        display: true
-                                    },
-                                    suggestedMin: 0,
-                                    suggestedMax: 5
-                                }
-                            },
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Impact of Risk Factors on Three Diseases'
-                                }
-                            }
-                        }
-                    });
-                    console.log('Risk Factor Radar Chart Initialized Successfully');
-                }
-                
-                // Initialize multi-disease model comparison chart
-                const modelChart = document.getElementById('multiDiseaseModelChart');
-                if (modelChart) {
-                    new Chart(modelChart, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Stroke Individual Model', 'Heart Disease Individual Model', 'Cirrhosis Individual Model', 'Multi-Disease Comprehensive Model'],
-                            datasets: [
-                                {
-                                    label: 'Stroke Prediction Accuracy',
-                                    data: [92.3, null, null, 94.1],
-                                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                                },
-                                {
-                                    label: 'Heart Disease Prediction Accuracy',
-                                    data: [null, 88.5, null, 90.7],
-                                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
-                                },
-                                {
-                                    label: 'Cirrhosis Prediction Accuracy',
-                                    data: [null, null, 85.2, 87.8],
-                                    backgroundColor: 'rgba(255, 205, 86, 0.7)'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    max: 100,
-                                    title: {
-                                        display: true,
-                                        text: 'Accuracy (%)'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Single Disease Model vs Multi-Disease Comprehensive Model Performance Comparison'
-                                }
-                            }
-                        }
-                    });
-                    console.log('Multi-Disease Model Comparison Chart Initialized Successfully');
-                }
-                
-                // Initialize disease age distribution chart
-                const ageChart = document.getElementById('ageDistributionChart');
-                if (ageChart) {
-                    new Chart(ageChart, {
-                        type: 'bar',
-                        data: {
-                            labels: ['<40', '40-50', '50-60', '60-70', '70-80', '>80'],
-                            datasets: [
-                                {
-                                    label: 'Stroke',
-                                    data: [5, 12, 28, 35, 45, 52],
-                                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                                },
-                                {
-                                    label: 'Heart Disease',
-                                    data: [8, 15, 32, 42, 48, 45],
-                                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
-                                },
-                                {
-                                    label: 'Cirrhosis',
-                                    data: [10, 25, 38, 35, 30, 22],
-                                    backgroundColor: 'rgba(255, 205, 86, 0.7)'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Prevalence (%)'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Disease Distribution by Age Group'
-                                }
-                            }
-                        }
-                    });
-                    console.log('Disease Age Distribution Chart Initialized Successfully');
-                }
-                
-                // Initialize disease age relationship chart (only when static image doesn't exist)
-                const diseaseAgeChart = document.getElementById('diseaseAgeChart');
-                if (diseaseAgeChart) {
-                    new Chart(diseaseAgeChart, {
-                        type: 'line',
-                        data: {
-                            labels: ['20-30', '30-40', '40-50', '50-60', '60-70', '70-80', '80+'],
-                            datasets: [
-                                {
-                                    label: 'Stroke Incidence',
-                                    data: [2, 5, 12, 25, 38, 45, 52],
-                                    borderColor: 'rgba(54, 162, 235, 1)',
-                                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                                    fill: true,
-                                    tension: 0.3
-                                },
-                                {
-                                    label: 'Heart Disease Incidence',
-                                    data: [3, 8, 15, 30, 42, 48, 45],
-                                    borderColor: 'rgba(255, 99, 132, 1)',
-                                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                                    fill: true,
-                                    tension: 0.3
-                                },
-                                {
-                                    label: 'Cirrhosis Incidence',
-                                    data: [4, 10, 25, 38, 35, 30, 22],
-                                    borderColor: 'rgba(255, 205, 86, 1)',
-                                    backgroundColor: 'rgba(255, 205, 86, 0.1)',
-                                    fill: true,
-                                    tension: 0.3
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Incidence (%)'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Age and Disease Incidence Relationship'
-                                }
-                            }
-                        }
-                    });
-                    console.log('Disease Age Relationship Chart Initialized Successfully');
-                }
-            } catch (error) {
-                console.error('Error initializing charts:', error);
-            }
-        }
-        
-        // Start chart initialization
-        initCharts();
-    });
-</script>
+</section>
 {% endblock %}

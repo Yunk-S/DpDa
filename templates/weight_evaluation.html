@@ -1,334 +1,379 @@
 {% extends "base.html" %}
 
-{% block title %}Multi-Factor Weight Evaluation - Disease Prediction and Big Data Analysis System{% endblock %}
+{% block title %}多因素权重评估 - DpDa{% endblock %}
 
 {% block extra_head %}
 <style>
-    .weight-card {
-        background: rgba(255,255,255,0.95);
-        border-radius: 16px;
+    .page-hero { padding: 60px 0 40px; text-align: center; }
+
+    .formula-hero {
+        background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(0,212,255,0.08));
+        border: 1px solid rgba(16,185,129,0.2);
+        border-radius: 20px;
+        padding: 28px;
+        margin-bottom: 32px;
+        text-align: center;
+    }
+
+    .formula-text {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        margin-bottom: 12px;
+    }
+
+    .formula-legend {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        line-height: 1.8;
+    }
+
+    .formula-legend span { color: var(--text-secondary); }
+
+    .metric-top {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
         padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        text-align: center;
+        transition: all 0.3s ease;
     }
-    .weight-table {
-        font-size: 14px;
+
+    .metric-top:hover { transform: translateY(-4px); border-color: var(--border-glow); }
+
+    .metric-top-value {
+        font-size: 2.2rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 8px;
     }
-    .weight-table thead th {
-        background: linear-gradient(135deg, #0d6efd, #0a58ca);
-        color: white;
+
+    .metric-top-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .feature-table-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .feature-table { width: 100%; border-collapse: collapse; }
+
+    .feature-table thead th {
+        background: rgba(0,212,255,0.05);
+        padding: 14px 16px;
+        font-size: 0.75rem;
         font-weight: 600;
-        position: sticky;
-        top: 0;
-        z-index: 10;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-align: left;
         white-space: nowrap;
+        border-bottom: 1px solid var(--border-subtle);
     }
-    .weight-table tbody tr:hover {
-        background-color: #f0f7ff;
-    }
-    .weight-table td, .weight-table th {
+
+    .feature-table tbody td {
+        padding: 12px 16px;
+        font-size: 0.85rem;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
         vertical-align: middle;
-        padding: 10px 12px;
     }
-    .sig-badge {
-        font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 12px;
-    }
-    .sig-yes { background: #d1e7dd; color: #0f5132; }
-    .sig-no { background: #f8d7da; color: #842029; }
-    .weight-bar-cell {
+
+    .feature-table tbody tr:hover td { background: rgba(0,212,255,0.03); }
+    .feature-table tbody tr:last-child td { border-bottom: none; }
+
+    .weight-bar-wrap {
+        background: rgba(0,0,0,0.3);
+        border-radius: 8px;
+        height: 24px;
+        overflow: hidden;
         position: relative;
         min-width: 120px;
     }
-    .weight-bar {
-        height: 20px;
-        background: linear-gradient(90deg, #0d6efd, #6610f2);
-        border-radius: 10px;
-        transition: width 0.6s ease;
+
+    .weight-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+        border-radius: 8px;
+        transition: width 1s ease;
+        display: flex;
+        align-items: center;
+        padding-left: 8px;
     }
-    .weight-value {
-        position: absolute;
-        left: 8px;
-        top: 50%;
-        transform: translateY(-50%);
+
+    .weight-bar-text {
+        font-size: 0.72rem;
+        font-weight: 700;
         color: white;
-        font-size: 11px;
-        font-weight: 600;
+        white-space: nowrap;
     }
-    .cumulative-bar {
+
+    .cumulative-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cumulative-bar-bg {
+        flex: 1;
         height: 6px;
-        background: #e9ecef;
+        background: rgba(255,255,255,0.05);
         border-radius: 3px;
         overflow: hidden;
     }
-    .cumulative-fill {
+
+    .cumulative-bar-fill {
         height: 100%;
-        background: linear-gradient(90deg, #198754, #20c997);
+        background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
         border-radius: 3px;
-        transition: width 0.6s ease;
+        transition: width 1s ease;
     }
-    .dataset-tabs .nav-link {
-        border-radius: 12px 12px 0 0;
-        font-weight: 600;
-        padding: 12px 24px;
+
+    .cumulative-pct {
+        font-size: 0.78rem;
+        font-weight: 700;
+        min-width: 40px;
+        text-align: right;
     }
-    .dataset-tabs .nav-link.active {
-        background: linear-gradient(135deg, #0d6efd, #6610f2);
-        color: white;
-        border: none;
+
+    .sig-badge {
+        padding: 3px 10px;
+        border-radius: 100px;
+        font-size: 0.72rem;
+        font-weight: 700;
     }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-    }
-    .metric-card h3 { font-size: 28px; font-weight: 700; margin: 0; }
-    .metric-card p { opacity: 0.85; margin: 4px 0 0; font-size: 13px; }
-    .loading-overlay {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(255,255,255,0.9);
-        display: flex;
+
+    .sig-yes { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+    .sig-no { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+
+    .rank-badge {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        z-index: 9999;
-        flex-direction: column;
+        font-size: 0.75rem;
+        font-weight: 800;
     }
-    .loading-spinner {
-        width: 50px; height: 50px;
-        border: 4px solid #e9ecef;
-        border-top: 4px solid #0d6efd;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .formula-box {
-        background: linear-gradient(135deg, #1a1a2e, #16213e);
-        color: #00d4ff;
-        font-family: 'Courier New', monospace;
-        padding: 16px 24px;
+
+    .rank-1 { background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; }
+    .rank-2 { background: rgba(192,192,192,0.3); color: #c0c0c0; }
+    .rank-3 { background: rgba(205,127,50,0.3); color: #cd7f32; }
+    .rank-default { background: rgba(0,212,255,0.1); color: var(--text-secondary); }
+
+    .tab-btn {
+        padding: 12px 24px;
         border-radius: 12px;
-        font-size: 15px;
-        margin: 16px 0;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
-    .formula-box .formula { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
-    .formula-box .legend { color: #aaa; font-size: 12px; }
+
+    .tab-btn.active {
+        background: rgba(16,185,129,0.1);
+        border-color: var(--accent-green);
+        color: var(--accent-green);
+        box-shadow: 0 0 20px rgba(16,185,129,0.15);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <h1 class="text-center mb-2 animated-title white-heading">Multi-Factor Impact Weight Evaluation Model</h1>
-    <p class="text-center text-muted mb-4">Quantify the impact of various factors on disease risk, identifying key risk factors</p>
+<section class="page-hero">
+    <div class="container">
+        <div class="hero-badge" style="margin: 0 auto 16px;">
+            <i class="fas fa-balance-scale"></i> 问题一
+        </div>
+        <h1 class="section-title" style="font-size:2.2rem;" data-aos="fade-up">多因素权重评估模型</h1>
+        <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
+            量化各因素对疾病的影响权重 — 综合回归系数、P值与AUC衰减分析
+        </p>
 
-    <!-- Formula Description -->
-    <div class="weight-card">
-        <h5 class="mb-3"><i class="fas fa-function me-2"></i>Comprehensive Weight Formula</h5>
-        <div class="formula-box">
-            <div class="formula">W<sub>j</sub> = |&beta;<sub>j</sub>| &times; (1 - p<sub>j</sub>) &times; (1 + &Delta;AUC<sub>j</sub>)</div>
-            <div class="legend">
-                |&beta;<sub>j</sub>| = Absolute Value of Multiple Regression Coefficient &nbsp;|&nbsp;
-                p<sub>j</sub> = P-value (Statistical Significance)&nbsp;|&nbsp;
-                &Delta;AUC<sub>j</sub> = AUC Decrease After Feature Removal
+        <div class="formula-hero" data-aos="fade-up" data-aos-delay="200">
+            <div class="formula-text">W<sub>j</sub> = |&beta;<sub>j</sub>| &times; (1 - p<sub>j</sub>) &times; (1 + &Delta;AUC<sub>j</sub>)</div>
+            <div class="formula-legend">
+                <span>|&beta;<sub>j</sub>|</span> = 回归系数绝对值 &nbsp;&bull;&nbsp;
+                <span>p<sub>j</sub></span> = P值（统计显著性）&nbsp;&bull;&nbsp;
+                <span>&Delta;AUC<sub>j</sub></span> = 移除特征后AUC下降幅度
             </div>
         </div>
     </div>
+</section>
 
-    <!-- Dataset Selection -->
-    <div class="weight-card">
-        <ul class="nav dataset-tabs mb-3" id="datasetTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="heart-tab" data-bs-toggle="tab"
-                        data-bs-target="#heart-panel" type="button" onclick="loadWeights('heart')">
-                    <i class="fas fa-heart me-1"></i>Heart Disease
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stroke-tab" data-bs-toggle="tab"
-                        data-bs-target="#stroke-panel" type="button" onclick="loadWeights('stroke')">
-                    <i class="fas fa-brain me-1"></i>Stroke
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="cirrhosis-tab" data-bs-toggle="tab"
-                        data-bs-target="#cirrhosis-panel" type="button" onclick="loadWeights('cirrhosis')">
-                    <i class="fas fa-notes-medical me-1"></i>Cirrhosis
-                </button>
-            </li>
-        </ul>
+<section style="padding: 20px 0 60px;">
+    <div class="container">
+        <!-- Dataset Tabs -->
+        <div style="display:flex; gap:10px; justify-content:center; margin-bottom:32px;" data-aos="fade-up">
+            <button class="tab-btn active" onclick="switchDatasetWE('heart', this)">
+                <i class="fas fa-heart"></i> 心脏病
+            </button>
+            <button class="tab-btn" onclick="switchDatasetWE('stroke', this)">
+                <i class="fas fa-brain"></i> 中风
+            </button>
+            <button class="tab-btn" onclick="switchDatasetWE('cirrhosis', this)">
+                <i class="fas fa-liver"></i> 肝硬化
+            </button>
+        </div>
 
-        <!-- Metric Cards -->
-        <div class="row mb-4" id="metricsRow">
-            <div class="col-md-3">
-                <div class="metric-card">
-                    <h3 id="metricFullAuc">--</h3>
-                    <p>Full Model AUC</p>
+        <!-- Summary Metrics -->
+        <div class="row g-4 mb-5" id="weMetrics" data-aos="fade-up">
+            <div class="col-6 col-md-3">
+                <div class="metric-top">
+                    <div class="metric-top-value" style="color:var(--accent-cyan);" id="weFullAuc">--</div>
+                    <div class="metric-top-label">Full Model AUC</div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="metric-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                    <h3 id="metricNFeatures">--</h3>
-                    <p>Number of Features</p>
+            <div class="col-6 col-md-3">
+                <div class="metric-top">
+                    <div class="metric-top-value" style="color:var(--accent-purple);" id="weNFeatures">--</div>
+                    <div class="metric-top-label">特征数量</div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="metric-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                    <h3 id="metricSigFeatures">--</h3>
-                    <p>Significant Features (p&lt;0.05)</p>
+            <div class="col-6 col-md-3">
+                <div class="metric-top">
+                    <div class="metric-top-value" style="color:var(--accent-green);" id="weSigFeatures">--</div>
+                    <div class="metric-top-label">显著特征 (p&lt;0.05)</div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="metric-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                    <h3 id="metricTopFeature">--</h3>
-                    <p>Most Important Feature</p>
+            <div class="col-6 col-md-3">
+                <div class="metric-top">
+                    <div class="metric-top-value" style="color:var(--accent-yellow); font-size:1.6rem;" id="weTopFeature">--</div>
+                    <div class="metric-top-label">最重要特征</div>
                 </div>
             </div>
         </div>
 
-        <!-- Weight Table -->
-        <div class="tab-content" id="datasetTabContent">
-            <div class="tab-pane fade show active" id="heart-panel" role="tabpanel">
-                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-                    <table class="table weight-table" id="heartTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Feature</th>
-                                <th>Regression Coefficient</th>
-                                <th>P-value</th>
-                                <th>Significance</th>
-                                <th>Odds Ratio (OR)</th>
-                                <th>Univariate AUC</th>
-                                <th>&Delta;AUC</th>
-                                <th style="min-width:150px">Comprehensive Weight</th>
-                                <th>Cumulative Weight</th>
-                            </tr>
-                        </thead>
-                        <tbody id="heartTableBody">
-                            <tr><td colspan="10" class="text-center text-muted py-5">
-                                <i class="fas fa-spinner fa-spin me-2"></i>Click the tab above to load data...
-                            </td></tr>
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Feature Table -->
+        <div class="feature-table-card" data-aos="fade-up">
+            <div style="padding:16px 20px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-list" style="color:var(--accent-green)"></i>
+                <span style="font-weight:700; font-size:0.95rem;">特征权重排名</span>
             </div>
-            <div class="tab-pane fade" id="stroke-panel" role="tabpanel">
-                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-                    <table class="table weight-table" id="strokeTable">
-                        <thead>
-                            <tr>
-                                <th>#</th><th>Feature</th><th>Regression Coefficient</th><th>P-value</th>
-                                <th>Significance</th><th>Odds Ratio (OR)</th><th>Univariate AUC</th>
-                                <th>&Delta;AUC</th><th style="min-width:150px">Comprehensive Weight</th><th>Cumulative Weight</th>
-                            </tr>
-                        </thead>
-                        <tbody id="strokeTableBody">
-                            <tr><td colspan="10" class="text-center text-muted py-5">
-                                <i class="fas fa-spinner fa-spin me-2"></i>Click to load data...
-                            </td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="tab-pane fade" id="cirrhosis-panel" role="tabpanel">
-                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-                    <table class="table weight-table" id="cirrhosisTable">
-                        <thead>
-                            <tr>
-                                <th>#</th><th>Feature</th><th>Regression Coefficient</th><th>P-value</th>
-                                <th>Significance</th><th>Odds Ratio (OR)</th><th>Univariate AUC</th>
-                                <th>&Delta;AUC</th><th style="min-width:150px">Comprehensive Weight</th><th>Cumulative Weight</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cirrhosisTableBody">
-                            <tr><td colspan="10" class="text-center text-muted py-5">
-                                <i class="fas fa-spinner fa-spin me-2"></i>Click to load data...
-                            </td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div style="max-height:600px; overflow-y:auto;">
+                <table class="feature-table" id="weTable">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>特征名称</th>
+                            <th>回归系数</th>
+                            <th>P值</th>
+                            <th>显著性</th>
+                            <th>OR 值</th>
+                            <th>单特征 AUC</th>
+                            <th>&Delta;AUC</th>
+                            <th style="min-width:160px">综合权重</th>
+                            <th style="min-width:140px">累计权重</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weTableBody">
+                        <tr><td colspan="10" style="text-align:center; padding:60px; color:var(--text-muted);">
+                            <i class="fas fa-spinner fa-spin" style="font-size:1.5rem; display:block; margin-bottom:12px;"></i>
+                            正在计算权重评估...
+                        </td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-let loadedData = { heart: null, stroke: null, cirrhosis: null };
+let weCache = { heart: null, stroke: null, cirrhosis: null };
 
-function loadWeights(dataset) {
-    if (loadedData[dataset]) {
-        renderTable(dataset, loadedData[dataset]);
+function switchDatasetWE(ds, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadWeights(ds);
+}
+
+function loadWeights(ds) {
+    if (weCache[ds]) {
+        renderTable(ds, weCache[ds]);
         return;
     }
 
-    const spinner = document.createElement('div');
-    spinner.className = 'loading-overlay';
-    spinner.id = 'loadingOverlay';
-    spinner.innerHTML = '<div class="loading-spinner mb-3"></div><div style="color:#333;font-weight:600">Calculating weight evaluation...</div>';
-    document.body.appendChild(spinner);
-
-    fetch(`/api/weight-evaluation/${dataset}`)
+    fetch(`/api/weight-evaluation/${ds}`)
         .then(r => r.json())
         .then(data => {
-            if (data.error) { alert('Load failed: ' + data.error); return; }
-            loadedData[dataset] = data;
-            renderTable(dataset, data);
-            document.getElementById('loadingOverlay')?.remove();
+            if (data.error) {
+                document.getElementById('weTableBody').innerHTML =
+                    `<tr><td colspan="10" style="text-align:center; padding:60px; color:var(--accent-red);">
+                        <i class="fas fa-exclamation-triangle" style="font-size:1.5rem; display:block; margin-bottom:12px;"></i>
+                        加载失败: ${data.error}
+                    </td></tr>`;
+                return;
+            }
+            weCache[ds] = data;
+            renderTable(ds, data);
         })
         .catch(err => {
-            alert('Load failed: ' + err);
-            document.getElementById('loadingOverlay')?.remove();
+            document.getElementById('weTableBody').innerHTML =
+                `<tr><td colspan="10" style="text-align:center; padding:60px; color:var(--accent-red);">
+                    加载失败: ${err}
+                </td></tr>`;
         });
 }
 
-function renderTable(dataset, data) {
-    // Update metric cards
-    document.getElementById('metricFullAuc').textContent = data.full_auc?.toFixed(4) || '--';
-    document.getElementById('metricNFeatures').textContent = data.features?.length || 0;
-    document.getElementById('metricSigFeatures').textContent =
-        (data.features?.filter(f => f.significant).length) || 0;
-    document.getElementById('metricTopFeature').textContent =
-        (data.features?.[0]?.name || '--');
+function renderTable(ds, data) {
+    document.getElementById('weFullAuc').textContent = data.full_auc?.toFixed(4) || '--';
+    document.getElementById('weNFeatures').textContent = data.features?.length || 0;
+    document.getElementById('weSigFeatures').textContent = data.features?.filter(f => f.significant).length || 0;
+    document.getElementById('weTopFeature').textContent = data.features?.[0]?.name?.substring(0, 8) || '--';
 
-    const tbody = document.getElementById(`${dataset}TableBody`);
-    if (!tbody) return;
-
+    const tbody = document.getElementById('weTableBody');
     tbody.innerHTML = '';
 
-    const maxWeight = Math.max(...(data.features || []).map(f => f.normalized_weight));
+    const maxWeight = Math.max(...(data.features || []).map(f => f.normalized_weight || 0), 1);
 
     data.features.forEach((feat, idx) => {
-        const barPct = maxWeight > 0 ? (feat.normalized_weight / maxWeight * 100).toFixed(1) : 0;
-        const pValStr = feat.p_value < 0.001 ? '&lt;0.001' : feat.p_value.toFixed(4);
-        const pColor = feat.p_value < 0.05 ? 'sig-yes' : 'sig-no';
-        const pLabel = feat.p_value < 0.05 ? 'Significant' : 'Not Significant';
+        const rank = idx + 1;
+        const barPct = feat.normalized_weight > 0 ? (feat.normalized_weight / maxWeight * 100).toFixed(1) : 0;
+        const pValStr = feat.p_value < 0.001 ? '<0.001' : feat.p_value.toFixed(4);
+        const sigClass = feat.significant ? 'sig-yes' : 'sig-no';
+        const sigLabel = feat.significant ? '显著' : '不显著';
+
+        let rankClass = 'rank-default';
+        if (rank === 1) rankClass = 'rank-1';
+        else if (rank === 2) rankClass = 'rank-2';
+        else if (rank === 3) rankClass = 'rank-3';
 
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><strong>${idx + 1}</strong></td>
+            <td><span class="rank-badge ${rankClass}">${rank}</span></td>
             <td><strong>${feat.name}</strong></td>
-            <td>${feat.coefficient.toFixed(4)}</td>
+            <td>${feat.coefficient?.toFixed(4) || '--'}</td>
             <td>${pValStr}</td>
-            <td><span class="sig-badge ${pColor}">${pLabel}</span></td>
-            <td>${feat.odds_ratio.toFixed(3)}</td>
-            <td>${feat.univariate_auc.toFixed(4)}</td>
-            <td>${feat.delta_auc.toFixed(4)}</td>
-            <td class="weight-bar-cell">
-                <div class="weight-bar" style="width:${barPct}%">
-                    <span class="weight-value">${feat.normalized_weight.toFixed(2)}%</span>
+            <td><span class="sig-badge ${sigClass}">${sigLabel}</span></td>
+            <td>${feat.odds_ratio?.toFixed(3) || '--'}</td>
+            <td>${feat.univariate_auc?.toFixed(4) || '--'}</td>
+            <td>${feat.delta_auc?.toFixed(4) || '--'}</td>
+            <td>
+                <div class="weight-bar-wrap">
+                    <div class="weight-bar-fill" style="width:${barPct}%">
+                        <span class="weight-bar-text">${feat.normalized_weight?.toFixed(2) || 0}%</span>
+                    </div>
                 </div>
             </td>
             <td>
-                <span class="me-2">${feat.cumulative_weight.toFixed(1)}%</span>
-                <div class="cumulative-bar">
-                    <div class="cumulative-fill" style="width:${Math.min(feat.cumulative_weight, 100)}%"></div>
+                <div class="cumulative-wrap">
+                    <span class="cumulative-pct" style="color:var(--accent-cyan);">${feat.cumulative_weight?.toFixed(1) || 0}%</span>
+                    <div class="cumulative-bar-bg">
+                        <div class="cumulative-bar-fill" style="width:${Math.min(feat.cumulative_weight || 0, 100)}%"></div>
+                    </div>
                 </div>
             </td>
         `;
@@ -336,7 +381,6 @@ function renderTable(dataset, data) {
     });
 }
 
-// Auto-load the first dataset when page loads
 document.addEventListener('DOMContentLoaded', () => {
     loadWeights('heart');
 });

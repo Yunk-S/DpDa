@@ -1,323 +1,455 @@
 {% extends "base.html" %}
 
-{% block title %}Adaptive Weighted Ensemble Learning - Disease Prediction and Big Data Analysis System{% endblock %}
+{% block title %}自适应加权集成学习 - DpDa{% endblock %}
 
 {% block extra_head %}
 <style>
-    .awelm-card {
-        background: rgba(255,255,255,0.95);
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    .page-hero { padding: 60px 0 40px; text-align: center; }
+
+    .formula-section {
+        background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(239,68,68,0.08));
+        border: 1px solid rgba(245,158,11,0.2);
+        border-radius: 20px;
+        padding: 28px;
+        margin-bottom: 32px;
     }
+
+    .formula-text {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        margin-bottom: 12px;
+        line-height: 1.8;
+    }
+
     .dataset-selector {
         display: flex;
         gap: 12px;
+        justify-content: center;
+        margin-bottom: 32px;
         flex-wrap: wrap;
-        margin-bottom: 20px;
     }
-    .dataset-btn {
-        padding: 12px 28px;
-        border-radius: 12px;
-        border: 2px solid #dee2e6;
-        background: white;
-        font-weight: 600;
+
+    .ds-btn {
+        padding: 14px 28px;
+        border-radius: 16px;
+        border: 2px solid var(--border-subtle);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.95rem;
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
+        gap: 10px;
+    }
+
+    .ds-btn.active {
+        border-color: var(--accent-yellow);
+        background: rgba(245,158,11,0.1);
+        color: var(--accent-yellow);
+        box-shadow: 0 0 30px rgba(245,158,11,0.15);
+    }
+
+    .run-btn {
+        display: block;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto 40px;
+        padding: 16px;
+        border-radius: 16px;
+        border: none;
+        background: linear-gradient(135deg, var(--accent-yellow), var(--accent-red));
+        color: #000;
+        font-weight: 800;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 30px rgba(245,158,11,0.3);
+        text-align: center;
+    }
+
+    .run-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 40px rgba(245,158,11,0.5);
+    }
+
+    .run-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .model-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 24px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .model-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+    }
+
+    .model-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-glow);
+    }
+
+    .model-card.ensemble {
+        border-color: rgba(245,158,11,0.3);
+        background: linear-gradient(135deg, rgba(245,158,11,0.05), rgba(239,68,68,0.05));
+    }
+
+    .model-card.ensemble::before {
+        background: linear-gradient(90deg, var(--accent-yellow), var(--accent-red));
+    }
+
+    .model-card.best {
+        border-color: rgba(16,185,129,0.3);
+    }
+
+    .model-card.best::before {
+        background: var(--accent-green);
+    }
+
+    .model-name {
+        font-weight: 800;
+        font-size: 1rem;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
         gap: 8px;
     }
-    .dataset-btn:hover { border-color: #0d6efd; }
-    .dataset-btn.active {
-        background: linear-gradient(135deg, #0d6efd, #6610f2);
-        color: white;
-        border-color: transparent;
+
+    .metric-row-aw {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        font-size: 0.85rem;
     }
-    .model-result-card {
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        transition: all 0.3s ease;
-        background: white;
+
+    .metric-row-aw .label { color: var(--text-secondary); }
+    .metric-row-aw .value { font-weight: 700; }
+
+    .perf-bar {
+        height: 6px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 3px;
+        overflow: hidden;
+        margin: 4px 0 10px;
     }
-    .model-result-card:hover {
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
+
+    .perf-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 1s ease;
     }
-    .model-result-card.best {
-        border: 2px solid #198754;
-        background: #f0fdf4;
+
+    .best-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(16,185,129,0.15);
+        color: var(--accent-green);
+        padding: 3px 10px;
+        border-radius: 100px;
+        font-size: 0.72rem;
+        font-weight: 700;
     }
-    .model-result-card.ensemble {
-        border: 2px solid #0d6efd;
-        background: linear-gradient(135deg, #f0f7ff, #e7f1ff);
+
+    .ensemble-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(245,158,11,0.15);
+        color: var(--accent-yellow);
+        padding: 3px 10px;
+        border-radius: 100px;
+        font-size: 0.72rem;
+        font-weight: 700;
     }
-    .metric-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        margin: 2px;
-    }
-    .badge-auc { background: #fff3cd; color: #856404; }
-    .badge-f1 { background: #d1ecf1; color: #0c5460; }
-    .badge-acc { background: #d4edda; color: #155724; }
-    .badge-pre { background: #e2e3e5; color: #383d41; }
-    .badge-rec { background: #f8d7da; color: #721c24; }
-    .weight-pie-container {
+
+    .weight-chart-container {
         max-width: 320px;
         margin: 0 auto;
     }
-    .formula-card {
-        background: linear-gradient(135deg, #1a1a2e, #16213e);
-        color: #e2e8f0;
-        border-radius: 16px;
-        padding: 24px;
-    }
-    .formula-card pre {
-        color: #00d4ff;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-        margin: 0;
-        white-space: pre-wrap;
-    }
-    .formula-card .formula-title { color: #ffd700; font-weight: 700; margin-bottom: 8px; }
-    .loading-overlay {
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(255,255,255,0.92);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 9999; flex-direction: column;
-    }
-    .spinner-ring {
-        width: 56px; height: 56px;
-        border: 5px solid #e9ecef;
-        border-top: 5px solid #0d6efd;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin-bottom: 16px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results-section { display: none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <h1 class="text-center mb-2 animated-title white-heading">Adaptive Weighted Ensemble Learning Model (AWELM)</h1>
-    <p class="text-center text-muted mb-4">Build high-accuracy disease prediction models through gradient descent optimization of ensemble weights</p>
+<section class="page-hero">
+    <div class="container">
+        <div class="hero-badge" style="margin: 0 auto 16px;">
+            <i class="fas fa-layer-group"></i> 问题二
+        </div>
+        <h1 class="section-title" style="font-size:2.2rem;" data-aos="fade-up">自适应加权集成学习模型</h1>
+        <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
+            通过梯度下降优化多分类器权重融合 — Logistic Regression + Random Forest + Gradient Boosting + SVM
+        </p>
 
-    <!-- Formula Description -->
-    <div class="formula-card mb-4">
-        <div class="formula-title"><i class="fas fa-function me-2"></i>Loss Function and Weight Optimization</div>
-        <pre>Loss Function: L(w) = -mean[β·y·log(p) + (1-y)·log(1-p)] + λ·H(w)
-  where p = Σwᵢ·pᵢ (weighted probability), β = neg/pos ratio (class balancing factor)
-  H(w) = -Σwᵢ·log(wᵢ) (negative entropy regularization, prevents weight overfitting)
-
-Optimization Objective: min L(w)  s.t. wᵢ ≥ 0, Σwᵢ = 1
-
-Base Models: Logistic Regression + Random Forest + Gradient Boosting + SVM</pre>
+        <div class="formula-section" data-aos="fade-up" data-aos-delay="200">
+            <div class="formula-text">
+                Loss: L(w) = -mean[&beta;&middot;y&middot;log(p) + (1-y)&middot;log(1-p)] + &lambda;&middot;H(w)<br>
+                where p = &Sigma;w<sub>i</sub>&middot;p<sub>i</sub>, H(w) = -&Sigma;w<sub>i</sub>&middot;log(w<sub>i</sub>)
+            </div>
+            <div style="color:var(--text-muted); font-size:0.82rem; text-align:left; line-height:1.8;">
+                &beta; = 负/正类比率（类别平衡因子）&nbsp;&bull;&nbsp;
+                H(w) = 负熵正则化（防止权重过拟合）&nbsp;&bull;&nbsp;
+                p = 加权概率和&nbsp;&bull;&nbsp;
+                约束: w<sub>i</sub> &ge; 0, &Sigma;w<sub>i</sub> = 1
+            </div>
+        </div>
     </div>
+</section>
 
-    <!-- Dataset Selection -->
-    <div class="awelm-card">
-        <h5 class="mb-3"><i class="fas fa-database me-2"></i>Select Dataset</h5>
-        <div class="dataset-selector">
-            <button class="dataset-btn active" id="btn-heart" onclick="selectDataset('heart')">
-                <i class="fas fa-heart text-danger"></i> Heart Disease
+<section style="padding: 20px 0 60px;">
+    <div class="container">
+        <!-- Dataset Selector -->
+        <div class="dataset-selector" data-aos="fade-up">
+            <button class="ds-btn active" onclick="selectAWELMDataset('heart', this)">
+                <i class="fas fa-heart" style="color:var(--accent-red)"></i> 心脏病
             </button>
-            <button class="dataset-btn" id="btn-stroke" onclick="selectDataset('stroke')">
-                <i class="fas fa-brain text-primary"></i> Stroke
+            <button class="ds-btn" onclick="selectAWELMDataset('stroke', this)">
+                <i class="fas fa-brain" style="color:var(--accent-blue)"></i> 中风
             </button>
-            <button class="dataset-btn" id="btn-cirrhosis" onclick="selectDataset('cirrhosis')">
-                <i class="fas fa-notes-medical text-warning"></i> Cirrhosis
+            <button class="ds-btn" onclick="selectAWELMDataset('cirrhosis', this)">
+                <i class="fas fa-liver" style="color:var(--accent-yellow)"></i> 肝硬化
             </button>
         </div>
 
-        <button class="btn btn-primary btn-lg w-100 mb-4" onclick="runAWELM()" id="runBtn">
-            <i class="fas fa-play me-2"></i>Run AWELM Model Training
+        <button class="run-btn" id="runAwelmBtn" onclick="runAWELM()">
+            <i class="fas fa-play me-2"></i> 启动 AWELM 训练
         </button>
-    </div>
 
-    <!-- Results Display -->
-    <div class="awelm-card" id="resultsCard" style="display:none">
-        <h5 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Model Performance Comparison</h5>
+        <!-- Results -->
+        <div class="results-section" id="awelmResults">
+            <!-- Summary -->
+            <div class="row g-4 mb-5" id="awelmSummary" data-aos="fade-up"></div>
 
-        <!-- Best Model Alert -->
-        <div class="alert alert-success d-flex align-items-center mb-3" id="bestModelAlert" style="display:none">
-            <i class="fas fa-trophy me-2"></i>
-            <div>
-                <strong>Best Model: <span id="bestModelName">--</span></strong>
-                <span id="bestModelAuc" class="ms-2"></span>
-            </div>
-        </div>
+            <!-- Models -->
+            <div class="row g-4 mb-5" id="awelmModels" data-aos="fade-up"></div>
 
-        <div class="row">
-            <!-- Model Performance List -->
-            <div class="col-lg-7">
-                <div id="modelResultsList"></div>
-            </div>
-
-            <!-- Weight Pie Chart -->
-            <div class="col-lg-5">
-                <div class="weight-pie-container">
-                    <canvas id="weightChart"></canvas>
-                </div>
-                <div class="text-center mt-3">
-                    <small class="text-muted">Ensemble Model Weight Distribution</small>
+            <!-- Weight Chart -->
+            <div class="row justify-content-center" data-aos="fade-up">
+                <div class="col-lg-4">
+                    <div class="glass-card" style="text-align:center;">
+                        <div style="font-weight:700; margin-bottom:16px; color:var(--text-secondary); font-size:0.88rem;">
+                            <i class="fas fa-chart-pie me-2" style="color:var(--accent-yellow)"></i>集成模型权重分布
+                        </div>
+                        <div class="weight-chart-container">
+                            <canvas id="awelmPieChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-let currentDataset = 'heart';
-let weightChart = null;
-let awelmResults = { heart: null, stroke: null, cirrhosis: null };
+let awelmCurrentDs = 'heart';
+let awelmPieChart = null;
+let awelmResultsCache = { heart: null, stroke: null, cirrhosis: null };
 
-function selectDataset(ds) {
-    currentDataset = ds;
-    document.querySelectorAll('.dataset-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`btn-${ds}`).classList.add('active');
+function selectAWELMDataset(ds, btn) {
+    awelmCurrentDs = ds;
+    document.querySelectorAll('.ds-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
 
-    if (awelmResults[ds]) {
-        renderResults(ds, awelmResults[ds]);
+function setLoading(state) {
+    const btn = document.getElementById('runAwelmBtn');
+    if (state) {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-ring" style="width:20px;height:20px;border-width:3px;display:inline-block;margin-right:8px;"></div> 训练中...';
     } else {
-        document.getElementById('resultsCard').style.display = 'none';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play me-2"></i> 启动 AWELM 训练';
     }
-}
-
-function showLoading() {
-    const el = document.createElement('div');
-    el.id = 'awelmLoading';
-    el.className = 'loading-overlay';
-    el.innerHTML = '<div class="spinner-ring"></div><div style="color:#333;font-weight:600">Training AWELM model...</div>';
-    document.body.appendChild(el);
-}
-
-function hideLoading() {
-    document.getElementById('awelmLoading')?.remove();
 }
 
 function runAWELM() {
-    showLoading();
-    fetch(`/api/awelm/${currentDataset}`, { method: 'POST' })
+    setLoading(true);
+    document.getElementById('awelmResults').style.display = 'none';
+
+    fetch(`/api/awelm/${awelmCurrentDs}`, { method: 'POST' })
         .then(r => r.json())
         .then(data => {
-            hideLoading();
-            if (data.error) { alert('Run failed: ' + data.error); return; }
-            awelmResults[currentDataset] = data;
-            renderResults(currentDataset, data);
+            setLoading(false);
+            if (data.error) { alert('训练失败: ' + data.error); return; }
+            awelmResultsCache[awelmCurrentDs] = data;
+            renderAWELMResults(data);
         })
         .catch(err => {
-            hideLoading();
-            alert('Run failed: ' + err);
+            setLoading(false);
+            alert('训练失败: ' + err);
         });
 }
 
-function renderResults(dataset, data) {
-    document.getElementById('resultsCard').style.display = 'block';
-    document.getElementById('bestModelAlert').style.display = 'flex';
-    document.getElementById('bestModelName').textContent = data.best_model;
-    document.getElementById('bestModelAuc').textContent =
-        data.base_models[data.best_model]?.auc
-            ? `(AUC: ${data.base_models[data.best_model].auc.toFixed(4)})`
-            : '';
+function renderAWELMResults(data) {
+    const resultsEl = document.getElementById('awelmResults');
+    resultsEl.style.display = 'block';
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    const list = document.getElementById('modelResultsList');
-    list.innerHTML = '';
+    const sumEl = document.getElementById('awelmSummary');
+    const modelsEl = document.getElementById('awelmModels');
 
-    // First display base models
-    for (const [name, metrics] of Object.entries(data.base_models)) {
-        const isBest = name === data.best_model;
-        const card = document.createElement('div');
-        card.className = `model-result-card${isBest ? ' best' : ''}`;
-        card.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <strong>${isBest ? '★ ' : ''}${name}</strong>
-                ${isBest ? '<span class="badge bg-success">Best</span>' : ''}
+    // Best AUC
+    let bestAuc = 0;
+    let bestName = '';
+    for (const [name, m] of Object.entries(data.base_models)) {
+        if (m.auc && m.auc > bestAuc) { bestAuc = m.auc; bestName = name; }
+    }
+    const ensAuc = data.ensemble.auc || 0;
+
+    sumEl.innerHTML = `
+        <div class="col-6 col-md-3">
+            <div class="glass-card" style="text-align:center;">
+                <div style="font-size:2rem; font-weight:900; color:var(--accent-yellow);">${bestAuc > 0 ? bestAuc.toFixed(4) : '--'}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">最佳基模型 AUC</div>
+                <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:4px;">${bestName}</div>
             </div>
-            <div>
-                <span class="metric-badge badge-auc">AUC: ${metrics.auc?.toFixed(4) || 'N/A'}</span>
-                <span class="metric-badge badge-f1">F1: ${metrics.f1?.toFixed(4)}</span>
-                <span class="metric-badge badge-acc">ACC: ${metrics.accuracy?.toFixed(4)}</span>
-                <span class="metric-badge badge-pre">PRE: ${metrics.precision?.toFixed(4)}</span>
-                <span class="metric-badge badge-rec">REC: ${metrics.recall?.toFixed(4)}</span>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass-card" style="text-align:center;">
+                <div style="font-size:2rem; font-weight:900; color:var(--accent-green);">${ensAuc > 0 ? ensAuc.toFixed(4) : '--'}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">集成模型 AUC</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass-card" style="text-align:center;">
+                <div style="font-size:2rem; font-weight:900; color:var(--accent-cyan);">${(ensAuc - bestAuc > 0 ? '+' : '') + (ensAuc - bestAuc).toFixed(4)}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">相对提升</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass-card" style="text-align:center;">
+                <div style="font-size:2rem; font-weight:900; color:var(--accent-purple);">${data.best_model || '--'}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">最优单模型</div>
+            </div>
+        </div>
+    `;
+
+    const METRIC_COLORS = {
+        auc: ['var(--accent-cyan)', 'rgba(0,212,255,0.15)'],
+        f1: ['var(--accent-purple)', 'rgba(168,85,247,0.15)'],
+        accuracy: ['var(--accent-green)', 'rgba(16,185,129,0.15)'],
+        precision: ['var(--accent-blue)', 'rgba(59,130,246,0.15)'],
+        recall: ['var(--accent-red)', 'rgba(239,68,68,0.15)'],
+    };
+
+    let modelsHTML = '';
+
+    // Base models
+    for (const [name, m] of Object.entries(data.base_models)) {
+        const isBest = name === data.best_model;
+        modelsHTML += `
+            <div class="col-md-6 col-lg-4">
+                <div class="model-card ${isBest ? 'best' : ''}">
+                    <div class="model-name">
+                        ${isBest ? '<span class="best-badge"><i class="fas fa-trophy"></i> Best</span>' : ''}
+                        ${name}
+                    </div>
+                    ${['auc', 'f1', 'accuracy', 'precision', 'recall'].map(key => {
+                        const val = m[key];
+                        if (val === null || val === undefined) return '';
+                        const [c, bg] = METRIC_COLORS[key];
+                        return `
+                            <div class="metric-row-aw">
+                                <span class="label">${key.toUpperCase()}</span>
+                                <span class="value" style="color:${c}">${val.toFixed(4)}</span>
+                            </div>
+                            <div class="perf-bar">
+                                <div class="perf-bar-fill" style="width:${Math.min(val * 100, 100)}%; background:${c};"></div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
-        list.appendChild(card);
     }
 
     // Ensemble model
-    const ensCard = document.createElement('div');
-    ensCard.className = 'model-result-card ensemble';
-    ensCard.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong><i class="fas fa-layer-group me-1"></i>Ensemble Model (AWELM)</strong>
-            <span class="badge bg-primary">Fusion</span>
-        </div>
-        <div>
-            <span class="metric-badge badge-auc">AUC: ${data.ensemble.auc?.toFixed(4) || 'N/A'}</span>
-            <span class="metric-badge badge-f1">F1: ${data.ensemble.f1?.toFixed(4)}</span>
-            <span class="metric-badge badge-acc">ACC: ${data.ensemble.accuracy?.toFixed(4)}</span>
-            <span class="metric-badge badge-pre">PRE: ${data.ensemble.precision?.toFixed(4)}</span>
-            <span class="metric-badge badge-rec">REC: ${data.ensemble.recall?.toFixed(4)}</span>
+    modelsHTML += `
+        <div class="col-md-6 col-lg-4">
+            <div class="model-card ensemble">
+                <div class="model-name">
+                    <span class="ensemble-badge"><i class="fas fa-layer-group"></i> Ensemble</span>
+                    AWELM 融合模型
+                </div>
+                ${['auc', 'f1', 'accuracy', 'precision', 'recall'].map(key => {
+                    const val = data.ensemble[key];
+                    if (val === null || val === undefined) return '';
+                    const [c] = METRIC_COLORS[key];
+                    return `
+                        <div class="metric-row-aw">
+                            <span class="label">${key.toUpperCase()}</span>
+                            <span class="value" style="color:${c}">${val.toFixed(4)}</span>
+                        </div>
+                        <div class="perf-bar">
+                            <div class="perf-bar-fill" style="width:${Math.min(val * 100, 100)}%; background:linear-gradient(90deg, var(--accent-yellow), var(--accent-red));"></div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
         </div>
     `;
-    list.appendChild(ensCard);
 
-    // Draw pie chart
-    renderPieChart(data.weights);
-}
+    modelsEl.innerHTML = modelsHTML;
 
-function renderPieChart(weights) {
-    const ctx = document.getElementById('weightChart').getContext('2d');
-    if (weightChart) weightChart.destroy();
+    // Pie chart
+    const ctx = document.getElementById('awelmPieChart').getContext('2d');
+    if (awelmPieChart) awelmPieChart.destroy();
 
-    const labels = Object.keys(weights);
-    const values = Object.values(weights);
-    const colors = [
-        'rgba(102,126,234,0.85)',
-        'rgba(118,75,162,0.85)',
-        'rgba(79,172,254,0.85)',
-        'rgba(0,242,254,0.85)',
-    ];
+    const labels = Object.keys(data.weights);
+    const values = Object.values(data.weights);
+    const colors = ['#00d4ff','#a855f7','#f59e0b','#ef4444'];
 
-    weightChart = new Chart(ctx, {
+    awelmPieChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: labels,
             datasets: [{
                 data: values,
-                backgroundColor: colors.slice(0, labels.length),
+                backgroundColor: colors.map(c => c + 'cc'),
+                borderColor: colors,
                 borderWidth: 2,
-                borderColor: '#fff',
             }]
         },
         options: {
             responsive: true,
+            cutout: '60%',
             plugins: {
-                legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } },
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#8b9dc3', padding: 12, font: { size: 11 } }
+                },
                 tooltip: {
                     callbacks: {
                         label: ctx => ` ${ctx.label}: ${(ctx.raw * 100).toFixed(2)}%`
                     }
                 }
             },
-            cutout: '55%',
+            animation: { duration: 1000, easing: 'easeOutQuart' }
         }
     });
-}
 
-// Auto-load heart data when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Can choose to auto-run or wait for user click
-});
+    AOS.refresh();
+}
 </script>
 {% endblock %}
