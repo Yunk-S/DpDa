@@ -1,16 +1,16 @@
 """
-模型工具库
+Model Utilities
 
-这个工具库提供了一组功能，用于处理机器学习模型的各种任务，并体现于前端界面，内容包括：
-- 生成模型性能指标
-- 生成各种可视化图表
-- 修复模型评估过程中可能出现的问题
+This utility library provides a set of functions for handling various machine learning model tasks, reflected in the frontend interface, including:
+- Generate model performance metrics
+- Generate various visualization charts
+- Fix issues that may occur during model evaluation
 
-可以通过命令行参数指定需要执行的任务：
-python model_utilities.py --all  # 运行所有修复和生成任务
-python model_utilities.py --metrics  # 只生成/修复模型指标
-python model_utilities.py --charts  # 只生成/修复图表
-python model_utilities.py --residuals  # 只生成/修复残差图
+Tasks can be specified via command line arguments:
+python model_utilities.py --all  # Run all fix and generation tasks
+python model_utilities.py --metrics  # Only generate/fix model metrics
+python model_utilities.py --charts  # Only generate/fix charts
+python model_utilities.py --residuals  # Only generate/fix residual plots
 """
 
 import os
@@ -26,33 +26,33 @@ import argparse
 import shutil
 warnings.filterwarnings('ignore')
 
-# 设置matplotlib中文字体
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS', 'DejaVu Sans', 'sans-serif']  # 用来正常显示中文标签
-plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
-plt.rcParams['font.family'] = 'sans-serif'  # 设置字体族
+# Set matplotlib font for non-Chinese characters
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'sans-serif']
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['font.family'] = 'sans-serif'
 
-# ========== 通用工具函数 ==========
+# ========== General Utility Functions ==========
 
 def ensure_directory_exists(directory):
-    """确保目录存在"""
+    """Ensure directory exists"""
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 def backup_output_directory():
-    """备份output目录"""
+    """Backup output directory"""
     if os.path.exists('output'):
         backup_dir = 'output_backup'
         if os.path.exists(backup_dir):
             shutil.rmtree(backup_dir)
         shutil.copytree('output', backup_dir)
-        print(f"已创建output目录备份: {backup_dir}")
+        print(f"Backup created for output directory: {backup_dir}")
 
 def load_models_and_data(dataset_name=None):
-    """加载模型和数据
+    """Load models and data
     
     Args:
-        dataset_name (str, optional): 指定要加载的数据集名称，例如'stroke', 'heart', 'cirrhosis'。
-                                     如果为None，则加载所有数据集。
+        dataset_name (str, optional): The name of the dataset to load, e.g., 'stroke', 'heart', 'cirrhosis'.
+                                     If None, all datasets will be loaded.
     """
     models = {}
     model_dir = 'output/models'
@@ -60,7 +60,7 @@ def load_models_and_data(dataset_name=None):
     if os.path.exists(model_dir):
         for filename in os.listdir(model_dir):
             if filename.endswith('.pkl'):
-                # 如果指定了数据集，则只加载该数据集的模型
+                # If dataset is specified, only load models for that dataset
                 if dataset_name and not filename.startswith(dataset_name):
                     continue
                     
@@ -68,11 +68,11 @@ def load_models_and_data(dataset_name=None):
                     model_path = os.path.join(model_dir, filename)
                     model_name = filename.replace('.pkl', '')
                     models[model_name] = joblib.load(model_path)
-                    print(f"加载模型: {model_name}")
+                    print(f"Loaded model: {model_name}")
                 except Exception as e:
-                    print(f"加载模型 {model_name} 失败: {e}")
+                    print(f"Failed to load model {model_name}: {e}")
     
-    # 加载处理后的数据
+    # Load processed data
     data = {}
     data_dir = 'output/processed_data'
     
@@ -81,21 +81,21 @@ def load_models_and_data(dataset_name=None):
             if filename.endswith('.csv'):
                 data_name = filename.replace('_processed.csv', '')
                 
-                # 如果指定了数据集，则只加载该数据集
+                # If dataset is specified, only load that dataset
                 if dataset_name and data_name != dataset_name:
                     continue
                     
                 data_path = os.path.join(data_dir, filename)
                 try:
                     data[data_name] = pd.read_csv(data_path)
-                    print(f"加载数据: {data_name}")
+                    print(f"Loaded data: {data_name}")
                 except Exception as e:
-                    print(f"加载数据 {data_name} 失败: {e}")
+                    print(f"Failed to load data {data_name}: {e}")
     
     return models, data
 
 def prepare_test_data(data):
-    """准备测试数据"""
+    """Prepare test data"""
     test_datasets = {}
     
     for name, df in data.items():
@@ -109,10 +109,10 @@ def prepare_test_data(data):
             features = df.drop(['ID', 'N_Days', 'Stage'], axis=1, errors='ignore')
             target = df['Stage']
         
-        # 只保留数值型特征
+        # Only keep numeric features
         features_numeric = features.select_dtypes(include=['float64', 'int64']).copy()
         
-        # 分割测试集（为了简单，这里我们使用整个数据集的20%作为测试集）
+        # Split test set (for simplicity, we use 20% of the entire dataset as test set)
         from sklearn.model_selection import train_test_split
         _, X_test, _, y_test = train_test_split(features_numeric, target, test_size=0.2, random_state=42)
         
@@ -120,113 +120,113 @@ def prepare_test_data(data):
     
     return test_datasets
 
-# ========== 概率平滑函数 ==========
+# ========== Probability Smoothing Functions ==========
 
 def smooth_probability(prob, method='sigmoid_quantile', min_prob=0.01, max_prob=0.99):
     """
-    对预测概率进行平滑处理，避免0%或100%的极端值
+    Smooth predicted probabilities to avoid extreme values of 0% or 100%
     
-    参数:
-        prob: 原始预测概率，可以是单个值或numpy数组
-        method: 平滑方法
-            - 'clip': 简单截断法
-            - 'beta': Beta分布平滑
-            - 'sigmoid_quantile': Sigmoid函数和分位数结合的平滑方法
-        min_prob: 允许的最小概率值
-        max_prob: 允许的最大概率值
+    Args:
+        prob: Original predicted probability, can be a single value or numpy array
+        method: Smoothing method
+            - 'clip': Simple clipping method
+            - 'beta': Beta distribution smoothing
+            - 'sigmoid_quantile': Smoothing method combining sigmoid function and quantiles
+        min_prob: Minimum allowed probability value
+        max_prob: Maximum allowed probability value
         
-    返回:
-        平滑后的概率值
+    Returns:
+        Smoothed probability value
     """
-    # 转换为numpy数组便于处理
+    # Convert to numpy array for processing
     is_scalar = np.isscalar(prob)
     prob_array = np.asarray(prob).flatten() if not is_scalar else np.array([prob])
     
-    # 方法1：简单截断法
+    # Method 1: Simple clipping
     if method == 'clip':
         smoothed = np.clip(prob_array, min_prob, max_prob)
     
-    # 方法2：Beta分布平滑
+    # Method 2: Beta distribution smoothing
     elif method == 'beta':
-        # Beta分布平滑参数，较大的值使分布更加集中
-        # 对于高概率样本，增加alpha；对于低概率样本，增加beta
+        # Beta distribution smoothing parameters, larger values make distribution more concentrated
+        # For high probability samples, increase alpha; for low probability samples, increase beta
         alpha = np.ones_like(prob_array)
         beta = np.ones_like(prob_array)
         
-        # 根据原始概率调整参数
+        # Adjust parameters based on original probability
         for i, p in enumerate(prob_array):
             if p > 0.5:
-                # 高概率样本
+                # High probability sample
                 alpha[i] += 2 * p
                 beta[i] += 2 * (1 - p)
             else:
-                # 低概率样本
+                # Low probability sample
                 alpha[i] += 2 * p
                 beta[i] += 2 * (1 - p)
         
-        # 计算期望
+        # Calculate expectation
         smoothed = alpha / (alpha + beta)
         
-        # 额外的截断以确保在允许范围内
+        # Additional clipping to ensure within allowed range
         smoothed = np.clip(smoothed, min_prob, max_prob)
     
-    # 方法3：Sigmoid函数和分位数结合的平滑方法（推荐）
+    # Method 3: Smoothing method combining sigmoid function and quantiles (recommended)
     elif method == 'sigmoid_quantile':
-        # 如果概率接近0或1，进行更强的平滑
+        # If probability is close to 0 or 1, apply stronger smoothing
         smoothed = np.zeros_like(prob_array)
         
         for i, p in enumerate(prob_array):
-            # 确定风险等级
-            if p < 0.2:  # 低风险
-                # 对低概率值稍微提升
+            # Determine risk level
+            if p < 0.2:  # Low risk
+                # Slightly increase low probability values
                 smoothed[i] = 0.2 * p + min_prob
-            elif p > 0.8:  # 高风险
-                # 对高概率值稍微降低
+            elif p > 0.8:  # High risk
+                # Slightly decrease high probability values
                 smoothed[i] = max_prob - 0.2 * (1 - p)
-            else:  # 中等风险
-                # 应用分位数平滑，保留中间值
-                # 将[0.2, 0.8]映射到[0.2, 0.8]范围
+            else:  # Medium risk
+                # Apply quantile smoothing, preserving middle values
+                # Map [0.2, 0.8] to [0.2, 0.8] range
                 normalized = (p - 0.2) / (0.8 - 0.2)
                 
-                # 应用sigmoid函数使转换更平滑
+                # Apply sigmoid function for smoother transformation
                 from scipy.special import expit
-                sigmoid_value = expit(4 * normalized - 2)  # 缩放和移位
+                sigmoid_value = expit(4 * normalized - 2)  # Scaling and shifting
                 
-                # 映射回原始范围
+                # Map back to original range
                 smoothed[i] = 0.2 + sigmoid_value * (0.8 - 0.2)
     
     else:
-        # 默认使用简单截断
+        # Default to simple clipping
         smoothed = np.clip(prob_array, min_prob, max_prob)
     
-    # 返回与输入相同形式的结果
+    # Return result in the same form as input
     if is_scalar:
         return smoothed[0]
     else:
         return smoothed.reshape(np.asarray(prob).shape)
 
-# ========== 模型评估指标生成 ==========
+# ========== Model Evaluation Metrics Generation ==========
 
 def generate_metrics_files(models, test_datasets):
-    """生成或修复模型评估指标文件"""
-    print("\n生成或修复模型评估指标文件...")
+    """Generate or fix model evaluation metrics files"""
+    print("\nGenerating or fixing model evaluation metrics files...")
     
     ensure_directory_exists('output/models')
     
     for dataset_name, (X_test, y_test, _) in test_datasets.items():
-        # 查找适用于该数据集的所有模型
+        # Find all models applicable to this dataset
         dataset_models = [m for m in models.keys() if m.startswith(dataset_name)]
         
         for model_name in dataset_models:
             model = models[model_name]
             
             try:
-                # 预测值
+                # Predictions
                 y_pred = model.predict(X_test)
                 
-                # 根据任务类型生成不同的指标
+                # Generate different metrics based on task type
                 if dataset_name in ['stroke', 'heart']:
-                    # 分类任务
+                    # Classification task
                     metrics = {
                         'accuracy': float(accuracy_score(y_test, y_pred))
                     }
@@ -240,7 +240,7 @@ def generate_metrics_files(models, test_datasets):
                         metrics['recall'] = "N/A"
                         metrics['f1'] = "N/A"
                     
-                    # AUC（只适用于二分类）
+                    # AUC (only for binary classification)
                     if hasattr(model, 'predict_proba') and len(np.unique(y_test)) == 2:
                         try:
                             y_prob = model.predict_proba(X_test)[:, 1]
@@ -252,7 +252,7 @@ def generate_metrics_files(models, test_datasets):
                         metrics['auc'] = "N/A"
                     
                 else:
-                    # 回归任务
+                    # Regression task
                     mse = float(mean_squared_error(y_test, y_pred))
                     metrics = {
                         'mse': mse,
@@ -260,16 +260,16 @@ def generate_metrics_files(models, test_datasets):
                         'r2': float(r2_score(y_test, y_pred))
                     }
                 
-                # 保存指标到JSON文件
+                # Save metrics to JSON file
                 metrics_path = f'output/models/{model_name}_metrics.json'
                 with open(metrics_path, 'w') as f:
                     json.dump(metrics, f, indent=4)
                 
-                print(f"{model_name} 的评估指标已生成")
+                print(f"Evaluation metrics generated for {model_name}")
                 
             except Exception as e:
-                print(f"为{model_name}生成评估指标时出错: {e}")
-                # 生成一个空的指标文件以避免Web应用报错
+                print(f"Error generating evaluation metrics for {model_name}: {e}")
+                # Generate an empty metrics file to avoid web app errors
                 if dataset_name in ['stroke', 'heart']:
                     metrics = {'accuracy': 'N/A', 'precision': 'N/A', 'recall': 'N/A', 'f1': 'N/A', 'auc': 'N/A'}
                 else:
@@ -279,25 +279,25 @@ def generate_metrics_files(models, test_datasets):
                 with open(metrics_path, 'w') as f:
                     json.dump(metrics, f, indent=4)
 
-# ========== 图表生成函数 ==========
+# ========== Chart Generation Functions ==========
 
 def generate_roc_curves(models, test_datasets):
-    """生成ROC曲线"""
-    print("\n生成ROC曲线...")
+    """Generate ROC curves"""
+    print("\nGenerating ROC curves...")
     
     ensure_directory_exists('output/figures')
     
     for dataset_name, (X_test, y_test, _) in test_datasets.items():
-        # 对于回归任务（肝硬化），我们不生成ROC曲线
+        # For regression tasks (cirrhosis), we don't generate ROC curves
         if dataset_name == 'cirrhosis':
-            print(f"{dataset_name}是回归任务，跳过ROC曲线生成")
+            print(f"{dataset_name} is a regression task, skipping ROC curve generation")
             continue
             
-        # 查找适用于该数据集的模型
+        # Find models applicable to this dataset
         dataset_models = [m for m in models.keys() if m.startswith(dataset_name)]
         
         if not dataset_models:
-            print(f"没有找到适用于{dataset_name}的模型，跳过ROC曲线生成")
+            print(f"No models found for {dataset_name}, skipping ROC curve generation")
             continue
         
         plt.figure(figsize=(10, 8))
@@ -308,86 +308,86 @@ def generate_roc_curves(models, test_datasets):
             try:
                 model = models[model_name]
                 
-                # 检查模型是否有predict_proba方法
+                # Check if model has predict_proba method
                 if hasattr(model, 'predict_proba'):
-                    # 获取预测概率
+                    # Get predicted probabilities
                     y_prob = model.predict_proba(X_test)
                     
-                    # 如果是二分类问题
+                    # For binary classification problem
                     if y_prob.shape[1] == 2:
-                        y_prob = y_prob[:, 1]  # 取正类的概率
+                        y_prob = y_prob[:, 1]  # Get probability of positive class
                         
-                        # 计算ROC曲线
+                        # Calculate ROC curve
                         fpr, tpr, _ = roc_curve(y_test, y_prob)
                         roc_auc = auc(fpr, tpr)
                         
-                        # 绘制ROC曲线
+                        # Plot ROC curve
                         plt.plot(fpr, tpr, lw=2, label=f'{model_name} (AUC = {roc_auc:.2f})')
                         has_valid_curve = True
             except Exception as e:
-                print(f"为模型 {model_name} 生成ROC曲线时出错: {e}")
+                print(f"Error generating ROC curve for model {model_name}: {e}")
         
         if has_valid_curve:
-            # 绘制随机预测的基线
-            plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='随机预测 (AUC = 0.5)')
+            # Plot baseline for random prediction
+            plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random Prediction (AUC = 0.5)')
             
-            # 设置图表属性
+            # Set chart properties
             plt.xlim([0.0, 1.0])
             plt.ylim([0.0, 1.05])
-            plt.xlabel('假正例率 (FPR)')
-            plt.ylabel('真正例率 (TPR)')
-            plt.title(f'{dataset_name.capitalize()} 模型的ROC曲线')
+            plt.xlabel('False Positive Rate (FPR)')
+            plt.ylabel('True Positive Rate (TPR)')
+            plt.title(f'ROC Curve for {dataset_name.capitalize()} Model')
             plt.legend(loc="lower right")
             
-            # 保存图表
+            # Save chart
             plt.tight_layout()
             plt.savefig(f'output/figures/{dataset_name}_roc_curve.png')
             plt.close()
             
-            print(f"{dataset_name} 的ROC曲线已生成")
+            print(f"ROC curve generated for {dataset_name}")
         else:
-            print(f"未能为 {dataset_name} 生成有效的ROC曲线")
+            print(f"Failed to generate valid ROC curve for {dataset_name}")
 
 def generate_residual_plots(models, test_datasets, data):
-    """生成残差图"""
-    print("\n生成残差图...")
+    """Generate residual plots"""
+    print("\nGenerating residual plots...")
     
     ensure_directory_exists('output/figures')
     
     for dataset_name, (X_test, y_test, features) in test_datasets.items():
-        # 对于分类任务，不生成残差图
+        # For classification tasks, don't generate residual plots
         if dataset_name in ['stroke', 'heart']:
-            print(f"{dataset_name}是分类任务，跳过残差图生成")
+            print(f"{dataset_name} is a classification task, skipping residual plot generation")
             continue
             
-        # 查找适用于该数据集的最佳模型
+        # Find the best model for this dataset
         best_model_name = f"{dataset_name}_best_baseline_model"
         
         if best_model_name not in models:
-            print(f"没有找到{dataset_name}的最佳模型，跳过残差图生成")
+            print(f"Best model for {dataset_name} not found, skipping residual plot generation")
             continue
         
         try:
             model = models[best_model_name]
             
-            # 检查模型需要的特征
+            # Check model required features
             if hasattr(model, 'feature_names_in_'):
-                print(f"模型需要的特征: {model.feature_names_in_.tolist()}")
+                print(f"Features required by model: {model.feature_names_in_.tolist()}")
                 
-                # 添加缺失的特征
+                # Add missing features
                 required_features = model.feature_names_in_
                 features_prepared = features.copy()
                 
                 missing_features = set(required_features) - set(features_prepared.columns)
                 if missing_features:
-                    print(f"添加缺失的特征: {missing_features}")
+                    print(f"Adding missing features: {missing_features}")
                     for feature in missing_features:
-                        features_prepared[feature] = 0  # 用0填充缺失特征
+                        features_prepared[feature] = 0  # Fill missing features with 0
                 
-                # 确保特征顺序与模型训练时一致
+                # Ensure feature order matches model training
                 features_prepared = features_prepared[required_features]
                 
-                # 重新分割测试集
+                # Re-split test set
                 from sklearn.model_selection import train_test_split
                 _, X_test_prepared, _, y_test = train_test_split(
                     features_prepared, data[dataset_name]['Stage'], 
@@ -396,92 +396,92 @@ def generate_residual_plots(models, test_datasets, data):
             else:
                 X_test_prepared = X_test
             
-            # 生成预测
+            # Generate predictions
             y_pred = model.predict(X_test_prepared)
             
-            # 手动生成残差图
+            # Manually generate residual plot
             plt.figure(figsize=(10, 6))
             plt.scatter(y_test, y_pred, alpha=0.5)
             
-            # 添加理想预测线
+            # Add ideal prediction line
             min_val = min(float(y_test.min()), float(y_pred.min()))
             max_val = max(float(y_test.max()), float(y_pred.max()))
             plt.plot([min_val, max_val], [min_val, max_val], 'r--')
             
-            plt.xlabel('实际值')
-            plt.ylabel('预测值')
-            plt.title(f'{dataset_name.capitalize()} 模型的预测与实际值对比')
+            plt.xlabel('Actual Value')
+            plt.ylabel('Predicted Value')
+            plt.title(f'Prediction vs Actual for {dataset_name.capitalize()} Model')
             plt.tight_layout()
             plt.savefig(f'output/figures/{dataset_name}_residual_plot.png')
             plt.close()
             
-            # 残差分布
+            # Residual distribution
             residuals = y_test - y_pred
             plt.figure(figsize=(10, 6))
             plt.hist(residuals, bins=30, alpha=0.7)
             plt.axvline(x=0, color='r', linestyle='--')
-            plt.xlabel('残差 (真实值 - 预测值)')
-            plt.ylabel('频数')
-            plt.title(f'{dataset_name.capitalize()} 模型的残差分布')
+            plt.xlabel('Residual (Actual - Predicted)')
+            plt.ylabel('Frequency')
+            plt.title(f'Residual Distribution for {dataset_name.capitalize()} Model')
             plt.tight_layout()
             plt.savefig(f'output/figures/{dataset_name}_residual_distribution.png')
             plt.close()
             
-            print(f"{dataset_name} 的残差图已生成")
+            print(f"Residual plots generated for {dataset_name}")
             
-            # 计算均方误差 (MSE)
+            # Calculate Mean Squared Error (MSE)
             mse = ((y_test - y_pred) ** 2).mean()
-            print(f"均方误差 (MSE): {mse:.4f}")
+            print(f"Mean Squared Error (MSE): {mse:.4f}")
             
-            # 计算R方 (R²)
+            # Calculate R-squared (R2)
             mean_y = y_test.mean()
             ss_total = ((y_test - mean_y) ** 2).sum()
             ss_residual = ((y_test - y_pred) ** 2).sum()
             r2 = 1 - (ss_residual / ss_total)
-            print(f"决定系数 (R²): {r2:.4f}")
+            print(f"Coefficient of Determination (R2): {r2:.4f}")
             
         except Exception as e:
-            print(f"为{dataset_name}生成残差图时出错: {e}")
+            print(f"Error generating residual plots for {dataset_name}: {e}")
             
-            # 创建一个空白的残差图，避免网页显示错误
+            # Create blank residual plots to avoid web page display errors
             plt.figure(figsize=(10, 6))
-            plt.text(0.5, 0.5, f'残差图生成失败: {str(e)}', 
+            plt.text(0.5, 0.5, f'Residual plot generation failed: {str(e)}', 
                      horizontalalignment='center', verticalalignment='center')
             plt.axis('off')
             plt.savefig(f'output/figures/{dataset_name}_residual_plot.png')
             plt.close()
             
             plt.figure(figsize=(10, 6))
-            plt.text(0.5, 0.5, f'残差分布图生成失败: {str(e)}', 
+            plt.text(0.5, 0.5, f'Residual distribution plot generation failed: {str(e)}', 
                      horizontalalignment='center', verticalalignment='center')
             plt.axis('off')
             plt.savefig(f'output/figures/{dataset_name}_residual_distribution.png')
             plt.close()
             
-            print("已创建空白残差图作为替代")
+            print("Blank residual plots created as fallback")
 
 def generate_shap_values(models, test_datasets):
-    """生成SHAP值图表"""
-    print("\n生成SHAP值图表...")
+    """Generate SHAP value charts"""
+    print("\nGenerating SHAP value charts...")
     
     ensure_directory_exists('output/figures')
     
-    # 尝试导入SHAP库，如果失败则跳过
+    # Try importing SHAP library, skip if not available
     try:
         import shap
     except ImportError:
-        print("未找到SHAP库，跳过SHAP值图表生成")
-        # 创建空白的SHAP图，避免网页显示错误
+        print("SHAP library not found, skipping SHAP value chart generation")
+        # Create blank SHAP charts to avoid web page display errors
         for dataset_name in test_datasets.keys():
             plt.figure(figsize=(10, 6))
-            plt.text(0.5, 0.5, 'SHAP值图表生成失败，请安装SHAP库并重新运行', 
+            plt.text(0.5, 0.5, 'SHAP value chart generation failed, please install SHAP library and rerun', 
                      horizontalalignment='center', verticalalignment='center')
             plt.axis('off')
             plt.savefig(f'output/figures/{dataset_name}_shap_summary.png')
             plt.close()
             
             plt.figure(figsize=(10, 6))
-            plt.text(0.5, 0.5, 'SHAP值图表生成失败，请安装SHAP库并重新运行', 
+            plt.text(0.5, 0.5, 'SHAP value chart generation failed, please install SHAP library and rerun', 
                      horizontalalignment='center', verticalalignment='center')
             plt.axis('off')
             plt.savefig(f'output/figures/{dataset_name}_shap_importance.png')
@@ -489,216 +489,216 @@ def generate_shap_values(models, test_datasets):
         return
     
     for dataset_name, (X_test, y_test, features_full) in test_datasets.items():
-        # 在无法解决特征不匹配的情况下，手动生成基本的特征重要性图
+        # Manually generate basic feature importance charts when feature mismatch cannot be resolved
         try:
             plt.figure(figsize=(12, 8))
             
             if dataset_name == 'stroke':
-                # 手动设置一些特征重要性（基于领域知识）
+                # Manually set some feature importances (based on domain knowledge)
                 features = ['age', 'avg_glucose_level', 'bmi', 'hypertension', 'heart_disease', 
                            'smoking_status', 'work_type', 'gender', 'residence_type', 
                            'ever_married', 'glucose_risk', 'age_risk']
                 importances = [0.35, 0.25, 0.15, 0.08, 0.07, 0.04, 0.02, 0.02, 0.01, 0.01, 0.28, 0.22]
                 
-                # 只取前10个特征
+                # Only take top 10 features
                 features = features[:10]
                 importances = importances[:10]
                 
-                # 排序
+                # Sort
                 sorted_idx = np.argsort(importances)[::-1]
                 features = [features[i] for i in sorted_idx]
                 importances = [importances[i] for i in sorted_idx]
                 
-                # 绘制条形图
+                # Plot bar chart
                 plt.barh(range(len(features)), importances, align='center')
                 plt.yticks(range(len(features)), features)
-                plt.xlabel('特征重要性')
-                plt.title('中风预测模型 - 特征重要性')
+                plt.xlabel('Feature Importance')
+                plt.title('Stroke Prediction Model - Feature Importance')
                 plt.tight_layout()
                 plt.savefig(f'output/figures/{dataset_name}_shap_importance.png')
                 plt.close()
                 
-                # 绘制一个简化的SHAP值汇总图
+                # Plot a simplified SHAP summary chart
                 plt.figure(figsize=(12, 8))
-                plt.text(0.5, 0.5, '由于特征不匹配问题，无法计算精确的SHAP值\n已显示基于领域知识的估计特征重要性', 
+                plt.text(0.5, 0.5, 'Due to feature mismatch issues, exact SHAP values cannot be computed\nDisplayed estimated feature importance based on domain knowledge', 
                          ha='center', va='center', fontsize=14)
                 plt.axis('off')
                 plt.savefig(f'output/figures/{dataset_name}_shap_summary.png')
                 plt.close()
                 
-                print(f"{dataset_name} 的简化特征重要性图已生成")
+                print(f"Simplified feature importance chart generated for {dataset_name}")
                 continue
                 
             elif dataset_name == 'cirrhosis':
-                # 手动设置一些特征重要性（基于领域知识）
+                # Manually set some feature importances (based on domain knowledge)
                 features = ['Bilirubin', 'Albumin', 'Prothrombin', 'Age', 'Copper', 
                           'SGOT', 'Alk_Phos', 'Tryglicerides', 'Platelets', 'Cholesterol']
                 importances = [0.32, 0.28, 0.15, 0.10, 0.08, 0.07, 0.05, 0.04, 0.03, 0.02]
                 
-                # 绘制条形图
+                # Plot bar chart
                 plt.barh(range(len(features)), importances, align='center')
                 plt.yticks(range(len(features)), features)
-                plt.xlabel('特征重要性')
-                plt.title('肝硬化预测模型 - 特征重要性')
+                plt.xlabel('Feature Importance')
+                plt.title('Cirrhosis Prediction Model - Feature Importance')
                 plt.tight_layout()
                 plt.savefig(f'output/figures/{dataset_name}_shap_importance.png')
                 plt.close()
                 
-                # 绘制一个简化的SHAP值汇总图
+                # Plot a simplified SHAP summary chart
                 plt.figure(figsize=(12, 8))
-                plt.text(0.5, 0.5, '由于特征不匹配问题，无法计算精确的SHAP值\n已显示基于领域知识的估计特征重要性', 
+                plt.text(0.5, 0.5, 'Due to feature mismatch issues, exact SHAP values cannot be computed\nDisplayed estimated feature importance based on domain knowledge', 
                          ha='center', va='center', fontsize=14)
                 plt.axis('off')
                 plt.savefig(f'output/figures/{dataset_name}_shap_summary.png')
                 plt.close()
                 
-                print(f"{dataset_name} 的简化特征重要性图已生成")
+                print(f"Simplified feature importance chart generated for {dataset_name}")
                 continue
         
         except Exception as e:
-            print(f"为{dataset_name}生成简化特征重要性图时出错: {e}")
+            print(f"Error generating simplified feature importance chart for {dataset_name}: {e}")
         
-        # 尝试使用voting或stacking集成模型，这些通常更灵活
+        # Try using voting or stacking ensemble models, which are usually more flexible
         try:
-            # 查找适用于该数据集的集成模型
+            # Find ensemble models for this dataset
             ensemble_model_name = f"{dataset_name}_voting_ensemble"
             if ensemble_model_name in models:
                 model = models[ensemble_model_name]
-                print(f"使用{ensemble_model_name}进行SHAP计算")
+                print(f"Using {ensemble_model_name} for SHAP calculation")
             else:
                 ensemble_model_name = f"{dataset_name}_stacking_ensemble"
                 if ensemble_model_name in models:
                     model = models[ensemble_model_name]
-                    print(f"使用{ensemble_model_name}进行SHAP计算")
+                    print(f"Using {ensemble_model_name} for SHAP calculation")
                 else:
-                    print(f"没有找到{dataset_name}的合适模型，跳过SHAP值图表生成")
+                    print(f"No suitable model found for {dataset_name}, skipping SHAP value chart generation")
                     continue
             
-            # 选择一部分数据用于SHAP值计算
+            # Select a subset of data for SHAP value calculation
             sample_size = min(100, len(X_test))
             X_sample = X_test.sample(sample_size, random_state=42).copy()
             
-            # 为集成模型创建一个预测包装函数
+            # Create prediction wrapper function for ensemble model
             def model_predict_proba(X):
                 try:
                     return model.predict_proba(X)
                 except:
-                    # 如果失败，尝试普通预测
+                    # If that fails, try regular prediction
                     return model.predict(X)
             
-            # 使用可解释模型替代器
+            # Use explainable model surrogate
             explainer = shap.Explainer(model_predict_proba, X_sample)
             shap_values = explainer(X_sample)
             
-            # 保存SHAP摘要图
+            # Save SHAP summary chart
             plt.figure(figsize=(12, 8))
             shap.plots.beeswarm(shap_values, show=False)
-            plt.title(f'{dataset_name.capitalize()} 模型的SHAP值摘要')
+            plt.title(f'SHAP Value Summary for {dataset_name.capitalize()} Model')
             plt.tight_layout()
             plt.savefig(f'output/figures/{dataset_name}_shap_summary.png')
             plt.close()
             
-            # 保存SHAP重要性图
+            # Save SHAP importance chart
             plt.figure(figsize=(12, 8))
             shap.plots.bar(shap_values, show=False)
-            plt.title(f'{dataset_name.capitalize()} 模型的特征重要性（基于SHAP值）')
+            plt.title(f'Feature Importance Based on SHAP Values for {dataset_name.capitalize()} Model')
             plt.tight_layout()
             plt.savefig(f'output/figures/{dataset_name}_shap_importance.png')
             plt.close()
             
-            print(f"{dataset_name} 的SHAP值图表已成功生成")
+            print(f"SHAP value charts successfully generated for {dataset_name}")
             
         except Exception as e:
-            print(f"为{dataset_name}生成SHAP值图表时出错: {e}")
+            print(f"Error generating SHAP value charts for {dataset_name}: {e}")
             
-            # 创建友好的错误信息图片
+            # Create user-friendly error message charts
             plt.figure(figsize=(10, 6))
-            plt.text(0.5, 0.5, f'SHAP值计算出错:\n{str(e)}\n\n将使用简化的特征重要性替代', 
+            plt.text(0.5, 0.5, f'SHAP value calculation error:\n{str(e)}\n\nWill use simplified feature importance as fallback', 
                      horizontalalignment='center', verticalalignment='center')
             plt.axis('off')
             plt.savefig(f'output/figures/{dataset_name}_shap_summary.png')
             plt.close()
             
             plt.figure(figsize=(10, 6))
-            plt.text(0.5, 0.5, f'SHAP值计算出错:\n{str(e)}\n\n将使用简化的特征重要性替代', 
+            plt.text(0.5, 0.5, f'SHAP value calculation error:\n{str(e)}\n\nWill use simplified feature importance as fallback', 
                      horizontalalignment='center', verticalalignment='center')
             plt.axis('off')
             plt.savefig(f'output/figures/{dataset_name}_shap_importance.png')
             plt.close()
 
-# ========== 主函数和命令行接口 ==========
+# ========== Main Function and Command Line Interface ==========
 
 def run_all_fixes(backup=True):
-    """运行所有修复功能"""
-    print("开始运行所有修复功能...")
+    """Run all fix operations"""
+    print("Starting all fix operations...")
     
-    # 备份output目录
+    # Backup output directory
     if backup:
         backup_output_directory()
     
-    # 加载模型和数据
+    # Load models and data
     models, data = load_models_and_data()
     
     if not models:
-        print("未找到任何模型，无法修复!")
+        print("No models found, cannot fix!")
         return
         
     if not data:
-        print("未找到任何数据，无法修复!")
+        print("No data found, cannot fix!")
         return
     
-    # 准备测试数据
+    # Prepare test data
     test_datasets = prepare_test_data(data)
     
-    # 修复模型指标文件
+    # Fix model metrics files
     generate_metrics_files(models, test_datasets)
     
-    # 生成ROC曲线
+    # Generate ROC curves
     generate_roc_curves(models, test_datasets)
     
-    # 生成残差图
+    # Generate residual plots
     generate_residual_plots(models, test_datasets, data)
     
-    # 生成SHAP值图表
+    # Generate SHAP value charts
     generate_shap_values(models, test_datasets)
     
-    print("所有修复和生成任务已完成！请重启Web应用查看结果。")
+    print("All fix and generation tasks completed! Please restart the web app to view results.")
 
 def main():
-    """主函数"""
-    parser = argparse.ArgumentParser(description="模型工具库 - 用于生成评估指标和图表")
-    parser.add_argument('--all', action='store_true', help='运行所有修复和生成任务')
-    parser.add_argument('--metrics', action='store_true', help='只生成/修复模型指标')
-    parser.add_argument('--charts', action='store_true', help='只生成/修复图表（包括ROC曲线和SHAP值）')
-    parser.add_argument('--residuals', action='store_true', help='只生成/修复残差图')
-    parser.add_argument('--no-backup', action='store_true', help='不备份output目录')
+    """Main function"""
+    parser = argparse.ArgumentParser(description="Model Utilities - For generating evaluation metrics and charts")
+    parser.add_argument('--all', action='store_true', help='Run all fix and generation tasks')
+    parser.add_argument('--metrics', action='store_true', help='Only generate/fix model metrics')
+    parser.add_argument('--charts', action='store_true', help='Only generate/fix charts (including ROC curves and SHAP values)')
+    parser.add_argument('--residuals', action='store_true', help='Only generate/fix residual plots')
+    parser.add_argument('--no-backup', action='store_true', help='Do not backup output directory')
     parser.add_argument('--dataset', type=str, choices=['stroke', 'heart', 'cirrhosis'], 
-                        help='指定要处理的数据集，不指定则处理所有数据集')
+                        help='Specify the dataset to process, process all if not specified')
     
     args = parser.parse_args()
     
-    # 备份标志
+    # Backup flag
     backup = not args.no_backup
     
     if args.all or (not args.metrics and not args.charts and not args.residuals):
         run_all_fixes(backup=backup)
     else:
-        # 备份output目录
+        # Backup output directory
         if backup:
             backup_output_directory()
         
-        # 加载模型和数据
+        # Load models and data
         models, data = load_models_and_data(args.dataset)
         
         if not models:
-            print("未找到任何模型，无法修复!")
+            print("No models found, cannot fix!")
             return
             
         if not data:
-            print("未找到任何数据，无法修复!")
+            print("No data found, cannot fix!")
             return
         
-        # 准备测试数据
+        # Prepare test data
         test_datasets = prepare_test_data(data)
         
         if args.metrics:
@@ -711,7 +711,7 @@ def main():
         if args.residuals:
             generate_residual_plots(models, test_datasets, data)
         
-        print("指定的任务已完成！请重启Web应用查看结果。")
+        print("Specified tasks completed! Please restart the web app to view results.")
 
 if __name__ == "__main__":
-    main() 
+    main()

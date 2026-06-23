@@ -1,4 +1,4 @@
-/* 全局优化与性能设置 */
+/* Global Optimization and Performance Settings */
 :root {
   --primary: #0d6efd;
   --secondary: #6610f2;
@@ -18,7 +18,7 @@
   --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
 }
 
-/* 语言切换按钮 */
+/* Language Switch Button */
 .language-switcher {
   display: flex;
   align-items: center;
@@ -51,14 +51,14 @@
   }
 }
 
-/* 栏目标题白色文字样式 */
+/* Section Heading White Text Style */
 .white-heading {
   color: #ffffff !important;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
   font-weight: 600;
 }
 
-/* 基础优化 */
+/* Base Optimization */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -81,14 +81,14 @@ body {
   will-change: opacity;
 }
 
-/* 性能优化类 - 可添加到需要硬件加速的元素 */
+/* Performance Optimization Class - Add to elements that need hardware acceleration */
 .gpu-accelerated {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
 }
 
-/* 图片懒加载优化 */
+/* Image Lazy Loading Optimization */
 img.lazy {
   opacity: 0;
   transition: opacity var(--transition-normal) ease-in;
@@ -98,7 +98,7 @@ img.lazy.loaded {
   opacity: 1;
 }
 
-/* 背景处理 */
+/* Background Handling */
 .bg-container {
   position: fixed;
   top: 0;
@@ -126,7 +126,7 @@ img.lazy.loaded {
   opacity: 0.8;
 }
 
-/* 更高效的半透明遮罩 */
+/* More Efficient Semi-transparent Overlay */
 .overlay {
   position: fixed;
   top: 0;
@@ -138,14 +138,14 @@ img.lazy.loaded {
   transform: translateZ(0);
 }
 
-/* 主内容容器 */
+/* Main Content Container */
 .main-container {
   position: relative;
   z-index: 1;
   padding-top: 20px;
 }
 
-/* 内容可见性处理 - 使用Intersection Observer API */
+/* Content Visibility Handling - Using Intersection Observer API */
 .fade-in-section {
   opacity: 0;
   transform: translateY(20px);
@@ -158,7 +158,7 @@ img.lazy.loaded {
   transform: translateY(0);
 }
 
-/* 卡片组件优化 */
+/* Card Component Optimization */
 .card {
   margin-bottom: 20px;
   transition: transform var(--transition-normal), box-shadow var(--transition-normal);
@@ -185,7 +185,7 @@ img.lazy.loaded {
   padding: 1.5rem;
 }
 
-/* 按钮优化 */
+/* Button Optimization */
 .btn {
   transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
   position: relative;
@@ -212,7 +212,7 @@ img.lazy.loaded {
   background: linear-gradient(45deg, #0a58ca, #520dc2);
 }
 
-/* 导航栏优化 */
+/* Navigation Bar Optimization */
 .navbar {
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
@@ -242,7 +242,7 @@ img.lazy.loaded {
   width: 80%;
 }
 
-/* 下方操作按钮样式 */
+/* Bottom Action Button Styles */
 .action-button-container {
   margin-top: 2rem;
   padding: 1rem 0;
@@ -276,7 +276,7 @@ img.lazy.loaded {
   margin-right: 8px;
 }
 
-/* 导航下拉菜单改进 */
+/* Navigation Dropdown Menu Improvement */
 .navbar .nav-item.dropdown {
   position: relative;
   margin: 0;
@@ -298,7 +298,7 @@ img.lazy.loaded {
   z-index: 1000;
 }
 
-/* 重要：确保下拉菜单在鼠标悬停在菜单上时保持显示 */
+/* Important: Ensure dropdown stays visible when hovering over menu */
 .navbar .dropdown:hover > .dropdown-menu,
 .navbar .dropdown-menu:hover,
 .navbar .dropdown.show > .dropdown-menu {
@@ -307,7 +307,7 @@ img.lazy.loaded {
   transform: translateY(0);
 }
 
-/* 添加连接区域，确保从导航项到下拉菜单之间没有间隙 */
+/* Add connection area to ensure no gap between nav item and dropdown */
 .navbar .dropdown::after {
   content: '';
   position: absolute;
@@ -334,7 +334,7 @@ img.lazy.loaded {
 .navbar .dropdown .dropdown-menu::after {
   content: '';
   position: absolute;
-  top: -20px; /* 扩大点击区域 */
+  top: -20px; /* Expand click area */
   left: 0;
   width: 100%;
   height: 20px;
@@ -374,7 +374,7 @@ img.lazy.loaded {
   border-left: 3px solid var(--primary);
 }
 
-/* 添加额外的下拉菜单伪元素来扩大可悬停区域 */
+/* Add extra dropdown pseudo-element to expand hover area */
 .navbar .nav-item.dropdown::after {
   content: '';
   position: absolute;
@@ -385,7 +385,7 @@ img.lazy.loaded {
   background: transparent;
 }
 
-/* 优化滚动指示器 */
+/* Scroll Indicator Optimization */
 .scroll-indicator {
   position: fixed;
   top: 0;
@@ -398,7 +398,7 @@ img.lazy.loaded {
   transform: translateZ(0);
 }
 
-/* 优化滚动到顶部按钮 */
+/* Scroll to Top Button Optimization */
 .scroll-to-top {
   position: fixed;
   bottom: 30px;
@@ -430,7 +430,7 @@ img.lazy.loaded {
   transform: translateY(-3px);
 }
 
-/* 英雄区域优化 */
+/* Hero Section Optimization */
 .hero-section {
   text-align: center;
   padding: 60px 20px;
@@ -458,7 +458,7 @@ img.lazy.loaded {
   line-height: 1.6;
 }
 
-/* 更高效的浮动动画 */
+/* More Efficient Floating Animation */
 @keyframes floating {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
@@ -469,7 +469,7 @@ img.lazy.loaded {
   will-change: transform;
 }
 
-/* 内容块优化 */
+/* Content Block Optimization */
 .content-block {
   margin-bottom: 60px;
   padding: 20px;
@@ -478,7 +478,7 @@ img.lazy.loaded {
   box-shadow: var(--shadow-md);
 }
 
-/* 标题动画优化 */
+/* Title Animation Optimization */
 .animated-title {
   position: relative;
   display: inline-block;
@@ -504,7 +504,7 @@ img.lazy.loaded {
   }
 }
 
-/* 优化图表容器 */
+/* Chart Container Optimization */
 .chart-container {
   padding: 20px;
   background-color: white;
@@ -521,7 +521,7 @@ img.lazy.loaded {
   }
 }
 
-/* 加载动画优化 */
+/* Loading Animation Optimization */
 .loader {
   width: 40px;
   height: 40px;
@@ -558,7 +558,7 @@ img.lazy.loaded {
   }
 }
 
-/* 优化进度条 */
+/* Progress Bar Optimization */
 .progress {
   height: 8px;
   border-radius: 4px;
@@ -572,7 +572,7 @@ img.lazy.loaded {
   border-radius: 4px;
 }
 
-/* 风险仪表盘优化 */
+/* Risk Dashboard Optimization */
 .risk-gauge {
   width: 150px;
   height: 150px;
@@ -602,7 +602,7 @@ img.lazy.loaded {
   box-shadow: 0 0 10px rgba(0,0,0,0.05);
 }
 
-/* 阶段指示器优化 */
+/* Stage Indicator Optimization */
 .stage-indicator {
   width: 100px;
   height: 100px;
@@ -635,7 +635,7 @@ img.lazy.loaded {
   font-weight: bold;
 }
 
-/* 移动设备优化 */
+/* Mobile Device Optimization */
 @media (max-width: 768px) {
   .content-block {
     padding: 15px;
@@ -645,20 +645,20 @@ img.lazy.loaded {
     padding: 40px 15px;
   }
   
-  /* 禁用移动设备上的一些动画 */
+  /* Disable some animations on mobile */
   .fade-in-section {
     opacity: 1;
     transform: none;
     transition: none;
   }
   
-  /* 减少移动设备上的阴影复杂度 */
+  /* Reduce shadow complexity on mobile */
   .card, .chart-container, .content-block {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 }
 
-/* 更优化的滚动条 */
+/* Optimized Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -678,7 +678,7 @@ img.lazy.loaded {
   background: #666;
 }
 
-/* 暗色模式 */
+/* Dark Mode */
 @media (prefers-color-scheme: dark) {
   body.dark-mode {
     background-color: #121212;
@@ -708,7 +708,7 @@ img.lazy.loaded {
   }
 }
 
-/* 页面过渡效果 */
+/* Page Transition Effect */
 .page-transition {
   position: fixed;
   top: 0;
@@ -727,7 +727,7 @@ img.lazy.loaded {
   pointer-events: all;
 }
 
-/* 页脚优化 */
+/* Footer Optimization */
 .footer {
   background-color: #343a40;
   color: white;
@@ -736,7 +736,7 @@ img.lazy.loaded {
   text-align: center;
 }
 
-/* 标签页动画优化 */
+/* Tab Animation Optimization */
 .tab-content .tab-pane {
   opacity: 0;
   transform: translateY(10px);
@@ -748,7 +748,7 @@ img.lazy.loaded {
   transform: translateY(0);
 }
 
-/* 疾病图标优化 */
+/* Disease Icon Optimization */
 .disease-icon {
   font-size: 3rem;
   margin: 20px 0;
@@ -763,7 +763,7 @@ img.lazy.loaded {
   }
 } 
 
-/* 英雄区按钮组样式 */
+/* Hero Section Button Group Styles */
 .hero-buttons {
   margin-top: 20px;
   display: flex;
@@ -781,7 +781,7 @@ img.lazy.loaded {
   }
 }
 
-/* 多疾病预测表单样式 */
+/* Multi-disease Prediction Form Styles */
 .form-section {
   transition: box-shadow var(--transition-normal);
   border-radius: 12px;
@@ -797,7 +797,7 @@ img.lazy.loaded {
   font-weight: 600;
 }
 
-/* 概率项样式 */
+/* Probability Item Styles */
 .probability-item {
   background-color: rgba(255, 255, 255, 0.9);
   padding: 15px;
@@ -820,12 +820,12 @@ img.lazy.loaded {
   color: var(--success);
 }
 
-/* 下拉菜单样式增强 - 更多延迟和更大热区 */
+/* Dropdown Menu Style Enhancement - More Delay and Larger Hot Area */
 .navbar .nav-item.dropdown {
   position: relative;
 }
 
-/* 确保下拉菜单相对于导航项定位 */
+/* Ensure dropdown is positioned relative to nav item */
 .navbar .dropdown .dropdown-menu {
   position: absolute;
   margin-top: 0;
@@ -838,7 +838,7 @@ img.lazy.loaded {
   transition: visibility 0s linear 0.3s, opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* 当鼠标悬停在下拉项上或其子元素上时，显示下拉菜单 */
+/* Show dropdown when hovering over dropdown item or its children */
 .navbar .dropdown:hover > .dropdown-menu,
 .navbar .dropdown:focus-within > .dropdown-menu,
 .navbar .dropdown.show > .dropdown-menu {
@@ -848,11 +848,11 @@ img.lazy.loaded {
   transition-delay: 0s;
 }
 
-/* 创建一个热区缓冲区，当鼠标从导航项移动到下拉菜单时不会触发消失 */
+/* Create a hot area buffer so dropdown doesn't disappear when moving mouse from nav item to dropdown */
 .navbar .dropdown .dropdown-menu::before {
   content: "";
   position: absolute;
-  top: -20px; /* 热区高度 */
+  top: -20px; /* Hot area height */
   left: -10px;
   right: -10px;
   height: 20px;
@@ -860,7 +860,7 @@ img.lazy.loaded {
   background: transparent;
 }
 
-/* 创建侧面热区，增加侧面容差 */
+/* Create side hot areas to increase side tolerance */
 .navbar .dropdown .dropdown-menu::after {
   content: "";
   position: absolute;
@@ -872,7 +872,7 @@ img.lazy.loaded {
   background: transparent;
 }
 
-/* 明确设置各种状态的动画 */
+/* Explicitly set animations for various states */
 .navbar .dropdown .dropdown-toggle::after {
   transition: transform 0.3s ease;
 }
@@ -882,7 +882,7 @@ img.lazy.loaded {
   transform: rotate(180deg);
 }
 
-/* 增大下拉菜单项的点击区域和可见性 */
+/* Increase dropdown item click area and visibility */
 .navbar .dropdown-item {
   padding: 0.8rem 1.5rem;
   font-weight: 500;
@@ -906,7 +906,7 @@ img.lazy.loaded {
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
-/* 响应式调整 */
+/* Responsive Adjustments */
 @media (max-width: 992px) {
   .navbar .dropdown .dropdown-menu {
     position: static;
@@ -929,4 +929,151 @@ img.lazy.loaded {
     background-color: rgba(13, 110, 253, 0.1);
     transform: none;
   }
-} 
+}
+
+/* ============================================================
+   Performance Optimization and Animation Enhancement
+   ============================================================ */
+
+/* GPU Hardware Acceleration */
+.gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* Optimize Rendering Performance */
+.card, .content-block, .chart-container {
+    contain: content;
+    content-visibility: auto;
+}
+
+/* Reduce Repaints */
+.fade-in-section {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.fade-in-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Button Click Ripple Effect */
+.btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.25);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
+    opacity: 0;
+}
+
+.btn:active::after {
+    width: 200px;
+    height: 200px;
+    opacity: 1;
+    transition: 0s;
+}
+
+/* Floating Button Hover Effect Enhancement */
+.floating-btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.floating-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+/* Table Row Hover Optimization */
+.table-hover tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+/* Scroll Indicator */
+.scroll-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0d6efd, #6610f2, #0d6efd);
+    z-index: 9999;
+    transition: width 0.1s ease-out;
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Print Style Optimization */
+@media print {
+    .navbar, .footer, .floating-btn, .scroll-to-top {
+        display: none !important;
+    }
+    body { background: white; }
+}
+
+/* Reduce Motion on Mobile */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Image Lazy Loading Placeholder */
+img[loading="lazy"] {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Chart Container Optimization */
+.chart-container canvas {
+    contain: strict;
+}
+
+/* Skeleton Screen Loading Styles */
+@keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.skeleton-item {
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.skeleton-line {
+    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+.skeleton-title {
+    height: 20px;
+    width: 60%;
+}
+
+.skeleton-body {
+    height: 14px;
+    width: 90%;
+}

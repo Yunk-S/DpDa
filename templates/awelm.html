@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Adaptive Weighted Ensemble Learning - Disease Prediction and Big Data Analysis System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .awelm-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .dataset-selector {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    .dataset-btn {
+        padding: 12px 28px;
+        border-radius: 12px;
+        border: 2px solid #dee2e6;
+        background: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .dataset-btn:hover { border-color: #0d6efd; }
+    .dataset-btn.active {
+        background: linear-gradient(135deg, #0d6efd, #6610f2);
+        color: white;
+        border-color: transparent;
+    }
+    .model-result-card {
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    .model-result-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    .model-result-card.best {
+        border: 2px solid #198754;
+        background: #f0fdf4;
+    }
+    .model-result-card.ensemble {
+        border: 2px solid #0d6efd;
+        background: linear-gradient(135deg, #f0f7ff, #e7f1ff);
+    }
+    .metric-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin: 2px;
+    }
+    .badge-auc { background: #fff3cd; color: #856404; }
+    .badge-f1 { background: #d1ecf1; color: #0c5460; }
+    .badge-acc { background: #d4edda; color: #155724; }
+    .badge-pre { background: #e2e3e5; color: #383d41; }
+    .badge-rec { background: #f8d7da; color: #721c24; }
+    .weight-pie-container {
+        max-width: 320px;
+        margin: 0 auto;
+    }
+    .formula-card {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        color: #e2e8f0;
+        border-radius: 16px;
+        padding: 24px;
+    }
+    .formula-card pre {
+        color: #00d4ff;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        margin: 0;
+        white-space: pre-wrap;
+    }
+    .formula-card .formula-title { color: #ffd700; font-weight: 700; margin-bottom: 8px; }
+    .loading-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(255,255,255,0.92);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999; flex-direction: column;
+    }
+    .spinner-ring {
+        width: 56px; height: 56px;
+        border: 5px solid #e9ecef;
+        border-top: 5px solid #0d6efd;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="text-center mb-2 animated-title white-heading">Adaptive Weighted Ensemble Learning Model (AWELM)</h1>
+    <p class="text-center text-muted mb-4">Build high-accuracy disease prediction models through gradient descent optimization of ensemble weights</p>
+
+    <!-- Formula Description -->
+    <div class="formula-card mb-4">
+        <div class="formula-title"><i class="fas fa-function me-2"></i>Loss Function and Weight Optimization</div>
+        <pre>Loss Function: L(w) = -mean[β·y·log(p) + (1-y)·log(1-p)] + λ·H(w)
+  where p = Σwᵢ·pᵢ (weighted probability), β = neg/pos ratio (class balancing factor)
+  H(w) = -Σwᵢ·log(wᵢ) (negative entropy regularization, prevents weight overfitting)
+
+Optimization Objective: min L(w)  s.t. wᵢ ≥ 0, Σwᵢ = 1
+
+Base Models: Logistic Regression + Random Forest + Gradient Boosting + SVM</pre>
+    </div>
+
+    <!-- Dataset Selection -->
+    <div class="awelm-card">
+        <h5 class="mb-3"><i class="fas fa-database me-2"></i>Select Dataset</h5>
+        <div class="dataset-selector">
+            <button class="dataset-btn active" id="btn-heart" onclick="selectDataset('heart')">
+                <i class="fas fa-heart text-danger"></i> Heart Disease
+            </button>
+            <button class="dataset-btn" id="btn-stroke" onclick="selectDataset('stroke')">
+                <i class="fas fa-brain text-primary"></i> Stroke
+            </button>
+            <button class="dataset-btn" id="btn-cirrhosis" onclick="selectDataset('cirrhosis')">
+                <i class="fas fa-notes-medical text-warning"></i> Cirrhosis
+            </button>
+        </div>
+
+        <button class="btn btn-primary btn-lg w-100 mb-4" onclick="runAWELM()" id="runBtn">
+            <i class="fas fa-play me-2"></i>Run AWELM Model Training
+        </button>
+    </div>
+
+    <!-- Results Display -->
+    <div class="awelm-card" id="resultsCard" style="display:none">
+        <h5 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Model Performance Comparison</h5>
+
+        <!-- Best Model Alert -->
+        <div class="alert alert-success d-flex align-items-center mb-3" id="bestModelAlert" style="display:none">
+            <i class="fas fa-trophy me-2"></i>
+            <div>
+                <strong>Best Model: <span id="bestModelName">--</span></strong>
+                <span id="bestModelAuc" class="ms-2"></span>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Model Performance List -->
+            <div class="col-lg-7">
+                <div id="modelResultsList"></div>
+            </div>
+
+            <!-- Weight Pie Chart -->
+            <div class="col-lg-5">
+                <div class="weight-pie-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+                <div class="text-center mt-3">
+                    <small class="text-muted">Ensemble Model Weight Distribution</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let currentDataset = 'heart';
+let weightChart = null;
+let awelmResults = { heart: null, stroke: null, cirrhosis: null };
+
+function selectDataset(ds) {
+    currentDataset = ds;
+    document.querySelectorAll('.dataset-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`btn-${ds}`).classList.add('active');
+
+    if (awelmResults[ds]) {
+        renderResults(ds, awelmResults[ds]);
+    } else {
+        document.getElementById('resultsCard').style.display = 'none';
+    }
+}
+
+function showLoading() {
+    const el = document.createElement('div');
+    el.id = 'awelmLoading';
+    el.className = 'loading-overlay';
+    el.innerHTML = '<div class="spinner-ring"></div><div style="color:#333;font-weight:600">Training AWELM model...</div>';
+    document.body.appendChild(el);
+}
+
+function hideLoading() {
+    document.getElementById('awelmLoading')?.remove();
+}
+
+function runAWELM() {
+    showLoading();
+    fetch(`/api/awelm/${currentDataset}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            hideLoading();
+            if (data.error) { alert('Run failed: ' + data.error); return; }
+            awelmResults[currentDataset] = data;
+            renderResults(currentDataset, data);
+        })
+        .catch(err => {
+            hideLoading();
+            alert('Run failed: ' + err);
+        });
+}
+
+function renderResults(dataset, data) {
+    document.getElementById('resultsCard').style.display = 'block';
+    document.getElementById('bestModelAlert').style.display = 'flex';
+    document.getElementById('bestModelName').textContent = data.best_model;
+    document.getElementById('bestModelAuc').textContent =
+        data.base_models[data.best_model]?.auc
+            ? `(AUC: ${data.base_models[data.best_model].auc.toFixed(4)})`
+            : '';
+
+    const list = document.getElementById('modelResultsList');
+    list.innerHTML = '';
+
+    // First display base models
+    for (const [name, metrics] of Object.entries(data.base_models)) {
+        const isBest = name === data.best_model;
+        const card = document.createElement('div');
+        card.className = `model-result-card${isBest ? ' best' : ''}`;
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>${isBest ? '★ ' : ''}${name}</strong>
+                ${isBest ? '<span class="badge bg-success">Best</span>' : ''}
+            </div>
+            <div>
+                <span class="metric-badge badge-auc">AUC: ${metrics.auc?.toFixed(4) || 'N/A'}</span>
+                <span class="metric-badge badge-f1">F1: ${metrics.f1?.toFixed(4)}</span>
+                <span class="metric-badge badge-acc">ACC: ${metrics.accuracy?.toFixed(4)}</span>
+                <span class="metric-badge badge-pre">PRE: ${metrics.precision?.toFixed(4)}</span>
+                <span class="metric-badge badge-rec">REC: ${metrics.recall?.toFixed(4)}</span>
+            </div>
+        `;
+        list.appendChild(card);
+    }
+
+    // Ensemble model
+    const ensCard = document.createElement('div');
+    ensCard.className = 'model-result-card ensemble';
+    ensCard.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong><i class="fas fa-layer-group me-1"></i>Ensemble Model (AWELM)</strong>
+            <span class="badge bg-primary">Fusion</span>
+        </div>
+        <div>
+            <span class="metric-badge badge-auc">AUC: ${data.ensemble.auc?.toFixed(4) || 'N/A'}</span>
+            <span class="metric-badge badge-f1">F1: ${data.ensemble.f1?.toFixed(4)}</span>
+            <span class="metric-badge badge-acc">ACC: ${data.ensemble.accuracy?.toFixed(4)}</span>
+            <span class="metric-badge badge-pre">PRE: ${data.ensemble.precision?.toFixed(4)}</span>
+            <span class="metric-badge badge-rec">REC: ${data.ensemble.recall?.toFixed(4)}</span>
+        </div>
+    `;
+    list.appendChild(ensCard);
+
+    // Draw pie chart
+    renderPieChart(data.weights);
+}
+
+function renderPieChart(weights) {
+    const ctx = document.getElementById('weightChart').getContext('2d');
+    if (weightChart) weightChart.destroy();
+
+    const labels = Object.keys(weights);
+    const values = Object.values(weights);
+    const colors = [
+        'rgba(102,126,234,0.85)',
+        'rgba(118,75,162,0.85)',
+        'rgba(79,172,254,0.85)',
+        'rgba(0,242,254,0.85)',
+    ];
+
+    weightChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.label}: ${(ctx.raw * 100).toFixed(2)}%`
+                    }
+                }
+            },
+            cutout: '55%',
+        }
+    });
+}
+
+// Auto-load heart data when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Can choose to auto-run or wait for user click
+});
+</script>
+{% endblock %}

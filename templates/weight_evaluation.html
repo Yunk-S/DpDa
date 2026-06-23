@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Factor Weight Evaluation - Disease Prediction and Big Data Analysis System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .weight-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .weight-table {
+        font-size: 14px;
+    }
+    .weight-table thead th {
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
+        color: white;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        white-space: nowrap;
+    }
+    .weight-table tbody tr:hover {
+        background-color: #f0f7ff;
+    }
+    .weight-table td, .weight-table th {
+        vertical-align: middle;
+        padding: 10px 12px;
+    }
+    .sig-badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 12px;
+    }
+    .sig-yes { background: #d1e7dd; color: #0f5132; }
+    .sig-no { background: #f8d7da; color: #842029; }
+    .weight-bar-cell {
+        position: relative;
+        min-width: 120px;
+    }
+    .weight-bar {
+        height: 20px;
+        background: linear-gradient(90deg, #0d6efd, #6610f2);
+        border-radius: 10px;
+        transition: width 0.6s ease;
+    }
+    .weight-value {
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: white;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .cumulative-bar {
+        height: 6px;
+        background: #e9ecef;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .cumulative-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #198754, #20c997);
+        border-radius: 3px;
+        transition: width 0.6s ease;
+    }
+    .dataset-tabs .nav-link {
+        border-radius: 12px 12px 0 0;
+        font-weight: 600;
+        padding: 12px 24px;
+    }
+    .dataset-tabs .nav-link.active {
+        background: linear-gradient(135deg, #0d6efd, #6610f2);
+        color: white;
+        border: none;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+    }
+    .metric-card h3 { font-size: 28px; font-weight: 700; margin: 0; }
+    .metric-card p { opacity: 0.85; margin: 4px 0 0; font-size: 13px; }
+    .loading-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        flex-direction: column;
+    }
+    .loading-spinner {
+        width: 50px; height: 50px;
+        border: 4px solid #e9ecef;
+        border-top: 4px solid #0d6efd;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .formula-box {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        color: #00d4ff;
+        font-family: 'Courier New', monospace;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-size: 15px;
+        margin: 16px 0;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .formula-box .formula { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .formula-box .legend { color: #aaa; font-size: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="text-center mb-2 animated-title white-heading">Multi-Factor Impact Weight Evaluation Model</h1>
+    <p class="text-center text-muted mb-4">Quantify the impact of various factors on disease risk, identifying key risk factors</p>
+
+    <!-- Formula Description -->
+    <div class="weight-card">
+        <h5 class="mb-3"><i class="fas fa-function me-2"></i>Comprehensive Weight Formula</h5>
+        <div class="formula-box">
+            <div class="formula">W<sub>j</sub> = |&beta;<sub>j</sub>| &times; (1 - p<sub>j</sub>) &times; (1 + &Delta;AUC<sub>j</sub>)</div>
+            <div class="legend">
+                |&beta;<sub>j</sub>| = Absolute Value of Multiple Regression Coefficient &nbsp;|&nbsp;
+                p<sub>j</sub> = P-value (Statistical Significance)&nbsp;|&nbsp;
+                &Delta;AUC<sub>j</sub> = AUC Decrease After Feature Removal
+            </div>
+        </div>
+    </div>
+
+    <!-- Dataset Selection -->
+    <div class="weight-card">
+        <ul class="nav dataset-tabs mb-3" id="datasetTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="heart-tab" data-bs-toggle="tab"
+                        data-bs-target="#heart-panel" type="button" onclick="loadWeights('heart')">
+                    <i class="fas fa-heart me-1"></i>Heart Disease
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="stroke-tab" data-bs-toggle="tab"
+                        data-bs-target="#stroke-panel" type="button" onclick="loadWeights('stroke')">
+                    <i class="fas fa-brain me-1"></i>Stroke
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cirrhosis-tab" data-bs-toggle="tab"
+                        data-bs-target="#cirrhosis-panel" type="button" onclick="loadWeights('cirrhosis')">
+                    <i class="fas fa-notes-medical me-1"></i>Cirrhosis
+                </button>
+            </li>
+        </ul>
+
+        <!-- Metric Cards -->
+        <div class="row mb-4" id="metricsRow">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h3 id="metricFullAuc">--</h3>
+                    <p>Full Model AUC</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3 id="metricNFeatures">--</h3>
+                    <p>Number of Features</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <h3 id="metricSigFeatures">--</h3>
+                    <p>Significant Features (p&lt;0.05)</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <h3 id="metricTopFeature">--</h3>
+                    <p>Most Important Feature</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weight Table -->
+        <div class="tab-content" id="datasetTabContent">
+            <div class="tab-pane fade show active" id="heart-panel" role="tabpanel">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table weight-table" id="heartTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Feature</th>
+                                <th>Regression Coefficient</th>
+                                <th>P-value</th>
+                                <th>Significance</th>
+                                <th>Odds Ratio (OR)</th>
+                                <th>Univariate AUC</th>
+                                <th>&Delta;AUC</th>
+                                <th style="min-width:150px">Comprehensive Weight</th>
+                                <th>Cumulative Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody id="heartTableBody">
+                            <tr><td colspan="10" class="text-center text-muted py-5">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Click the tab above to load data...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="stroke-panel" role="tabpanel">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table weight-table" id="strokeTable">
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Feature</th><th>Regression Coefficient</th><th>P-value</th>
+                                <th>Significance</th><th>Odds Ratio (OR)</th><th>Univariate AUC</th>
+                                <th>&Delta;AUC</th><th style="min-width:150px">Comprehensive Weight</th><th>Cumulative Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody id="strokeTableBody">
+                            <tr><td colspan="10" class="text-center text-muted py-5">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Click to load data...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="cirrhosis-panel" role="tabpanel">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table weight-table" id="cirrhosisTable">
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Feature</th><th>Regression Coefficient</th><th>P-value</th>
+                                <th>Significance</th><th>Odds Ratio (OR)</th><th>Univariate AUC</th>
+                                <th>&Delta;AUC</th><th style="min-width:150px">Comprehensive Weight</th><th>Cumulative Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cirrhosisTableBody">
+                            <tr><td colspan="10" class="text-center text-muted py-5">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Click to load data...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let loadedData = { heart: null, stroke: null, cirrhosis: null };
+
+function loadWeights(dataset) {
+    if (loadedData[dataset]) {
+        renderTable(dataset, loadedData[dataset]);
+        return;
+    }
+
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-overlay';
+    spinner.id = 'loadingOverlay';
+    spinner.innerHTML = '<div class="loading-spinner mb-3"></div><div style="color:#333;font-weight:600">Calculating weight evaluation...</div>';
+    document.body.appendChild(spinner);
+
+    fetch(`/api/weight-evaluation/${dataset}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { alert('Load failed: ' + data.error); return; }
+            loadedData[dataset] = data;
+            renderTable(dataset, data);
+            document.getElementById('loadingOverlay')?.remove();
+        })
+        .catch(err => {
+            alert('Load failed: ' + err);
+            document.getElementById('loadingOverlay')?.remove();
+        });
+}
+
+function renderTable(dataset, data) {
+    // Update metric cards
+    document.getElementById('metricFullAuc').textContent = data.full_auc?.toFixed(4) || '--';
+    document.getElementById('metricNFeatures').textContent = data.features?.length || 0;
+    document.getElementById('metricSigFeatures').textContent =
+        (data.features?.filter(f => f.significant).length) || 0;
+    document.getElementById('metricTopFeature').textContent =
+        (data.features?.[0]?.name || '--');
+
+    const tbody = document.getElementById(`${dataset}TableBody`);
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    const maxWeight = Math.max(...(data.features || []).map(f => f.normalized_weight));
+
+    data.features.forEach((feat, idx) => {
+        const barPct = maxWeight > 0 ? (feat.normalized_weight / maxWeight * 100).toFixed(1) : 0;
+        const pValStr = feat.p_value < 0.001 ? '&lt;0.001' : feat.p_value.toFixed(4);
+        const pColor = feat.p_value < 0.05 ? 'sig-yes' : 'sig-no';
+        const pLabel = feat.p_value < 0.05 ? 'Significant' : 'Not Significant';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${idx + 1}</strong></td>
+            <td><strong>${feat.name}</strong></td>
+            <td>${feat.coefficient.toFixed(4)}</td>
+            <td>${pValStr}</td>
+            <td><span class="sig-badge ${pColor}">${pLabel}</span></td>
+            <td>${feat.odds_ratio.toFixed(3)}</td>
+            <td>${feat.univariate_auc.toFixed(4)}</td>
+            <td>${feat.delta_auc.toFixed(4)}</td>
+            <td class="weight-bar-cell">
+                <div class="weight-bar" style="width:${barPct}%">
+                    <span class="weight-value">${feat.normalized_weight.toFixed(2)}%</span>
+                </div>
+            </td>
+            <td>
+                <span class="me-2">${feat.cumulative_weight.toFixed(1)}%</span>
+                <div class="cumulative-bar">
+                    <div class="cumulative-fill" style="width:${Math.min(feat.cumulative_weight, 100)}%"></div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Auto-load the first dataset when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    loadWeights('heart');
+});
+</script>
+{% endblock %}

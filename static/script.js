@@ -1,22 +1,22 @@
 /**
- * 疾病预测与数据分析系统 - 前端性能优化版本
- * 包含了高效动画、懒加载和页面性能优化
+ * Disease Prediction and Data Analysis System - Frontend Performance Optimized Version
+ * Includes efficient animations, lazy loading, and page performance optimizations
  */
 
-// 配置参数
+// Configuration
 const CONFIG = {
-  // 基本配置
-  SCROLL_THRESHOLD: 200,        // 滚动触发阈值
-  SCROLL_DEBOUNCE: 20,          // 滚动防抖时间（毫秒）
-  ANIMATION_THRESHOLD: 0.2,     // 动画触发阈值（元素在视口中的比例）
-  IS_MOBILE: window.innerWidth < 768, // 是否为移动设备
+  // Basic Configuration
+  SCROLL_THRESHOLD: 200,        // Scroll trigger threshold
+  SCROLL_DEBOUNCE: 20,          // Scroll debounce time (milliseconds)
+  ANIMATION_THRESHOLD: 0.2,     // Animation trigger threshold (element ratio in viewport)
+  IS_MOBILE: window.innerWidth < 768, // Whether it's a mobile device
   
-  // 性能设置
-  ENABLE_ANIMATIONS: true,      // 全局动画开关
-  LAZY_LOAD_IMAGES: true,       // 图片懒加载
-  ENABLE_TRANSITIONS: true,     // 启用页面过渡
+  // Performance Settings
+  ENABLE_ANIMATIONS: true,      // Global animation toggle
+  LAZY_LOAD_IMAGES: true,       // Image lazy loading
+  ENABLE_TRANSITIONS: true,     // Enable page transitions
   
-  // CSS类名
+  // CSS Class Names
   CLASSES: {
     visible: 'is-visible',
     fadeInSection: 'fade-in-section',
@@ -26,10 +26,10 @@ const CONFIG = {
 };
 
 /**
- * 工具函数
+ * Utility Functions
  */
 const Utils = {
-  // 防抖函数 - 减少高频事件触发次数
+  // Debounce function - reduce high-frequency event triggers
   debounce(func, wait) {
     let timeout;
     return function(...args) {
@@ -38,34 +38,34 @@ const Utils = {
     };
   },
   
-  // 检测元素是否在视口内
+  // Check if element is within viewport
   isElementInViewport(el, threshold = CONFIG.ANIMATION_THRESHOLD) {
     if (!el) return false;
     
     const rect = el.getBoundingClientRect();
     const windowHeight = window.innerHeight || document.documentElement.clientHeight;
     
-    // 元素顶部进入视口底部一定比例后视为可见
+    // Element is visible when top enters a certain percentage of viewport bottom
     return (
       rect.top <= windowHeight * (1 - threshold) &&
       rect.bottom >= 0
     );
   },
   
-  // 检测设备性能
+  // Detect device performance
   checkDevicePerformance() {
-    // 检测移动设备
+    // Detect mobile devices
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       CONFIG.IS_MOBILE = true;
     }
     
-    // 如果设备是低端移动设备，可以禁用一些复杂动画
+    // If device is low-end mobile, disable some complex animations
     if (CONFIG.IS_MOBILE && navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
       CONFIG.ENABLE_ANIMATIONS = false;
     }
   },
   
-  // 添加一次性事件监听
+  // Add one-time event listener
   once(element, eventType, callback) {
     const handler = (e) => {
       callback(e);
@@ -76,13 +76,13 @@ const Utils = {
 };
 
 /**
- * 动画控制器
+ * Animation Controller
  */
 const AnimationController = {
-  // 初始化可见性观察器
+  // Initialize visibility observer
   initIntersectionObserver() {
     if (!('IntersectionObserver' in window) || !CONFIG.ENABLE_ANIMATIONS) {
-      // 如果不支持IntersectionObserver或禁用动画，则使所有元素立即可见
+      // If IntersectionObserver is not supported or animations are disabled, make all elements visible immediately
       document.querySelectorAll(`.${CONFIG.CLASSES.fadeInSection}`).forEach(el => {
         el.classList.add(CONFIG.CLASSES.visible);
       });
@@ -99,20 +99,20 @@ const AnimationController = {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add(CONFIG.CLASSES.visible);
-          observer.unobserve(entry.target); // 元素显示后不再观察
+          observer.unobserve(entry.target); // Stop observing after element is visible
         }
       });
     }, options);
     
-    // 观察所有需要动画的元素
+    // Observe all elements that need animation
     document.querySelectorAll(`.${CONFIG.CLASSES.fadeInSection}`).forEach(el => {
       observer.observe(el);
     });
   },
   
-  // 准备元素动画
+  // Prepare element animations
   prepareElements() {
-    // 将所有内容部分转换为可动画元素
+    // Convert all content sections to animatable elements
     const sections = document.querySelectorAll('.jumbotron, .row, .card-container, .chart-container, .content-block, .slide-section');
     
     sections.forEach(section => {
@@ -121,7 +121,7 @@ const AnimationController = {
       }
     });
     
-    // 如果禁用动画，则立即将所有元素显示出来
+    // If animations are disabled, show all elements immediately
     if (!CONFIG.ENABLE_ANIMATIONS) {
       sections.forEach(section => {
         section.classList.add(CONFIG.CLASSES.visible);
@@ -131,10 +131,10 @@ const AnimationController = {
 };
 
 /**
- * 页面滚动控制
+ * Page Scroll Control
  */
 const ScrollController = {
-  // 滚动指示器
+  // Scroll indicator
   initScrollIndicator() {
     const scrollIndicator = document.querySelector(`.${CONFIG.CLASSES.scrollIndicator}`) || 
                            this.createScrollIndicator();
@@ -149,7 +149,7 @@ const ScrollController = {
     };
   },
   
-  // 创建滚动指示器元素
+  // Create scroll indicator element
   createScrollIndicator() {
     const indicator = document.createElement('div');
     indicator.className = CONFIG.CLASSES.scrollIndicator;
@@ -157,12 +157,12 @@ const ScrollController = {
     return indicator;
   },
   
-  // 初始化回到顶部按钮
+  // Initialize back to top button
   initScrollToTopButton() {
     const scrollToTopBtn = document.querySelector(`.${CONFIG.CLASSES.scrollToTop}`) || 
                           this.createScrollToTopButton();
     
-    // 更新按钮可见性
+    // Update button visibility
     this.updateScrollToTopButton = () => {
       if (window.scrollY > CONFIG.SCROLL_THRESHOLD) {
         scrollToTopBtn.classList.add('visible');
@@ -172,7 +172,7 @@ const ScrollController = {
     };
   },
   
-  // 创建回到顶部按钮
+  // Create back to top button
   createScrollToTopButton() {
     const button = document.createElement('div');
     button.className = CONFIG.CLASSES.scrollToTop;
@@ -184,21 +184,21 @@ const ScrollController = {
     return button;
   },
   
-  // 处理滚动事件
+  // Handle scroll events
   handleScroll() {
-    // 更新滚动指示器
+    // Update scroll indicator
     this.updateScrollIndicator();
     
-    // 更新回到顶部按钮
+    // Update back to top button
     this.updateScrollToTopButton();
   },
   
-  // 初始化页面滚动处理
+  // Initialize page scroll handling
   init() {
     this.initScrollIndicator();
     this.initScrollToTopButton();
     
-    // 使用防抖来优化滚动事件处理
+    // Use debounce to optimize scroll event handling
     const debouncedScrollHandler = Utils.debounce(
       () => this.handleScroll(), 
       CONFIG.SCROLL_DEBOUNCE
@@ -206,18 +206,18 @@ const ScrollController = {
     
     window.addEventListener('scroll', debouncedScrollHandler, { passive: true });
     
-    // 初始触发一次滚动处理
+    // Trigger scroll handling once initially
     this.handleScroll();
   }
 };
 
 /**
- * 图片懒加载控制器
+ * Image Lazy Load Controller
  */
 const LazyLoadController = {
   init() {
     if (!CONFIG.LAZY_LOAD_IMAGES) {
-      // 如果禁用了懒加载，直接加载所有图片
+      // If lazy loading is disabled, load all images directly
       document.querySelectorAll('img[data-src]').forEach(img => {
         img.src = img.getAttribute('data-src');
         img.classList.add('loaded');
@@ -233,7 +233,7 @@ const LazyLoadController = {
             const src = img.getAttribute('data-src');
             
             if (src) {
-              // 创建一个临时图像来预加载
+              // Create a temporary image to preload
               const tempImage = new Image();
               tempImage.onload = () => {
                 img.src = src;
@@ -241,23 +241,23 @@ const LazyLoadController = {
               };
               tempImage.src = src;
               
-              // 移除data-src属性并停止观察
+              // Remove data-src attribute and stop observing
               img.removeAttribute('data-src');
               observer.unobserve(img);
             }
           }
         });
       }, {
-        rootMargin: '50px'  // 提前50px开始加载
+        rootMargin: '50px'  // Start loading 50px early
       });
 
-      // 观察所有懒加载图片
+      // Observe all lazy-loaded images
       document.querySelectorAll('img[data-src]').forEach(img => {
         img.classList.add('lazy');
         imgObserver.observe(img);
       });
     } else {
-      // 回退方案：不支持IntersectionObserver时
+      // Fallback: when IntersectionObserver is not supported
       document.querySelectorAll('img[data-src]').forEach(img => {
         img.src = img.getAttribute('data-src');
         img.classList.add('loaded');
@@ -267,44 +267,44 @@ const LazyLoadController = {
 };
 
 /**
- * 页面转换控制器
+ * Page Transition Controller
  */
 const PageTransitionController = {
   init() {
     if (!CONFIG.ENABLE_TRANSITIONS) return;
     
-    // 创建页面过渡元素
+    // Create page transition element
     const transitionElement = document.createElement('div');
     transitionElement.className = 'page-transition';
     document.body.appendChild(transitionElement);
     
-    // 处理站内链接点击
+    // Handle internal link clicks
     document.querySelectorAll('a').forEach(link => {
-      // 只处理同站链接，排除下拉菜单项
+      // Only handle same-site links, exclude dropdown items
       if (link.hostname === window.location.hostname && 
           !link.hasAttribute('data-no-transition') && 
           !link.classList.contains('dropdown-item')) {
         
         link.addEventListener('click', (e) => {
-          // 如果是同一页面内的锚点链接，使用平滑滚动
+          // For anchor links within the same page, use smooth scroll
           if (link.hash && document.querySelector(link.hash)) {
             e.preventDefault();
             const targetElement = document.querySelector(link.hash);
             
-            // 平滑滚动到目标元素
+            // Smooth scroll to target element
             window.scrollTo({
               top: targetElement.offsetTop - 70,
               behavior: 'smooth'
             });
           } 
-          // 如果是站内其他页面链接，添加过渡效果
+          // For links to other pages on the site, add transition effect
           else if (!link.hash && link.pathname !== window.location.pathname) {
             e.preventDefault();
             
-            // 激活过渡效果
+            // Activate transition effect
             transitionElement.classList.add('active');
             
-            // 300ms后跳转到目标页面
+            // Navigate to target page after 300ms
             setTimeout(() => {
               window.location.href = link.href;
             }, 300);
@@ -313,13 +313,13 @@ const PageTransitionController = {
       }
     });
     
-    // 页面加载完成后的淡入效果
+    // Fade in effect after page load
     document.body.classList.add('fade-in');
   }
 };
 
 /**
- * 标签页控制器
+ * Tab Controller
  */
 const TabController = {
   init() {
@@ -330,25 +330,25 @@ const TabController = {
         const targetTabPane = document.querySelector(e.target.getAttribute('data-bs-target'));
         
         if (targetTabPane) {
-          // 确保内容进入视口
+          // Ensure content enters viewport
           setTimeout(() => {
-            // 使用更高效的scrollIntoView方式
+            // Use more efficient scrollIntoView method
             targetTabPane.scrollIntoView({
               behavior: 'smooth',
               block: 'nearest'
             });
           }, 50);
           
-          // 激活当前标签页中的图表和图片
+          // Activate charts and images in current tab
           this.activateTabContent(targetTabPane);
         }
       });
     });
   },
   
-  // 激活标签页中的内容
+  // Activate content in tab
   activateTabContent(container) {
-    // 加载懒加载图片
+    // Load lazy-loaded images
     container.querySelectorAll('img[data-src]').forEach(img => {
       if (img.getAttribute('data-src')) {
         img.src = img.getAttribute('data-src');
@@ -357,7 +357,7 @@ const TabController = {
       }
     });
     
-    // 让所有动画元素可见
+    // Make all animated elements visible
     container.querySelectorAll(`.${CONFIG.CLASSES.fadeInSection}`).forEach(el => {
       el.classList.add(CONFIG.CLASSES.visible);
     });
@@ -365,7 +365,7 @@ const TabController = {
 };
 
 /**
- * 背景控制器
+ * Background Controller
  */
 const BackgroundController = {
   init() {
@@ -375,23 +375,23 @@ const BackgroundController = {
     let currentBg = 0;
     backgrounds[0].classList.add('active');
     
-    // 使用防抖优化性能
+    // Use debounce for performance optimization
     const debouncedBackgroundHandler = Utils.debounce(() => {
       const scrollPosition = window.scrollY;
       const windowHeight = window.innerHeight;
       const documentHeight = document.body.scrollHeight;
       
-      // 根据滚动位置计算应该显示哪张背景图
+      // Calculate which background image should be displayed based on scroll position
       const scrollRatio = Math.min(scrollPosition / (documentHeight - windowHeight), 1);
       const bgIndex = Math.min(Math.floor(scrollRatio * backgrounds.length), backgrounds.length - 1);
       
-      // 如果背景图需要更换
+      // If background image needs to change
       if (bgIndex !== currentBg) {
-        // 移除当前激活的背景图
+        // Remove current active background
         backgrounds[currentBg].classList.remove('active');
-        // 激活新的背景图
+        // Activate new background
         backgrounds[bgIndex].classList.add('active');
-        // 更新当前背景图索引
+        // Update current background index
         currentBg = bgIndex;
       }
     }, 100);
@@ -401,44 +401,44 @@ const BackgroundController = {
 };
 
 /**
- * 预测表单控制器
+ * Prediction Form Controller
  */
 const PredictionFormController = {
   init() {
-    // 检查是否在预测页面
+    // Check if on prediction page
     const predictionForm = document.querySelector('#prediction-form');
     if (!predictionForm) return;
     
-    // 为预测表单添加提交事件监听
+    // Add submit event listener to prediction form
     predictionForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
-      // 显示加载动画
+      // Show loading animation
       const submitBtn = predictionForm.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn.innerHTML;
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 预测中...';
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Predicting...';
       
-      // 获取表单数据
+      // Get form data
       const formData = new FormData(predictionForm);
       
-      // 发送AJAX请求
+      // Send AJAX request
       fetch('/predict', {
         method: 'POST',
         body: formData
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error('服务器响应错误：' + response.status);
+          throw new Error('Server response error: ' + response.status);
         }
         return response.json();
       })
       .then(data => {
-        // 恢复提交按钮
+        // Restore submit button
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnText;
         
-        // 显示预测结果
+        // Show prediction results
         if (data.error) {
           this.showPredictionError(new Error(data.error));
         } else {
@@ -446,65 +446,65 @@ const PredictionFormController = {
         }
       })
       .catch(error => {
-        // 恢复提交按钮
+        // Restore submit button
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnText;
         
-        // 显示错误
+        // Show error
         this.showPredictionError(error);
       });
     });
     
-    // 添加疾病类型切换事件
+    // Add disease type switch event
     const diseaseTypeSelect = document.querySelector('#disease_type');
     if (diseaseTypeSelect) {
       diseaseTypeSelect.addEventListener('change', () => {
-        // 显示相应的表单字段
+        // Show corresponding form fields
         this.toggleFormFields(diseaseTypeSelect.value);
       });
       
-      // 初始化表单字段显示
+      // Initialize form field display
       this.toggleFormFields(diseaseTypeSelect.value);
     }
   },
   
-  // 切换表单字段
+  // Toggle form fields
   toggleFormFields(diseaseType) {
-    // 获取所有表单字段组
+    // Get all form field groups
     const fieldGroups = document.querySelectorAll('.form-field-group');
     
-    // 隐藏所有字段组
+    // Hide all field groups
     fieldGroups.forEach(group => {
       group.style.display = 'none';
     });
     
-    // 显示对应疾病类型的字段组
+    // Show field groups for corresponding disease type
     const targetGroup = document.querySelector(`.form-field-group[data-disease="${diseaseType}"]`);
     if (targetGroup) {
       targetGroup.style.display = 'block';
       
-      // 添加淡入效果
+      // Add fade-in effect
       setTimeout(() => {
         targetGroup.classList.add('fade-in');
       }, 50);
     }
   },
   
-  // 显示预测结果
+  // Show prediction results
   showPredictionResult(data) {
-    // 获取结果容器
+    // Get result container
     const resultContainer = document.querySelector('#prediction-result');
     if (!resultContainer) return;
     
-    // 清空现有内容
+    // Clear existing content
     resultContainer.innerHTML = '';
     resultContainer.style.display = 'block';
     
-    // 创建结果卡片
+    // Create result card
     const resultCard = document.createElement('div');
     resultCard.className = 'card fade-in';
     
-    // 根据疾病类型创建相应的结果卡片内容
+    // Create corresponding result card content based on disease type
     if (data.disease_type === 'stroke') {
       this.createStrokeResultCard(resultCard, data);
     } else if (data.disease_type === 'heart') {
@@ -513,47 +513,47 @@ const PredictionFormController = {
       this.createCirrhosisResultCard(resultCard, data);
     }
     
-    // 如果使用了模拟数据，添加提示信息
-    if (data.note && data.note.includes('模拟数据')) {
+    // If mock data was used, add notice
+    if (data.note && data.note.includes('Mock data')) {
       const noteAlert = document.createElement('div');
       noteAlert.className = 'alert alert-info mt-3';
       noteAlert.innerHTML = `
-        <small><i class="fas fa-info-circle"></i> 注意：${data.note}。实际结果可能有所不同。</small>
+        <small><i class="fas fa-info-circle"></i> Note: ${data.note}. Actual results may vary.</small>
       `;
       resultCard.appendChild(noteAlert);
     }
     
-    // 添加到结果容器
+    // Add to result container
     resultContainer.appendChild(resultCard);
     
-    // 滚动到结果区域
+    // Scroll to result area
     resultContainer.scrollIntoView({behavior: 'smooth', block: 'nearest'});
     
-    // 初始化风险仪表盘
+    // Initialize risk gauge
     this.initRiskGauge();
   },
   
-  // 创建中风结果卡片
+  // Create stroke result card
   createStrokeResultCard(card, data) {
     const isPredicted = data.prediction === 1;
     const probability = data.probability["1"] * 100;
     
-    // 检查是否有原始概率数据（校准前）
+    // Check if raw probability data exists (before calibration)
     let calibrationInfo = '';
     if (data.raw_probability && data.calibrated) {
       const rawProbability = data.raw_probability["1"] * 100;
       calibrationInfo = `
         <div class="alert alert-info mt-3">
-          <h5><i class="fas fa-info-circle"></i> 模型校准信息</h5>
-          <p>原始预测风险: <strong>${rawProbability.toFixed(2)}%</strong> → 校准后风险: <strong>${probability.toFixed(2)}%</strong></p>
-          <small>我们应用了先进的概率校准技术，特别针对高风险人群优化了预测结果，使其更加符合实际临床情况。</small>
+          <h5><i class="fas fa-info-circle"></i> Model Calibration Information</h5>
+          <p>Raw predicted risk: <strong>${rawProbability.toFixed(2)}%</strong> → Calibrated risk: <strong>${probability.toFixed(2)}%</strong></p>
+          <small>We applied advanced probability calibration techniques, specifically optimized for high-risk groups to make predictions more aligned with actual clinical outcomes.</small>
         </div>
       `;
     }
     
     card.innerHTML = `
       <div class="card-header bg-${isPredicted ? 'danger' : 'success'} text-white">
-        <h3 class="card-title mb-0">中风风险预测结果</h3>
+        <h3 class="card-title mb-0">Stroke Risk Prediction Results</h3>
       </div>
       <div class="card-body">
         <div class="text-center mb-4">
@@ -561,52 +561,52 @@ const PredictionFormController = {
             <div class="gauge-value">${probability.toFixed(2)}%</div>
           </div>
         </div>
-        <h4 class="text-center mb-3">风险评估: <span class="${isPredicted ? 'text-danger' : 'text-success'}">${isPredicted ? '高风险' : '低风险'}</span></h4>
+        <h4 class="text-center mb-3">Risk Assessment: <span class="${isPredicted ? 'text-danger' : 'text-success'}">${isPredicted ? 'High Risk' : 'Low Risk'}</span></h4>
         <div class="progress mb-4">
           <div class="progress-bar bg-${this.getProgressBarColor(probability)}" role="progressbar" style="width: ${probability}%" aria-valuenow="${probability}" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
         ${calibrationInfo}
         <div class="alert alert-${isPredicted ? 'warning' : 'info'}">
           <p>${isPredicted ? 
-            '根据您提供的数据，模型预测您有较高的中风风险。请考虑尽快咨询医生进行更详细的评估。' : 
-            '根据您提供的数据，模型预测您目前的中风风险较低。继续保持健康的生活方式！'}
+            'Based on the data you provided, the model predicts you have a higher stroke risk. Please consider consulting a doctor for a more detailed assessment.' : 
+            'Based on the data you provided, the model predicts you currently have a lower stroke risk. Keep up the healthy lifestyle!'}
           </p>
         </div>
         <div class="mt-4">
-          <h5>预防建议:</h5>
+          <h5>Prevention Tips:</h5>
           <ul>
-            <li>定期监测血压，保持在健康范围内</li>
-            <li>保持健康饮食，减少钠和饱和脂肪的摄入</li>
-            <li>每周进行至少150分钟的中等强度有氧运动</li>
-            <li>戒烟限酒</li>
-            <li>定期体检，特别关注心血管系统健康</li>
+            <li>Regularly monitor blood pressure and keep it within healthy range</li>
+            <li>Maintain a healthy diet, reduce sodium and saturated fat intake</li>
+            <li>Engage in at least 150 minutes of moderate-intensity aerobic exercise per week</li>
+            <li>Quit smoking and limit alcohol</li>
+            <li>Have regular health checkups, especially focusing on cardiovascular health</li>
           </ul>
         </div>
       </div>
     `;
   },
   
-  // 创建心脏病结果卡片
+  // Create heart disease result card
   createHeartResultCard(card, data) {
     const isPredicted = data.prediction === 1;
     const probability = data.probability["1"] * 100;
     
-    // 检查是否有原始概率数据（校准前）
+    // Check if raw probability data exists (before calibration)
     let calibrationInfo = '';
     if (data.raw_probability && data.calibrated) {
       const rawProbability = data.raw_probability["1"] * 100;
       calibrationInfo = `
         <div class="alert alert-info mt-3">
-          <h5><i class="fas fa-info-circle"></i> 模型校准信息</h5>
-          <p>原始预测风险: <strong>${rawProbability.toFixed(2)}%</strong> → 校准后风险: <strong>${probability.toFixed(2)}%</strong></p>
-          <small>我们应用了先进的概率校准技术，特别针对高风险人群优化了预测结果，使其更加符合实际临床情况。</small>
+          <h5><i class="fas fa-info-circle"></i> Model Calibration Information</h5>
+          <p>Raw predicted risk: <strong>${rawProbability.toFixed(2)}%</strong> → Calibrated risk: <strong>${probability.toFixed(2)}%</strong></p>
+          <small>We applied advanced probability calibration techniques, specifically optimized for high-risk groups to make predictions more aligned with actual clinical outcomes.</small>
         </div>
       `;
     }
     
     card.innerHTML = `
       <div class="card-header bg-${isPredicted ? 'danger' : 'success'} text-white">
-        <h3 class="card-title mb-0">心脏病风险预测结果</h3>
+        <h3 class="card-title mb-0">Heart Disease Risk Prediction Results</h3>
       </div>
       <div class="card-body">
         <div class="text-center mb-4">
@@ -614,39 +614,39 @@ const PredictionFormController = {
             <div class="gauge-value">${probability.toFixed(2)}%</div>
           </div>
         </div>
-        <h4 class="text-center mb-3">风险评估: <span class="${isPredicted ? 'text-danger' : 'text-success'}">${isPredicted ? '高风险' : '低风险'}</span></h4>
+        <h4 class="text-center mb-3">Risk Assessment: <span class="${isPredicted ? 'text-danger' : 'text-success'}">${isPredicted ? 'High Risk' : 'Low Risk'}</span></h4>
         <div class="progress mb-4">
           <div class="progress-bar bg-${this.getProgressBarColor(probability)}" role="progressbar" style="width: ${probability}%" aria-valuenow="${probability}" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
         ${calibrationInfo}
         <div class="alert alert-${isPredicted ? 'warning' : 'info'}">
           <p>${isPredicted ? 
-            '根据您提供的数据，模型预测您有较高的心脏病风险。建议您咨询心脏科医生进行进一步评估。' : 
-            '根据您提供的数据，模型预测您目前的心脏病风险较低。请继续保持健康的生活方式！'}
+            'Based on the data you provided, the model predicts you have a higher heart disease risk. We recommend consulting a cardiologist for further evaluation.' : 
+            'Based on the data you provided, the model predicts you currently have a lower heart disease risk. Keep up the healthy lifestyle!'}
           </p>
         </div>
         <div class="mt-4">
-          <h5>预防建议:</h5>
+          <h5>Prevention Tips:</h5>
           <ul>
-            <li>控制血压和胆固醇水平</li>
-            <li>每天进行适量运动</li>
-            <li>均衡饮食，增加蔬果摄入</li>
-            <li>保持健康体重</li>
-            <li>管理压力，保证充足睡眠</li>
+            <li>Control blood pressure and cholesterol levels</li>
+            <li>Engage in moderate exercise daily</li>
+            <li>Maintain a balanced diet with more fruits and vegetables</li>
+            <li>Keep a healthy weight</li>
+            <li>Manage stress and ensure adequate sleep</li>
           </ul>
         </div>
       </div>
     `;
   },
   
-  // 创建肝硬化结果卡片
+  // Create cirrhosis result card
   createCirrhosisResultCard(card, data) {
     const stagePrediction = Math.round(data.prediction);
     const stageDescriptions = {
-      1: '早期肝硬化，肝脏仍能正常运作',
-      2: '中度肝硬化，肝脏功能轻度受损',
-      3: '进展期肝硬化，肝脏功能中度受损',
-      4: '晚期肝硬化，肝脏功能严重受损'
+      1: 'Early-stage cirrhosis, liver still functioning normally',
+      2: 'Moderate cirrhosis, mild liver function impairment',
+      3: 'Advanced cirrhosis, moderate liver function impairment',
+      4: 'Late-stage cirrhosis, severe liver function impairment'
     };
     
     const stageRiskClass = {
@@ -656,57 +656,57 @@ const PredictionFormController = {
       4: 'danger'
     };
     
-    // 检查是否有原始预测数据（校准前）
+    // Check if raw prediction data exists (before calibration)
     let calibrationInfo = '';
     if (data.raw_prediction && data.calibrated) {
       const rawStagePrediction = Math.round(data.raw_prediction);
       calibrationInfo = `
         <div class="alert alert-info mt-3">
-          <h5><i class="fas fa-info-circle"></i> 模型校准信息</h5>
-          <p>原始预测分期: <strong>${rawStagePrediction} 期</strong> → 校准后分期: <strong>${stagePrediction} 期</strong></p>
-          <small>我们应用了先进的概率校准技术，特别针对高风险人群优化了预测结果，使其更加符合实际临床情况。</small>
+          <h5><i class="fas fa-info-circle"></i> Model Calibration Information</h5>
+          <p>Raw predicted stage: <strong>Stage ${rawStagePrediction}</strong> → Calibrated stage: <strong>Stage ${stagePrediction}</strong></p>
+          <small>We applied advanced probability calibration techniques, specifically optimized for high-risk groups to make predictions more aligned with actual clinical outcomes.</small>
         </div>
       `;
     }
     
     card.innerHTML = `
       <div class="card-header bg-${stageRiskClass[stagePrediction]} text-${stagePrediction === 4 ? 'white' : 'dark'}">
-        <h3 class="card-title mb-0">肝硬化分期预测结果</h3>
+        <h3 class="card-title mb-0">Cirrhosis Stage Prediction Results</h3>
       </div>
       <div class="card-body">
         <div class="text-center mb-4">
           <div class="stage-indicator">
             <span class="stage-number stage-${stagePrediction}">${stagePrediction}</span>
-            <span class="stage-label">期</span>
+            <span class="stage-label">Stage</span>
           </div>
         </div>
-        <h4 class="text-center mb-3">阶段评估: <span class="text-${stageRiskClass[stagePrediction]}">${stageDescriptions[stagePrediction]}</span></h4>
+        <h4 class="text-center mb-3">Stage Assessment: <span class="text-${stageRiskClass[stagePrediction]}">${stageDescriptions[stagePrediction]}</span></h4>
         <div class="progress mb-4">
           <div class="progress-bar bg-${stageRiskClass[stagePrediction]}" role="progressbar" style="width: ${stagePrediction * 25}%" aria-valuenow="${stagePrediction * 25}" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
         ${calibrationInfo}
         <div class="alert alert-${stageRiskClass[stagePrediction]}">
-          <p>根据您提供的数据，模型预测您的肝硬化处于第 ${stagePrediction} 期。${
+          <p>Based on the data you provided, the model predicts your cirrhosis is at Stage ${stagePrediction}. ${
             stagePrediction <= 2 ? 
-            '早期发现很重要，建议定期随访并遵循医嘱。' : 
-            '请务必遵循专业医生的治疗建议，并定期检查肝功能。'
+            'Early detection is important, we recommend regular follow-ups and following medical advice.' : 
+            'Please be sure to follow the treatment recommendations of your specialist doctor and have regular liver function tests.'
           }</p>
         </div>
         <div class="mt-4">
-          <h5>健康管理建议:</h5>
+          <h5>Health Management Tips:</h5>
           <ul>
-            <li>严格遵医嘱用药</li>
-            <li>保持健康饮食，限制盐分摄入</li>
-            <li>避免饮酒和其他肝毒性物质</li>
-            <li>定期监测肝功能</li>
-            <li>适当休息，避免过度劳累</li>
+            <li>Strictly follow prescribed medications as directed by your doctor</li>
+            <li>Maintain a healthy diet and limit salt intake</li>
+            <li>Avoid alcohol and other hepatotoxic substances</li>
+            <li>Regularly monitor liver function</li>
+            <li>Get adequate rest and avoid overexertion</li>
           </ul>
         </div>
       </div>
     `;
   },
   
-  // 显示预测错误
+  // Show prediction error
   showPredictionError(error) {
     const resultContainer = document.querySelector('#prediction-result');
     if (!resultContainer) return;
@@ -717,25 +717,25 @@ const PredictionFormController = {
     const errorAlert = document.createElement('div');
     errorAlert.className = 'alert alert-danger fade-in';
     
-    // 检查是否是模型未加载错误
+    // Check if it's a model not loaded error
     const isModelError = error.message && 
-      (error.message.includes('模型未加载') || 
+      (error.message.includes('Model not loaded') || 
        error.message.includes('model') || 
-       error.message.includes('加载失败'));
+       error.message.includes('Failed to load'));
     
     if (isModelError) {
       errorAlert.innerHTML = `
-        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> 出错了</h4>
-        <p>很抱歉，预测过程中遇到问题：模型未加载，请稍后再试</p>
+        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Error Occurred</h4>
+        <p>We apologize, an issue occurred during prediction: Model not loaded, please try again later</p>
         <hr>
-        <p class="mb-0">请检查您的输入数据并重试。</p>
+        <p class="mb-0">Please check your input data and try again.</p>
       `;
     } else {
       errorAlert.innerHTML = `
-        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> 预测出错</h4>
-        <p>很抱歉，预测过程中出现了错误。请检查输入数据并重试。</p>
+        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Prediction Error</h4>
+        <p>We apologize, an error occurred during prediction. Please check input data and try again.</p>
         <hr>
-        <p class="mb-0">错误详情: ${error.message || '未知错误'}</p>
+        <p class="mb-0">Error details: ${error.message || 'Unknown error'}</p>
       `;
     }
     
@@ -743,15 +743,15 @@ const PredictionFormController = {
     resultContainer.scrollIntoView({behavior: 'smooth', block: 'nearest'});
   },
   
-  // 初始化风险仪表盘
+  // Initialize risk gauge
   initRiskGauge() {
     const gauges = document.querySelectorAll('.risk-gauge');
     
     gauges.forEach(gauge => {
       const risk = parseFloat(gauge.dataset.risk);
-      const angle = (risk / 100) * 180 - 90; // 转换为角度，-90到90度
+      const angle = (risk / 100) * 180 - 90; // Convert to angle, -90 to 90 degrees
       
-      // 设置仪表盘样式 - 使用CSS变量避免重绘
+      // Set gauge style - use CSS variables to avoid repaints
       gauge.style.setProperty('--risk-angle', `${angle}deg`);
       gauge.style.background = `conic-gradient(
         ${this.getRiskColor(risk)} ${angle}deg,
@@ -760,7 +760,7 @@ const PredictionFormController = {
     });
   },
   
-  // 根据风险值获取进度条颜色
+  // Get progress bar color based on risk value
   getProgressBarColor(riskValue) {
     if (riskValue < 20) return 'success';
     if (riskValue < 50) return 'info';
@@ -768,21 +768,21 @@ const PredictionFormController = {
     return 'danger';
   },
   
-  // 根据风险值获取颜色
+  // Get color based on risk value
   getRiskColor(risk) {
-    if (risk < 20) return '#28a745'; // 绿色
-    if (risk < 50) return '#17a2b8'; // 蓝色
-    if (risk < 80) return '#ffc107'; // 黄色
-    return '#dc3545'; // 红色
+    if (risk < 20) return '#28a745'; // Green
+    if (risk < 50) return '#17a2b8'; // Blue
+    if (risk < 80) return '#ffc107'; // Yellow
+    return '#dc3545'; // Red
   }
 };
 
 /**
- * 导航菜单控制器
+ * Navigation Menu Controller
  */
 const NavController = {
   init() {
-    // 初始化移动端导航
+    // Initialize mobile navigation
     this.setupMobileNav();
   },
   
@@ -795,7 +795,7 @@ const NavController = {
         navbarCollapse.classList.toggle('show');
       });
       
-      // 点击导航项后自动关闭移动导航菜单
+      // Auto-close mobile navigation menu after clicking nav items
       const navLinks = navbarCollapse.querySelectorAll('.nav-link');
       navLinks.forEach(link => {
         link.addEventListener('click', () => {
@@ -807,14 +807,14 @@ const NavController = {
 };
 
 /**
- * 主应用初始化
+ * Main Application Initialization
  */
 document.addEventListener('DOMContentLoaded', () => {
   try {
-    // 检测设备性能，决定是否启用动画
+    // Detect device performance and decide whether to enable animations
     Utils.checkDevicePerformance();
     
-    // 初始化工具提示和弹出框
+    // Initialize tooltips and popovers
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     if(tooltipTriggerList.length > 0) {
         tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -822,57 +822,155 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // 初始化背景控制器
+    // Initialize background controller
     if(typeof BackgroundController !== 'undefined') {
       BackgroundController.init();
     }
     
-    // 准备动画元素
+    // Prepare animation elements
     if(typeof AnimationController !== 'undefined') {
       AnimationController.prepareElements();
       AnimationController.initIntersectionObserver();
     }
     
-    // 初始化滚动控制
+    // Initialize scroll control
     if(typeof ScrollController !== 'undefined') {
       ScrollController.init();
     }
     
-    // 初始化图片懒加载
+    // Initialize image lazy loading
     if(typeof LazyLoadController !== 'undefined') {
       LazyLoadController.init();
     }
     
-    // 初始化页面过渡效果
+    // Initialize page transition effects
     if(typeof PageTransitionController !== 'undefined') {
       PageTransitionController.init();
     }
     
-    // 初始化标签页控制
+    // Initialize tab control
     if(typeof TabController !== 'undefined') {
       TabController.init();
     }
     
-    // 初始化预测表单控制
+    // Initialize prediction form control
     if(typeof PredictionFormController !== 'undefined') {
       PredictionFormController.init();
     }
     
-    // 初始化导航控制器
+    // Initialize navigation controller
     if(typeof NavController !== 'undefined') {
       NavController.init();
     }
     
-    // 初始化图表控制器
+    // Initialize chart controller
     if(typeof ChartController !== 'undefined') {
       ChartController.init();
     }
     
-    // 先触发一次滚动事件，确保初始加载时的动画正常显示
+    // Trigger scroll event once to ensure animations display correctly on initial load
     window.dispatchEvent(new Event('scroll'));
     
-    console.log('所有系统组件已初始化');
+    console.log('All system components initialized');
   } catch(e) {
-    console.error('初始化失败: ', e);
+    console.error('Initialization failed: ', e);
   }
-}); 
+});
+
+/* ============================================================
+   Additional Performance Optimizations: Skeleton Screen, Prediction Cache, Request Deduplication
+   ============================================================ */
+
+// Prediction result cache (avoid duplicate requests)
+const PredictionCache = {
+  cache: new Map(),
+  maxAge: 5 * 60 * 1000, // 5 minute cache
+
+  makeKey(formData) {
+    const entries = [...formData.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    return entries.map(([k, v]) => `${k}=${v}`).join('&');
+  },
+
+  get(key) {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > this.maxAge) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data;
+  },
+
+  set(key, data) {
+    this.cache.set(key, { data, ts: Date.now() });
+    if (this.cache.size > 50) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+  }
+};
+
+// Request deduplication (prevent rapid repeated clicks from users)
+const RequestDedupe = {
+  pending: new Map(),
+
+  check(key) {
+    if (this.pending.has(key)) {
+      return false;
+    }
+    this.pending.set(key, true);
+    setTimeout(() => this.pending.delete(key), 10000);
+    return true;
+  }
+};
+
+// Skeleton screen loading (improve perceived performance)
+function showSkeleton(container, count = 3) {
+  container.innerHTML = Array(count).fill(`
+    <div class="skeleton-item p-3 mb-2 rounded">
+      <div class="skeleton-line skeleton-title mb-2"></div>
+      <div class="skeleton-line skeleton-body"></div>
+    </div>
+  `).join('');
+}
+
+// Request timeout handling
+function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out, please try again later')), timeout)
+    )
+  ]);
+}
+
+// Scroll progress percentage
+function updateScrollProgress() {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = docHeight > 0 ? Math.min((scrollTop / docHeight) * 100, 100) : 0;
+  const bar = document.querySelector('.scroll-progress-bar');
+  if (bar) bar.style.width = progress + '%';
+}
+
+// Performance monitoring (Core Web Vitals)
+function reportWebVitals({ name, delta, id }) {
+  console.log(`[CWV] ${name}: ${delta.toFixed(2)}ms (id: ${id})`);
+}
+
+if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
+  try {
+    new PerformanceObserver(list => {
+      list.getEntries().forEach(entry => {
+        if (entry.entryType === 'navigation') {
+          const ttfb = entry.responseStart - entry.requestStart;
+          if (ttfb > 200) {
+            console.warn(`[Performance] TTFB is slow: ${ttfb.toFixed(0)}ms`);
+          }
+        }
+      });
+    }).observe({ type: 'navigation', buffered: true });
+  } catch (e) {
+    // Performance monitoring not available, silently ignore
+  }
+}

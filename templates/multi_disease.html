@@ -1,42 +1,42 @@
 {% extends "base.html" %}
 
-{% block title %}多疾病关联分析 - 疾病预测与大数据分析系统{% endblock %}
+{% block title %}Multi-Disease Association Analysis - Disease Prediction and Big Data Analysis System{% endblock %}
 
-{% block meta_description %}分析中风、心脏病和肝硬化三种疾病之间的关联性，评估共同风险因素和并发风险。{% endblock %}
+{% block meta_description %}Analyze the associations between stroke, heart disease, and cirrhosis, assessing common risk factors and comorbidity risks.{% endblock %}
 
 {% block content %}
     <div class="container mt-4">
-    <h1 class="text-center mb-5 animated-title white-heading">多疾病关联分析</h1>
+    <h1 class="text-center mb-5 animated-title white-heading">Multi-Disease Association Analysis</h1>
 
         <div class="row mb-4">
             <div class="col-12 slide-section">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">疾病间关联概述</h3>
+                        <h3 class="card-title mb-0">Disease Association Overview</h3>
                     </div>
                     <div class="card-body">
-                        <p class="lead">中风、心脏病和肝硬化这三种严重疾病存在密切的关联。通过分析共同风险因素、并发症和潜在的病理机制，可以更全面地了解患者的健康状况和风险。</p>
+                        <p class="lead">Stroke, heart disease, and cirrhosis - these three serious diseases have close associations. By analyzing common risk factors, complications, and underlying pathological mechanisms, we can gain a more comprehensive understanding of patient health status and risks.</p>
                         <div class="row mt-4">
                             <div class="col-md-4">
                                 <div class="text-center mb-3">
                                     <i class="fas fa-link fa-3x text-primary"></i>
-                                    <h4 class="mt-2">共病关系</h4>
+                                    <h4 class="mt-2">Comorbidity Relationships</h4>
                                 </div>
-                                <p>这三种疾病常常同时出现或相继发生，称为共病现象。例如，心脏病患者中风风险高出2-4倍，而肝功能障碍也可能加重心脑血管疾病风险。</p>
+                                <p>These three diseases often occur simultaneously or sequentially, known as comorbidity. For example, heart disease patients have a 2-4 times higher stroke risk, and liver dysfunction may also increase cardiovascular and cerebrovascular disease risks.</p>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-center mb-3">
                                     <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
-                                    <h4 class="mt-2">共同风险因素</h4>
+                                    <h4 class="mt-2">Common Risk Factors</h4>
                                 </div>
-                                <p>高血压、糖尿病、肥胖、不健康饮食和缺乏运动等是这三种疾病的共同风险因素，同时影响多个器官系统健康。</p>
+                                <p>Hypertension, diabetes, obesity, unhealthy diet, and lack of exercise are common risk factors for all three diseases, simultaneously affecting multiple organ systems.</p>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-center mb-3">
                                     <i class="fas fa-heartbeat fa-3x text-danger"></i>
-                                    <h4 class="mt-2">协同病理机制</h4>
+                                    <h4 class="mt-2">Synergistic Pathological Mechanisms</h4>
                                 </div>
-                                <p>炎症反应、氧化应激和内皮功能障碍等机制在这三种疾病的发生发展过程中均发挥重要作用，形成复杂的相互作用网络。</p>
+                                <p>Inflammatory responses, oxidative stress, and endothelial dysfunction all play important roles in the development of these three diseases, forming a complex interaction network.</p>
                             </div>
                         </div>
                     </div>
@@ -48,11 +48,11 @@
             <div class="col-md-6 slide-section">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">性别与疾病关系对比</h3>
+                        <h3 class="card-title mb-0">Gender and Disease Relationship Comparison</h3>
                     </div>
                     <div class="card-body text-center">
                         {% if 'gender_disease_comparison' in charts %}
-                        <img src="/figures/gender_disease_comparison.png" alt="性别与疾病风险关系" class="img-fluid">
+                        <img src="/figures/gender_disease_comparison.png" alt="Gender and Disease Risk Relationship" class="img-fluid">
                         {% else %}
                         <div class="chart-container" style="position: relative; height:250px; width:100%">
                                 <canvas id="genderDiseaseChart"></canvas>
@@ -64,38 +64,38 @@
             <div class="col-md-6 slide-section">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">年龄分布比较</h3>
+                        <h3 class="card-title mb-0">Age Distribution Comparison</h3>
                     </div>
                     <div class="card-body text-center">
                         {% if 'disease_age_comparison' in charts %}
-                        <img src="/figures/disease_age_comparison.png" alt="三种疾病年龄分布" class="img-fluid">
+                        <img src="/figures/disease_age_comparison.png" alt="Three Disease Age Distributions" class="img-fluid">
                         {% else %}
                         <div class="chart-container" style="position: relative; height:250px; width:100%">
                             <canvas id="ageDistributionChart"></canvas>
                             </div>
                         {% endif %}
-                        <p class="mt-3">小提琴图展示了三种疾病患者的年龄分布特点和差异，包括中位数、四分位数和异常值。</p>
+                        <p class="mt-3">The violin plots show the age distribution characteristics and differences among patients with the three diseases, including median, quartiles, and outliers.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 新增年龄与疾病关系对比区域 -->
+        <!-- New Age and Disease Relationship Comparison Area -->
         <div class="row mb-4">
             <div class="col-12 slide-section">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">年龄与疾病发病率关系</h3>
+                        <h3 class="card-title mb-0">Age and Disease Incidence Relationship</h3>
                     </div>
                     <div class="card-body text-center">
                         {% if 'disease_rate_by_age' in charts %}
-                        <img src="/figures/disease_rate_by_age.png" alt="年龄与疾病发病率关系" class="img-fluid">
+                        <img src="/figures/disease_rate_by_age.png" alt="Age and Disease Incidence Relationship" class="img-fluid">
                         {% else %}
                         <div class="chart-container" style="position: relative; height:300px; width:100%">
                             <canvas id="diseaseAgeChart"></canvas>
                         </div>
                         {% endif %}
-                        <p class="mt-3">该图展示了不同年龄段人群中三种疾病的发病率变化趋势，反映了年龄与疾病风险之间的关系。</p>
+                        <p class="mt-3">This chart shows the changes in incidence rates of the three diseases across different age groups, reflecting the relationship between age and disease risk.</p>
                     </div>
                 </div>
             </div>
@@ -105,64 +105,64 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">共病风险因素分析</h3>
+                        <h3 class="card-title mb-0">Comorbidity Risk Factor Analysis</h3>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <h4 class="text-center mb-3">关键共病风险因素</h4>
+                                <h4 class="text-center mb-3">Key Comorbidity Risk Factors</h4>
                                 <div class="table-responsive">
                                     <table class="table table-striped">
                                         <thead>
                                             <tr>
-                                                <th>风险因素</th>
-                                                <th>中风</th>
-                                                <th>心脏病</th>
-                                                <th>肝硬化</th>
-                                                <th>综合风险系数</th>
+                                                <th>Risk Factor</th>
+                                                <th>Stroke</th>
+                                                <th>Heart Disease</th>
+                                                <th>Cirrhosis</th>
+                                                <th>Comprehensive Risk Coefficient</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td>高血压</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
+                                                <td>Hypertension</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
                                                 <td class="text-danger">4.5</td>
                                             </tr>
                                             <tr>
-                                                <td>糖尿病</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
+                                                <td>Diabetes</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
                                                 <td class="text-danger">4.2</td>
                                             </tr>
                                             <tr>
-                                                <td>肥胖</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
+                                                <td>Obesity</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
                                                 <td class="text-warning">3.8</td>
                                             </tr>
                                             <tr>
-                                                <td>吸烟</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
+                                                <td>Smoking</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
                                                 <td class="text-danger">4.3</td>
                                             </tr>
                                             <tr>
-                                                <td>酒精过量</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
+                                                <td>Excessive Alcohol</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
                                                 <td class="text-warning">3.7</td>
                                             </tr>
                                             <tr>
-                                                <td>高脂血症</td>
-                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> 中</td>
-                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> 高</td>
-                                                <td class="text-success"><i class="fas fa-check-circle"></i> 低</td>
+                                                <td>Hyperlipidemia</td>
+                                                <td class="text-warning"><i class="fas fa-exclamation-triangle"></i> Moderate</td>
+                                                <td class="text-danger"><i class="fas fa-exclamation-circle"></i> High</td>
+                                                <td class="text-success"><i class="fas fa-check-circle"></i> Low</td>
                                                 <td class="text-warning">3.0</td>
                                             </tr>
                                         </tbody>
@@ -184,51 +184,51 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">多病预测模型与综合风险评估</h3>
+                        <h3 class="card-title mb-0">Multi-Disease Prediction Model and Comprehensive Risk Assessment</h3>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <h4 class="text-center mb-3">综合风险评估方法</h4>
-                                <p>本系统采用多目标学习方法，构建了一个能同时预测三种疾病风险的综合模型。该模型考虑了各疾病之间的相互作用，显著提高了预测准确性。</p>
+                                <h4 class="text-center mb-3">Comprehensive Risk Assessment Method</h4>
+                                <p>This system uses a multi-task learning approach to build a comprehensive model that can simultaneously predict risks for all three diseases. The model considers the interactions between diseases, significantly improving prediction accuracy.</p>
                                 <div class="methodology-steps">
                                     <div class="step">
                                         <div class="step-number">1</div>
                                         <div class="step-content">
-                                            <h5>特征整合</h5>
-                                            <p>融合三个疾病数据集的共同特征，创建统一的特征表示。</p>
+                                            <h5>Feature Integration</h5>
+                                            <p>Fuse common features from the three disease datasets, creating a unified feature representation.</p>
                                         </div>
                                     </div>
                                     <div class="step">
                                         <div class="step-number">2</div>
                                         <div class="step-content">
-                                            <h5>多任务学习</h5>
-                                            <p>模型底层共享参数，上层针对各疾病分别优化，捕获疾病间关联。</p>
+                                            <h5>Multi-Task Learning</h5>
+                                            <p>The model shares parameters at the lower level while optimizing separately for each disease at the upper level, capturing disease associations.</p>
                                         </div>
                                     </div>
                                     <div class="step">
                                         <div class="step-number">3</div>
                                         <div class="step-content">
-                                            <h5>协同正则化</h5>
-                                            <p>应用特殊的正则化技术，促使模型学习疾病间的共病模式。</p>
+                                            <h5>Collaborative Regularization</h5>
+                                            <p>Apply special regularization techniques to encourage the model to learn comorbidity patterns between diseases.</p>
                                         </div>
                                     </div>
                                     <div class="step">
                                         <div class="step-number">4</div>
                                         <div class="step-content">
-                                            <h5>综合风险评分</h5>
-                                            <p>基于多维度预测结果，计算患者的综合健康风险指数。</p>
+                                            <h5>Comprehensive Risk Score</h5>
+                                            <p>Calculate the patient's comprehensive health risk index based on multi-dimensional prediction results.</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <h4 class="text-center mb-3">综合模型性能对比</h4>
+                                <h4 class="text-center mb-3">Comprehensive Model Performance Comparison</h4>
                             <div class="chart-container" style="position: relative; height:300px; width:100%">
                                     <canvas id="multiDiseaseModelChart"></canvas>
                                 </div>
                                 <div class="mt-3">
-                                    <p class="text-center"><strong>结论：</strong> 综合模型在所有三种疾病的预测中均优于单独模型，表明考虑疾病间关联可以提高预测准确性。</p>
+                                    <p class="text-center"><strong>Conclusion:</strong> The comprehensive model outperforms individual models in predicting all three diseases, showing that considering disease associations can improve prediction accuracy.</p>
                                 </div>
                             </div>
                         </div>
@@ -241,7 +241,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-success text-white">
-                        <h3 class="card-title mb-0">预防建议与健康管理</h3>
+                        <h3 class="card-title mb-0">Prevention Recommendations and Health Management</h3>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -250,15 +250,15 @@
                                     <div class="recommendation-icon">
                                         <i class="fas fa-utensils"></i>
                                     </div>
-                                    <h4>健康饮食</h4>
+                                    <h4>Healthy Diet</h4>
                                     <ul>
-                                        <li>控制盐分摄入，每日不超过5g</li>
-                                        <li>增加蔬果摄入，每日至少5份</li>
-                                        <li>选择健康脂肪，避免反式脂肪</li>
-                                        <li>控制总热量，保持健康体重</li>
-                                        <li>限制酒精摄入，男性每日不超过2杯，女性不超过1杯</li>
+                                        <li>Control salt intake, no more than 5g per day</li>
+                                        <li>Increase vegetable and fruit intake, at least 5 servings daily</li>
+                                        <li>Choose healthy fats, avoid trans fats</li>
+                                        <li>Control total calories, maintain healthy weight</li>
+                                        <li>Limit alcohol intake, no more than 2 drinks per day for men, 1 for women</li>
                                     </ul>
-                                    <div class="benefit-text">可同时降低三种疾病风险达25-40%</div>
+                                    <div class="benefit-text">Can simultaneously reduce risks of all three diseases by 25-40%</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -266,15 +266,15 @@
                                     <div class="recommendation-icon">
                                         <i class="fas fa-running"></i>
                                     </div>
-                                    <h4>规律运动</h4>
+                                    <h4>Regular Exercise</h4>
                                     <ul>
-                                        <li>中等强度有氧运动，每周至少150分钟</li>
-                                        <li>肌肉强化训练，每周至少2次</li>
-                                        <li>减少久坐时间，每小时起身活动</li>
-                                        <li>根据个人情况逐步增加运动量</li>
-                                        <li>结合有氧运动和力量训练</li>
+                                        <li>Moderate aerobic exercise, at least 150 minutes per week</li>
+                                        <li>Muscle-strengthening training, at least 2 times per week</li>
+                                        <li>Reduce sedentary time, stand up and move every hour</li>
+                                        <li>Gradually increase exercise amount based on personal condition</li>
+                                        <li>Combine aerobic exercise and strength training</li>
                                     </ul>
-                                    <div class="benefit-text">可降低心脑血管疾病风险约30%，肝病风险约20%</div>
+                                    <div class="benefit-text">Can reduce cardiovascular disease risk by about 30%, liver disease risk by about 20%</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -282,15 +282,15 @@
                                     <div class="recommendation-icon">
                                         <i class="fas fa-stethoscope"></i>
                                     </div>
-                                    <h4>健康监测</h4>
+                                    <h4>Health Monitoring</h4>
                                     <ul>
-                                        <li>定期测量血压，控制在130/80mmHg以下</li>
-                                        <li>定期检查血糖，空腹血糖<6.1mmol/L</li>
-                                        <li>监测血脂水平，LDL胆固醇<3.4mmol/L</li>
-                                        <li>定期肝功能检查，特别是有风险因素者</li>
-                                        <li>遵医嘱服药，不自行调整药物</li>
+                                        <li>Regular blood pressure measurement, control below 130/80mmHg</li>
+                                        <li>Regular blood sugar check, fasting blood sugar <6.1mmol/L</li>
+                                        <li>Monitor blood lipid levels, LDL cholesterol <3.4mmol/L</li>
+                                        <li>Regular liver function checks, especially for those with risk factors</li>
+                                        <li>Take medication as prescribed, do not adjust medication yourself</li>
                                     </ul>
-                                    <div class="benefit-text">早期干预可将严重疾病风险降低50%以上</div>
+                                    <div class="benefit-text">Early intervention can reduce serious disease risk by more than 50%</div>
                                 </div>
                             </div>
                         </div>
@@ -302,46 +302,46 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<!-- 使用defer属性延迟加载Chart.js -->
+<!-- Use defer attribute to delay Chart.js loading -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js" defer></script>
 <script>
-    // 等待页面和Chart.js完全加载后再初始化图表
+    // Wait for page and Chart.js to fully load before initializing charts
     document.addEventListener('DOMContentLoaded', function() {
-        // 移除页面顶部的"年龄与多种疾病的关系"标题
+        // Remove the "Age and Multiple Diseases Relationship" title at the top of the page
         const pageTitleH1 = document.querySelector('.hero-section h1');
         if (pageTitleH1 && pageTitleH1.textContent.includes('年龄与多种疾病的关系')) {
-            pageTitleH1.textContent = '多疾病关联分析';
+            pageTitleH1.textContent = 'Multi-Disease Association Analysis';
         }
         
-        // 等待Chart.js加载完成
+        // Wait for Chart.js to load
         function initCharts() {
             if (typeof Chart === 'undefined') {
-                // 如果Chart.js尚未加载，等待100毫秒后重试
+                // If Chart.js hasn't loaded yet, retry after 100ms
                 setTimeout(initCharts, 100);
                 return;
             }
             
             try {
-                // 初始化性别-疾病关系图表
+                // Initialize gender-disease relationship chart
                 const genderChart = document.getElementById('genderDiseaseChart');
                 if (genderChart) {
                     new Chart(genderChart, {
                         type: 'bar',
                         data: {
-                            labels: ['女性', '男性'],
+                            labels: ['Female', 'Male'],
                             datasets: [
                                 {
-                                    label: '中风风险',
+                                    label: 'Stroke Risk',
                                     data: [3.8, 4.2],
                                     backgroundColor: 'rgba(54, 162, 235, 0.7)'
                                 },
                                 {
-                                    label: '心脏病风险',
+                                    label: 'Heart Disease Risk',
                                     data: [42.9, 57.1],
                                     backgroundColor: 'rgba(255, 99, 132, 0.7)'
                                 },
                                 {
-                                    label: '肝硬化风险',
+                                    label: 'Cirrhosis Risk',
                                     data: [35.2, 64.8],
                                     backgroundColor: 'rgba(255, 205, 86, 0.7)'
                                 }
@@ -355,45 +355,45 @@
                                     beginAtZero: true,
                                     title: {
                                         display: true,
-                                        text: '患病率 (%)'
+                                        text: 'Prevalence (%)'
                                     }
                                 }
                             },
                             plugins: {
                                 title: {
                                     display: true,
-                                    text: '不同性别的疾病患病率对比'
+                                    text: 'Disease Prevalence Comparison by Gender'
                                 }
                             }
                         }
                     });
-                    console.log('性别-疾病关系图表初始化成功');
+                    console.log('Gender-Disease Relationship Chart Initialized Successfully');
                 }
                 
-                // 初始化风险因素雷达图
+                // Initialize risk factor radar chart
                 const riskChart = document.getElementById('riskFactorChart');
                 if (riskChart) {
                     new Chart(riskChart, {
                         type: 'radar',
                         data: {
-                            labels: ['高血压', '糖尿病', '肥胖', '吸烟', '酒精过量', '高脂血症'],
+                            labels: ['Hypertension', 'Diabetes', 'Obesity', 'Smoking', 'Excessive Alcohol', 'Hyperlipidemia'],
                             datasets: [
                                 {
-                                    label: '中风',
+                                    label: 'Stroke',
                                     data: [5, 4.5, 3.5, 4.8, 3, 3.2],
                                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
                                     borderColor: 'rgba(54, 162, 235, 1)',
                                     pointBackgroundColor: 'rgba(54, 162, 235, 1)'
                                 },
                                 {
-                                    label: '心脏病',
+                                    label: 'Heart Disease',
                                     data: [5, 4.5, 4.5, 4.8, 3, 5],
                                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
                                     borderColor: 'rgba(255, 99, 132, 1)',
                                     pointBackgroundColor: 'rgba(255, 99, 132, 1)'
                                 },
                                 {
-                                    label: '肝硬化',
+                                    label: 'Cirrhosis',
                                     data: [3, 3, 3.5, 3, 5, 2],
                                     backgroundColor: 'rgba(255, 205, 86, 0.2)',
                                     borderColor: 'rgba(255, 205, 86, 1)',
@@ -421,34 +421,34 @@
                             plugins: {
                                 title: {
                                     display: true,
-                                    text: '风险因素对三种疾病的影响程度'
+                                    text: 'Impact of Risk Factors on Three Diseases'
                                 }
                             }
                         }
                     });
-                    console.log('风险因素雷达图初始化成功');
+                    console.log('Risk Factor Radar Chart Initialized Successfully');
                 }
                 
-                // 初始化多疾病模型对比图表
+                // Initialize multi-disease model comparison chart
                 const modelChart = document.getElementById('multiDiseaseModelChart');
                 if (modelChart) {
                     new Chart(modelChart, {
                         type: 'bar',
                         data: {
-                            labels: ['中风单独模型', '心脏病单独模型', '肝硬化单独模型', '多疾病综合模型'],
+                            labels: ['Stroke Individual Model', 'Heart Disease Individual Model', 'Cirrhosis Individual Model', 'Multi-Disease Comprehensive Model'],
                             datasets: [
                                 {
-                                    label: '中风预测准确率',
+                                    label: 'Stroke Prediction Accuracy',
                                     data: [92.3, null, null, 94.1],
                                     backgroundColor: 'rgba(54, 162, 235, 0.7)'
                                 },
                                 {
-                                    label: '心脏病预测准确率',
+                                    label: 'Heart Disease Prediction Accuracy',
                                     data: [null, 88.5, null, 90.7],
                                     backgroundColor: 'rgba(255, 99, 132, 0.7)'
                                 },
                                 {
-                                    label: '肝硬化预测准确率',
+                                    label: 'Cirrhosis Prediction Accuracy',
                                     data: [null, null, 85.2, 87.8],
                                     backgroundColor: 'rgba(255, 205, 86, 0.7)'
                                 }
@@ -463,22 +463,22 @@
                                     max: 100,
                                     title: {
                                         display: true,
-                                        text: '准确率 (%)'
+                                        text: 'Accuracy (%)'
                                     }
                                 }
                             },
                             plugins: {
                                 title: {
                                     display: true,
-                                    text: '单疾病模型与多疾病综合模型性能对比'
+                                    text: 'Single Disease Model vs Multi-Disease Comprehensive Model Performance Comparison'
                                 }
                             }
                         }
                     });
-                    console.log('多疾病模型对比图表初始化成功');
+                    console.log('Multi-Disease Model Comparison Chart Initialized Successfully');
                 }
                 
-                // 初始化疾病年龄分布图
+                // Initialize disease age distribution chart
                 const ageChart = document.getElementById('ageDistributionChart');
                 if (ageChart) {
                     new Chart(ageChart, {
@@ -487,17 +487,17 @@
                             labels: ['<40', '40-50', '50-60', '60-70', '70-80', '>80'],
                             datasets: [
                                 {
-                                    label: '中风',
+                                    label: 'Stroke',
                                     data: [5, 12, 28, 35, 45, 52],
                                     backgroundColor: 'rgba(54, 162, 235, 0.7)'
                                 },
                                 {
-                                    label: '心脏病',
+                                    label: 'Heart Disease',
                                     data: [8, 15, 32, 42, 48, 45],
                                     backgroundColor: 'rgba(255, 99, 132, 0.7)'
                                 },
                                 {
-                                    label: '肝硬化',
+                                    label: 'Cirrhosis',
                                     data: [10, 25, 38, 35, 30, 22],
                                     backgroundColor: 'rgba(255, 205, 86, 0.7)'
                                 }
@@ -511,22 +511,22 @@
                                     beginAtZero: true,
                                     title: {
                                         display: true,
-                                        text: '患病率 (%)'
+                                        text: 'Prevalence (%)'
                                     }
                                 }
                             },
                             plugins: {
                                 title: {
                                     display: true,
-                                    text: '各年龄段疾病分布'
+                                    text: 'Disease Distribution by Age Group'
                                 }
                             }
                         }
                     });
-                    console.log('疾病年龄分布图初始化成功');
+                    console.log('Disease Age Distribution Chart Initialized Successfully');
                 }
                 
-                // 初始化疾病年龄关系图（仅当静态图像不存在时）
+                // Initialize disease age relationship chart (only when static image doesn't exist)
                 const diseaseAgeChart = document.getElementById('diseaseAgeChart');
                 if (diseaseAgeChart) {
                     new Chart(diseaseAgeChart, {
@@ -535,7 +535,7 @@
                             labels: ['20-30', '30-40', '40-50', '50-60', '60-70', '70-80', '80+'],
                             datasets: [
                                 {
-                                    label: '中风发病率',
+                                    label: 'Stroke Incidence',
                                     data: [2, 5, 12, 25, 38, 45, 52],
                                     borderColor: 'rgba(54, 162, 235, 1)',
                                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
@@ -543,7 +543,7 @@
                                     tension: 0.3
                                 },
                                 {
-                                    label: '心脏病发病率',
+                                    label: 'Heart Disease Incidence',
                                     data: [3, 8, 15, 30, 42, 48, 45],
                                     borderColor: 'rgba(255, 99, 132, 1)',
                                     backgroundColor: 'rgba(255, 99, 132, 0.1)',
@@ -551,7 +551,7 @@
                                     tension: 0.3
                                 },
                                 {
-                                    label: '肝硬化发病率',
+                                    label: 'Cirrhosis Incidence',
                                     data: [4, 10, 25, 38, 35, 30, 22],
                                     borderColor: 'rgba(255, 205, 86, 1)',
                                     backgroundColor: 'rgba(255, 205, 86, 0.1)',
@@ -568,27 +568,27 @@
                                     beginAtZero: true,
                                     title: {
                                         display: true,
-                                        text: '发病率 (%)'
+                                        text: 'Incidence (%)'
                                     }
                                 }
                             },
                             plugins: {
                                 title: {
                                     display: true,
-                                    text: '年龄与疾病发病率关系'
+                                    text: 'Age and Disease Incidence Relationship'
                                 }
                             }
                         }
                     });
-                    console.log('疾病年龄关系图初始化成功');
+                    console.log('Disease Age Relationship Chart Initialized Successfully');
                 }
             } catch (error) {
-                console.error('初始化图表时出错:', error);
+                console.error('Error initializing charts:', error);
             }
         }
         
-        // 启动图表初始化
+        // Start chart initialization
         initCharts();
     });
 </script>
-{% endblock %} 
+{% endblock %}

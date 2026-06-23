@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}多疾病风险联合预测 - 疾病预测与大数据分析系统{% endblock %}
+{% block title %}Multi-Disease Combined Prediction - Disease Prediction and Big Data Analysis System{% endblock %}
 
-{% block meta_description %}预测同时患有中风、心脏病和肝硬化的风险概率，基于多维健康指标评估综合疾病风险。{% endblock %}
+{% block meta_description %}Predict the risk of having stroke, heart disease, and cirrhosis simultaneously, assessing comprehensive disease risk based on multi-dimensional health indicators.{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -111,130 +111,130 @@
 
 {% block content %}
 <div class="container mt-4 fade-in">
-    <h1 class="text-center mb-4 animated-title white-heading">多疾病风险联合预测</h1>
-    <p class="lead text-center hero-text-enhanced">输入您的健康指标，系统将评估您同时患有多种疾病的综合风险</p>
+    <h1 class="text-center mb-4 animated-title white-heading">Multi-Disease Combined Prediction</h1>
+    <p class="lead text-center hero-text-enhanced">Enter your health indicators, and the system will assess your comprehensive risk of having multiple diseases simultaneously</p>
 
-    <!-- 预测结果显示区域 -->
+    <!-- Prediction Result Display Area -->
     <div id="prediction-result" class="result-card fade-in-section">
-        <h2 class="text-center mb-4">预测结果</h2>
+        <h2 class="text-center mb-4">Prediction Result</h2>
         <div id="result-content"></div>
     </div>
 
-    <!-- 多疾病预测表单 -->
+    <!-- Multi-Disease Prediction Form -->
     <div class="row justify-content-center">
         <div class="col-md-10">
             <div class="prediction-form fade-in-section is-visible">
-                <h3 class="text-center mb-4">综合健康风险评估</h3>
+                <h3 class="text-center mb-4">Comprehensive Health Risk Assessment</h3>
                 <form id="multi-disease-form" class="prediction-form-element">
                     <input type="hidden" name="prediction_type" value="multi">
                     
-                    <!-- 基本信息 -->
+                    <!-- Basic Information -->
                     <div class="form-section">
-                        <h4><i class="fas fa-user"></i> 基本信息</h4>
+                        <h4><i class="fas fa-user"></i> Basic Information</h4>
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label for="age" class="form-label">年龄</label>
+                                <label for="age" class="form-label">Age</label>
                                 <input type="number" class="form-control" id="age" name="age" min="1" max="120" required>
                             </div>
                             <div class="col-md-4">
-                                <label for="gender" class="form-label">性别</label>
+                                <label for="gender" class="form-label">Gender</label>
                                 <select class="form-select" id="gender" name="gender" required>
-                                    <option value="">请选择</option>
-                                    <option value="Male">男</option>
-                                    <option value="Female">女</option>
+                                    <option value="">Please Select</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="bmi" class="form-label">体重指数 (BMI)</label>
+                                <label for="bmi" class="form-label">BMI (Body Mass Index)</label>
                                 <input type="number" class="form-control" id="bmi" name="bmi" min="10" max="60" step="0.1" required>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- 心血管相关指标 -->
+                    <!-- Cardiovascular Related Indicators -->
                     <div class="form-section">
-                        <h4><i class="fas fa-heartbeat"></i> 心血管指标</h4>
+                        <h4><i class="fas fa-heartbeat"></i> Cardiovascular Indicators</h4>
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label for="hypertension" class="form-label">高血压</label>
+                                <label for="hypertension" class="form-label">Hypertension</label>
                                 <select class="form-select" id="hypertension" name="hypertension" required>
-                                    <option value="">请选择</option>
-                                    <option value="0">否</option>
-                                    <option value="1">是</option>
+                                    <option value="">Please Select</option>
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="heart_disease" class="form-label">心脏病史</label>
+                                <label for="heart_disease" class="form-label">Heart Disease History</label>
                                 <select class="form-select" id="heart_disease" name="heart_disease" required>
-                                    <option value="">请选择</option>
-                                    <option value="0">否</option>
-                                    <option value="1">是</option>
+                                    <option value="">Please Select</option>
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="avg_glucose_level" class="form-label">平均血糖水平 (mg/dL)</label>
+                                <label for="avg_glucose_level" class="form-label">Average Glucose Level (mg/dL)</label>
                                 <input type="number" class="form-control" id="avg_glucose_level" name="avg_glucose_level" min="50" max="300" step="0.1" required>
                             </div>
                         </div>
                         
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label for="cholesterol" class="form-label">胆固醇 (mg/dL)</label>
+                                <label for="cholesterol" class="form-label">Cholesterol (mg/dL)</label>
                                 <input type="number" class="form-control" id="cholesterol" name="cholesterol" min="100" max="600" required>
                             </div>
                             <div class="col-md-4">
-                                <label for="smoking_status" class="form-label">吸烟状态</label>
+                                <label for="smoking_status" class="form-label">Smoking Status</label>
                                 <select class="form-select" id="smoking_status" name="smoking_status" required>
-                                    <option value="">请选择</option>
-                                    <option value="never smoked">从不吸烟</option>
-                                    <option value="formerly smoked">过去吸烟</option>
-                                    <option value="smokes">吸烟</option>
+                                    <option value="">Please Select</option>
+                                    <option value="never smoked">Never Smoked</option>
+                                    <option value="formerly smoked">Formerly Smoked</option>
+                                    <option value="smokes">Currently Smokes</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="resting_bp" class="form-label">静息血压 (mmHg)</label>
+                                <label for="resting_bp" class="form-label">Resting Blood Pressure (mmHg)</label>
                                 <input type="number" class="form-control" id="resting_bp" name="resting_bp" min="80" max="220">
                             </div>
                         </div>
                     </div>
                     
-                    <!-- 肝脏相关指标 -->
+                    <!-- Liver Related Indicators -->
                     <div class="form-section">
-                        <h4><i class="fas fa-pills"></i> 肝脏指标</h4>
+                        <h4><i class="fas fa-pills"></i> Liver Indicators</h4>
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label for="ascites" class="form-label">腹水</label>
+                                <label for="ascites" class="form-label">Ascites</label>
                                 <select class="form-select" id="ascites" name="ascites">
-                                    <option value="">请选择</option>
-                                    <option value="N">否</option>
-                                    <option value="Y">是</option>
+                                    <option value="">Please Select</option>
+                                    <option value="N">No</option>
+                                    <option value="Y">Yes</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="hepatomegaly" class="form-label">肝肿大</label>
+                                <label for="hepatomegaly" class="form-label">Hepatomegaly</label>
                                 <select class="form-select" id="hepatomegaly" name="hepatomegaly">
-                                    <option value="">请选择</option>
-                                    <option value="N">否</option>
-                                    <option value="Y">是</option>
+                                    <option value="">Please Select</option>
+                                    <option value="N">No</option>
+                                    <option value="Y">Yes</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="spiders" class="form-label">蜘蛛痣</label>
+                                <label for="spiders" class="form-label">Spider Angiomas</label>
                                 <select class="form-select" id="spiders" name="spiders">
-                                    <option value="">请选择</option>
-                                    <option value="N">否</option>
-                                    <option value="Y">是</option>
+                                    <option value="">Please Select</option>
+                                    <option value="N">No</option>
+                                    <option value="Y">Yes</option>
                                 </select>
                             </div>
                         </div>
                         
                         <div class="row mb-3">
                             <div class="col-md-4">
-                                <label for="bilirubin" class="form-label">胆红素 (mg/dL)</label>
+                                <label for="bilirubin" class="form-label">Bilirubin (mg/dL)</label>
                                 <input type="number" class="form-control" id="bilirubin" name="bilirubin" min="0" max="30" step="0.1">
                             </div>
                             <div class="col-md-4">
-                                <label for="albumin" class="form-label">白蛋白 (g/dL)</label>
+                                <label for="albumin" class="form-label">Albumin (g/dL)</label>
                                 <input type="number" class="form-control" id="albumin" name="albumin" min="1" max="6" step="0.01">
                             </div>
                             <div class="col-md-4">
@@ -245,37 +245,30 @@
                     </div>
                     
                     <div class="text-center">
-                        <button type="submit" class="btn btn-primary">进行多疾病风险预测</button>
-                        <button type="reset" class="btn btn-secondary ms-2">重置</button>
+                        <button type="submit" class="btn btn-primary">Run Multi-Disease Risk Prediction</button>
+                        <button type="reset" class="btn btn-secondary ms-2">Reset</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
     
-    <!-- 底部导航按钮 -->
-    <div class="action-button-container">
-        <a href="/predict" class="action-button">
-            <i class="fas fa-heartbeat"></i> 进入单一疾病预测
-        </a>
-    </div>
-
-    <!-- 模型说明 -->
+    <!-- Model Description -->
     <div class="row mt-5 content-section">
         <div class="col-md-12 mb-4">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="card-title mb-0">多疾病风险预测模型说明</h3>
+                    <h3 class="card-title mb-0">Multi-Disease Risk Prediction Model Description</h3>
                 </div>
                 <div class="card-body">
-                    <p>本多疾病风险预测模型采用了先进的机器学习技术，通过分析三种疾病的共同特征和各自特征，建立了多维风险评估体系。主要特点包括：</p>
+                    <p>This multi-disease risk prediction model uses advanced machine learning technology. By analyzing common features and individual features of three diseases, it establishes a multi-dimensional risk assessment system. Main features include:</p>
                     <ul>
-                        <li><strong>疾病相关性分析：</strong>考虑中风、心脏病和肝硬化之间的相互影响和共病机制</li>
-                        <li><strong>综合风险评分：</strong>计算单一疾病风险以及多疾病组合的联合风险</li>
-                        <li><strong>数据驱动决策：</strong>基于大量临床数据训练，提供数据支持的风险预测</li>
-                        <li><strong>个性化预测：</strong>根据个人健康特征提供定制化的风险评估</li>
+                        <li><strong>Disease Correlation Analysis:</strong> Considers the interactions and comorbidity mechanisms between stroke, heart disease, and cirrhosis</li>
+                        <li><strong>Comprehensive Risk Score:</strong> Calculates single disease risk as well as combined risk for multiple disease combinations</li>
+                        <li><strong>Data-Driven Decision:</strong> Provides data-supported risk prediction based on large amounts of clinical data training</li>
+                        <li><strong>Personalized Prediction:</strong> Provides customized risk assessment based on individual health characteristics</li>
                     </ul>
-                    <p class="mt-3">模型采用贝叶斯概率框架，结合条件概率和相关性分析，计算出不同疾病组合的风险概率，为用户提供全面的健康风险画像。</p>
+                    <p class="mt-3">The model uses a Bayesian probability framework, combining conditional probability and correlation analysis to calculate risk probabilities for different disease combinations, providing users with a comprehensive health risk profile.</p>
                 </div>
             </div>
         </div>
@@ -284,52 +277,52 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 添加表单处理
+    // Add form handling
     document.getElementById('multi-disease-form').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // 显示加载状态
+        // Show loading state
         const submitBtn = this.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerText;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 预测中...';
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Predicting...';
         
-        // 收集表单数据
+        // Collect form data
         const formData = new FormData(this);
         
-        // 发送AJAX请求
+        // Send AJAX request
         fetch('/multi-predict', {
             method: 'POST',
             body: formData
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('网络响应错误');
+                throw new Error('Network response error');
             }
             return response.json();
         })
         .then(data => {
-            // 恢复按钮状态
+            // Restore button state
             submitBtn.disabled = false;
             submitBtn.innerText = originalText;
             
-            // 显示预测结果
+            // Show prediction result
             showMultiPredictionResult(data);
         })
         .catch(error => {
-            // 恢复按钮状态
+            // Restore button state
             submitBtn.disabled = false;
             submitBtn.innerText = originalText;
             
-            // 显示错误信息
+            // Show error message
             showError(error.message);
         });
     });
     
-    // 显示多疾病预测结果
+    // Show multi-disease prediction result
     function showMultiPredictionResult(data) {
         const resultContainer = document.getElementById('prediction-result');
         const resultContent = document.getElementById('result-content');
@@ -339,49 +332,49 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // 清空之前的结果
+        // Clear previous results
         resultContent.innerHTML = '';
         
-        // 获取概率数据
+        // Get probability data
         const probs = data.probabilities;
         
-        // 创建结果HTML
+        // Create result HTML
         let html = `
             <div class="text-center mb-4">
-                <h3>综合风险评估结果</h3>
-                <p class="lead">基于您提供的健康数据，系统分析了多种疾病组合的风险概率</p>
+                <h3>Comprehensive Risk Assessment Result</h3>
+                <p class="lead">Based on your provided health data, the system has analyzed risk probabilities for various disease combinations</p>
             </div>
             
             <div class="row">
                 <div class="col-md-7">
-                    <h4 class="mb-3">疾病组合风险概率</h4>
+                    <h4 class="mb-3">Disease Combination Risk Probabilities</h4>
                     <div class="risk-combinations">
         `;
         
-        // 添加单一疾病风险
-        html += createProbabilityItem('中风风险', probs.stroke * 100, 'brain', 'primary');
-        html += createProbabilityItem('心脏病风险', probs.heart * 100, 'heartbeat', 'danger');
-        html += createProbabilityItem('肝硬化风险', probs.cirrhosis * 100, 'pills', 'warning');
+        // Add single disease risks
+        html += createProbabilityItem('Stroke Risk', probs.stroke * 100, 'brain', 'primary');
+        html += createProbabilityItem('Heart Disease Risk', probs.heart * 100, 'heartbeat', 'danger');
+        html += createProbabilityItem('Cirrhosis Risk', probs.cirrhosis * 100, 'pills', 'warning');
         
-        // 添加双疾病风险
-        html += `<hr><h5 class="mt-4">双疾病组合风险</h5>`;
-        html += createProbabilityItem('中风和心脏病', probs.stroke_heart * 100, 'stethoscope', 'danger');
-        html += createProbabilityItem('中风和肝硬化', probs.stroke_cirrhosis * 100, 'procedures', 'warning');
-        html += createProbabilityItem('心脏病和肝硬化', probs.heart_cirrhosis * 100, 'hospital', 'warning');
+        // Add double disease risks
+        html += `<hr><h5 class="mt-4">Double Disease Combination Risks</h5>`;
+        html += createProbabilityItem('Stroke and Heart Disease', probs.stroke_heart * 100, 'stethoscope', 'danger');
+        html += createProbabilityItem('Stroke and Cirrhosis', probs.stroke_cirrhosis * 100, 'procedures', 'warning');
+        html += createProbabilityItem('Heart Disease and Cirrhosis', probs.heart_cirrhosis * 100, 'hospital', 'warning');
         
-        // 添加三疾病风险
-        html += `<hr><h5 class="mt-4">三疾病组合风险</h5>`;
-        html += createProbabilityItem('同时患三种疾病', probs.all_three * 100, 'disease', 'dark');
+        // Add triple disease risk
+        html += `<hr><h5 class="mt-4">Triple Disease Combination Risk</h5>`;
+        html += createProbabilityItem('All Three Diseases', probs.all_three * 100, 'disease', 'dark');
         
-        // 健康风险
+        // Health risk
         html += `<hr>`;
-        html += createProbabilityItem('健康（无疾病）', probs.none * 100, 'heart', 'success');
+        html += createProbabilityItem('Healthy (No Disease)', probs.none * 100, 'heart', 'success');
         
         html += `
                     </div>
                 </div>
                 <div class="col-md-5">
-                    <h4 class="mb-3">风险分布图</h4>
+                    <h4 class="mb-3">Risk Distribution Chart</h4>
                     <div class="chart-container">
                         <canvas id="riskChart"></canvas>
                     </div>
@@ -389,35 +382,35 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="alert alert-info mt-4">
-                <h5><i class="fas fa-info-circle"></i> 风险解读</h5>
-                <p>该结果显示了您患单一疾病以及多种疾病组合的概率。数值越高表示风险越大，您可以重点关注风险值较高的疾病。</p>
-                <p>请注意：此风险预测基于您提供的有限数据，仅供参考，不能替代专业医疗诊断。如有健康问题，请咨询医生。</p>
+                <h5><i class="fas fa-info-circle"></i> Risk Interpretation</h5>
+                <p>This result shows your probability of having single diseases and various disease combinations. Higher values indicate greater risk. You can focus on diseases with higher risk values.</p>
+                <p>Please note: This risk prediction is based on the limited data you provided, for reference only, and cannot replace professional medical diagnosis. If you have health concerns, please consult a doctor.</p>
             </div>
         `;
         
-        // 填充结果内容
+        // Populate result content
         resultContent.innerHTML = html;
         
-        // 显示结果容器
+        // Show result container
         resultContainer.style.display = 'block';
         
-        // 滚动到结果位置
+        // Scroll to result position
         setTimeout(() => {
             resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             
-            // 初始化图表
+            // Initialize chart
             initRiskChart(probs);
         }, 100);
     }
     
-    // 创建单个概率项HTML
+    // Create single probability item HTML
     function createProbabilityItem(label, probability, icon, colorClass) {
-        // 概率范围限制在0-100之间
+        // Limit probability range to 0-100
         probability = Math.max(0, Math.min(100, probability));
         
-        // 根据概率值确定风险等级
-        let riskLevel = probability < 20 ? '低风险' : 
-                        probability < 50 ? '中等风险' : '高风险';
+        // Determine risk level based on probability value
+        let riskLevel = probability < 20 ? 'Low Risk' : 
+                        probability < 50 ? 'Moderate Risk' : 'High Risk';
         
         return `
             <div class="probability-item">
@@ -436,15 +429,15 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
     
-    // 初始化风险分布图表
+    // Initialize risk distribution chart
     function initRiskChart(probs) {
         const ctx = document.getElementById('riskChart').getContext('2d');
         
-        // 准备数据
+        // Prepare data
         const chartData = {
-            labels: ['无疾病', '仅中风', '仅心脏病', '仅肝硬化', '中风+心脏病', '中风+肝硬化', '心脏病+肝硬化', '三种疾病'],
+            labels: ['No Disease', 'Stroke Only', 'Heart Disease Only', 'Cirrhosis Only', 'Stroke+Heart Disease', 'Stroke+Cirrhosis', 'Heart Disease+Cirrhosis', 'All Three Diseases'],
             datasets: [{
-                label: '风险概率 (%)',
+                label: 'Risk Probability (%)',
                 data: [
                     probs.none * 100,
                     probs.stroke_only * 100,
@@ -456,20 +449,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     probs.all_three * 100
                 ],
                 backgroundColor: [
-                    'rgba(40, 167, 69, 0.7)',  // 无疾病 - 绿色
-                    'rgba(13, 110, 253, 0.7)', // 中风 - 蓝色
-                    'rgba(220, 53, 69, 0.7)',  // 心脏病 - 红色
-                    'rgba(255, 193, 7, 0.7)',  // 肝硬化 - 黄色
-                    'rgba(111, 66, 193, 0.7)', // 中风+心脏病 - 紫色
-                    'rgba(23, 162, 184, 0.7)', // 中风+肝硬化 - 青色
-                    'rgba(253, 126, 20, 0.7)', // 心脏病+肝硬化 - 橙色
-                    'rgba(52, 58, 64, 0.7)'    // 三种疾病 - 深灰色
+                    'rgba(40, 167, 69, 0.7)',  // No Disease - Green
+                    'rgba(13, 110, 253, 0.7)', // Stroke - Blue
+                    'rgba(220, 53, 69, 0.7)',  // Heart Disease - Red
+                    'rgba(255, 193, 7, 0.7)',  // Cirrhosis - Yellow
+                    'rgba(111, 66, 193, 0.7)', // Stroke+Heart Disease - Purple
+                    'rgba(23, 162, 184, 0.7)', // Stroke+Cirrhosis - Cyan
+                    'rgba(253, 126, 20, 0.7)', // Heart Disease+Cirrhosis - Orange
+                    'rgba(52, 58, 64, 0.7)'    // All Three Diseases - Dark Gray
                 ],
                 borderWidth: 1
             }]
         };
         
-        // 创建图表
+        // Create chart
         const riskChart = new Chart(ctx, {
             type: 'bar',
             data: chartData,
@@ -493,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: '概率 (%)'
+                            text: 'Probability (%)'
                         },
                         ticks: {
                             callback: function(value) {
@@ -512,16 +505,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 显示错误信息
+    // Show error message
     function showError(message) {
         const resultContainer = document.getElementById('prediction-result');
         const resultContent = document.getElementById('result-content');
         
         resultContent.innerHTML = `
             <div class="alert alert-danger">
-                <h4><i class="fas fa-exclamation-triangle"></i> 出错了</h4>
-                <p>很抱歉，预测过程中遇到问题：${message}</p>
-                <p>请检查您的输入数据并重试。</p>
+                <h4><i class="fas fa-exclamation-triangle"></i> Error Occurred</h4>
+                <p>Sorry, an issue occurred during prediction: ${message}</p>
+                <p>Please check your input data and try again.</p>
             </div>
         `;
         
@@ -531,10 +524,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- 底部导航按钮 -->
+<!-- Bottom Navigation Button -->
 <div class="action-button-container">
     <a href="/predict" class="action-button">
-        <i class="fas fa-heartbeat"></i> 进入单一疾病预测
+        <i class="fas fa-heartbeat"></i> Go to Single Disease Prediction
     </a>
 </div>
-{% endblock %} 
+{% endblock %}

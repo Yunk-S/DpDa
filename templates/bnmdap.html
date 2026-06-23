@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}Bayesian Network Multi-Disease Association - Disease Prediction and Big Data Analysis System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .bnmdap-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .risk-toggle-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    .risk-toggle-item {
+        flex: 1;
+        min-width: 200px;
+        background: white;
+        border: 2px solid #dee2e6;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    .risk-toggle-item.active {
+        border-color: #dc3545;
+        background: #fff5f5;
+    }
+    .risk-toggle-item input { display: none; }
+    .risk-toggle-item .disease-icon-lg {
+        font-size: 36px;
+        margin-bottom: 8px;
+        display: block;
+    }
+    .risk-toggle-item .disease-name {
+        font-weight: 700;
+        font-size: 16px;
+        display: block;
+    }
+    .risk-toggle-item .disease-desc {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    .result-bar {
+        height: 28px;
+        border-radius: 14px;
+        background: #e9ecef;
+        overflow: hidden;
+        margin: 4px 0;
+        position: relative;
+    }
+    .result-bar-fill {
+        height: 100%;
+        border-radius: 14px;
+        transition: width 0.8s ease;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .bar-stroke { background: linear-gradient(90deg, #3498db, #2980b9); }
+    .bar-heart { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+    .bar-cirrhosis { background: linear-gradient(90deg, #f39c12, #d68910); }
+    .bar-hypertension { background: linear-gradient(90deg, #c0392b, #922b21); }
+    .bar-combo { background: linear-gradient(90deg, #8e44ad, #6c3483); }
+    .bar-none { background: linear-gradient(90deg, #27ae60, #1e8449); }
+    .scenario-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .scenario-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+    .scenario-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .scenario-card.active {
+        border-color: #0d6efd;
+        background: #e7f1ff;
+    }
+    .network-canvas-container {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+    }
+    .prob-display {
+        font-size: 42px;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .prob-label { font-size: 13px; color: #6c757d; margin-top: 4px; }
+    .loading-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(255,255,255,0.9);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999; flex-direction: column;
+    }
+    .spinner-ring {
+        width: 50px; height: 50px;
+        border: 4px solid #e9ecef; border-top: 4px solid #8e44ad;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="text-center mb-2 animated-title white-heading">Bayesian Network Multi-Disease Association Probability Model (BNMDAP)</h1>
+    <p class="text-center text-muted mb-4">Quantify comorbidity associations between diseases, predicting the probability of multiple diseases occurring simultaneously</p>
+
+    <div class="row">
+        <!-- Left: Input and Prediction -->
+        <div class="col-lg-6">
+            <!-- Network Structure Description -->
+            <div class="bnmdap-card">
+                <h5 class="mb-3"><i class="fas fa-project-diagram me-2"></i>Bayesian Network Structure</h5>
+                <div class="network-canvas-container mb-3" id="networkViz">
+                    <canvas id="networkCanvas" width="380" height="300"></canvas>
+                </div>
+                <div class="small text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Hypertension → Heart Disease → Stroke; Heart Disease → Cirrhosis
+                </div>
+            </div>
+
+            <!-- Risk Factor Input -->
+            <div class="bnmdap-card">
+                <h5 class="mb-3"><i class="fas fa-sliders-h me-2"></i>Select Known Risk Factors</h5>
+                <div class="risk-toggle-group">
+                    <label class="risk-toggle-item" id="toggle-htn" onclick="toggleRisk('htn')">
+                        <span class="disease-icon-lg">&#x1F4C8;</span>
+                        <span class="disease-name">Hypertension</span>
+                        <span class="disease-desc">Systolic BP≥140 or Diastolic BP≥90</span>
+                    </label>
+                    <label class="risk-toggle-item" id="toggle-hd" onclick="toggleRisk('hd')">
+                        <span class="disease-icon-lg">&#x2764;</span>
+                        <span class="disease-name">Heart Disease</span>
+                        <span class="disease-desc">CHD, Angina, etc.</span>
+                    </label>
+                    <label class="risk-toggle-item" id="toggle-cirr" onclick="toggleRisk('cirr')">
+                        <span class="disease-icon-lg">&#x1F4C5;</span>
+                        <span class="disease-name">Cirrhosis</span>
+                        <span class="disease-desc">Advanced Fibrosis (Stage≥3)</span>
+                    </label>
+                </div>
+
+                <button class="btn btn-primary btn-lg w-100" onclick="predictComorbidity()">
+                    <i class="fas fa-calculator me-2"></i>Predict Comorbidity Probability
+                </button>
+            </div>
+        </div>
+
+        <!-- Right: Results Display -->
+        <div class="col-lg-6">
+            <!-- Prediction Results -->
+            <div class="bnmdap-card" id="predictionResults" style="display:none">
+                <h5 class="mb-3"><i class="fas fa-poll me-2"></i>Prediction Results</h5>
+
+                <!-- Large Number Display -->
+                <div class="row text-center mb-4" id="mainProbs"></div>
+
+                <!-- Detailed Probability Bars -->
+                <div id="probBars">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Stroke</span>
+                            <span id="prob-stroke-text">--</span>
+                        </div>
+                        <div class="result-bar">
+                            <div class="result-bar-fill bar-stroke" id="prob-stroke-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Heart Disease</span>
+                            <span id="prob-heart-text">--</span>
+                        </div>
+                        <div class="result-bar">
+                            <div class="result-bar-fill bar-heart" id="prob-heart-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Cirrhosis</span>
+                            <span id="prob-cirr-text">--</span>
+                        </div>
+                        <div class="result-bar">
+                            <div class="result-bar-fill bar-cirrhosis" id="prob-cirr-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-bold">Stroke+Heart Disease Comorbidity</span>
+                            <span id="prob-stroke-heart-text">--</span>
+                        </div>
+                        <div class="result-bar">
+                            <div class="result-bar-fill bar-combo" id="prob-stroke-heart-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-bold">All Three Diseases Coexisting</span>
+                            <span id="prob-all-text">--</span>
+                        </div>
+                        <div class="result-bar">
+                            <div class="result-bar-fill bar-combo" id="prob-all-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-success fw-bold">No Disease (Healthy)</span>
+                            <span id="prob-none-text">--</span>
+                        </div>
+                        <div class="result-bar">
+                            <div class="result-bar-fill bar-none" id="prob-none-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preset Scenarios -->
+            <div class="bnmdap-card">
+                <h5 class="mb-3"><i class="fas fa-list-ul me-2"></i>Quick Scenarios</h5>
+                <div class="scenario-grid">
+                    <div class="scenario-card" onclick="setScenario(0,0,0); predictComorbidity()">
+                        <i class="fas fa-user text-success mb-2" style="font-size:24px;display:block"></i>
+                        <strong>Low Risk Population</strong>
+                        <div class="small text-muted">No known risk factors</div>
+                    </div>
+                    <div class="scenario-card" onclick="setScenario(1,0,0); predictComorbidity()">
+                        <i class="fas fa-temperature-high text-danger mb-2" style="font-size:24px;display:block"></i>
+                        <strong>Hypertension Patient</strong>
+                        <div class="small text-muted">Only has hypertension</div>
+                    </div>
+                    <div class="scenario-card" onclick="setScenario(0,1,0); predictComorbidity()">
+                        <i class="fas fa-heart text-danger mb-2" style="font-size:24px;display:block"></i>
+                        <strong>Heart Disease Patient</strong>
+                        <div class="small text-muted">Only has heart disease</div>
+                    </div>
+                    <div class="scenario-card" onclick="setScenario(1,1,0); predictComorbidity()">
+                        <i class="fas fa-exclamation-triangle text-warning mb-2" style="font-size:24px;display:block"></i>
+                        <strong>High Risk Population</strong>
+                        <div class="small text-muted">Hypertension + Heart Disease</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relative Risk Ratio Information -->
+            <div class="bnmdap-card">
+                <h5 class="mb-3"><i class="fas fa-link me-2"></i>Disease Association Strength (RR Values)</h5>
+                <div id="rrInfo" class="small">
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span>Hypertension → Heart Disease</span><span class="badge bg-danger">RR=2.8</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span>Hypertension → Stroke</span><span class="badge bg-danger">RR=3.2</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span>Heart Disease → Stroke</span><span class="badge bg-warning text-dark">RR=2.5</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span>Heart Disease → Cirrhosis</span><span class="badge bg-info text-dark">RR=1.5</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span>Cirrhosis → Stroke</span><span class="badge bg-info text-dark">RR=1.8</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let selectedRisks = { htn: 0, hd: 0, cirr: 0 };
+
+function toggleRisk(type) {
+    selectedRisks[type] = selectedRisks[type] === 0 ? 1 : 0;
+    const el = document.getElementById(`toggle-${type}`);
+    if (selectedRisks[type]) {
+        el.classList.add('active');
+    } else {
+        el.classList.remove('active');
+    }
+}
+
+function setScenario(htn, hd, cirr) {
+    selectedRisks = { htn, hd, cirr };
+    document.getElementById('toggle-htn').classList.toggle('active', htn === 1);
+    document.getElementById('toggle-hd').classList.toggle('active', hd === 1);
+    document.getElementById('toggle-cirr').classList.toggle('active', cirr === 1);
+}
+
+function predictComorbidity() {
+    const data = {
+        hypertension: selectedRisks.htn,
+        heart_disease: selectedRisks.hd,
+        cirrhosis: selectedRisks.cirr
+    };
+
+    const loadingEl = document.createElement('div');
+    loadingEl.className = 'loading-overlay';
+    loadingEl.id = 'bnmdapLoading';
+    loadingEl.innerHTML = '<div class="spinner-ring"></div><div style="color:#333;font-weight:600">Calculating comorbidity probability...</div>';
+    document.body.appendChild(loadingEl);
+
+    fetch('/api/bnmdap/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        document.getElementById('bnmdapLoading')?.remove();
+        if (result.error) { alert('Prediction failed: ' + result.error); return; }
+        renderPredictionResult(result.probabilities);
+    })
+    .catch(err => {
+        document.getElementById('bnmdapLoading')?.remove();
+        alert('Prediction failed: ' + err);
+    });
+}
+
+function renderPredictionResult(probs) {
+    document.getElementById('predictionResults').style.display = 'block';
+
+    // Main probability display
+    const mainDiv = document.getElementById('mainProbs');
+    mainDiv.innerHTML = `
+        <div class="col-4">
+            <div class="prob-display text-primary">${(probs.stroke * 100).toFixed(1)}%</div>
+            <div class="prob-label">Stroke Risk</div>
+        </div>
+        <div class="col-4">
+            <div class="prob-display text-danger">${(probs.heart_disease * 100).toFixed(1)}%</div>
+            <div class="prob-label">Heart Disease Risk</div>
+        </div>
+        <div class="col-4">
+            <div class="prob-display text-warning">${(probs.cirrhosis * 100).toFixed(1)}%</div>
+            <div class="prob-label">Cirrhosis Risk</div>
+        </div>
+    `;
+
+    // Probability bars
+    const bars = [
+        ['stroke', probs.stroke, 'prob-stroke'],
+        ['heart_disease', probs.heart_disease, 'prob-heart'],
+        ['cirrhosis', probs.cirrhosis || 0, 'prob-cirr'],
+        ['stroke_heart', probs.stroke_heart, 'prob-stroke-heart'],
+        ['all_three', probs.all_three, 'prob-all'],
+        ['none', probs.none, 'prob-none'],
+    ];
+
+    bars.forEach(([key, val, prefix]) => {
+        const probVal = val || 0;
+        const pct = Math.min(probVal * 100, 100);
+        const barEl = document.getElementById(`${prefix}-bar`);
+        const textEl = document.getElementById(`${prefix}-text`);
+        if (barEl) {
+            barEl.style.width = pct + '%';
+        }
+        if (textEl) {
+            textEl.textContent = (probVal * 100).toFixed(2) + '%';
+        }
+    });
+}
+
+// Draw Bayesian network structure diagram
+function drawNetwork() {
+    const canvas = document.getElementById('networkCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const nodes = {
+        hypertension: { x: 60, y: 150, r: 40, color: '#FF6B6B', label: 'Hypertension' },
+        heart_disease: { x: 190, y: 150, r: 40, color: '#E74C3C', label: 'Heart Disease' },
+        stroke: { x: 320, y: 150, r: 40, color: '#3498DB', label: 'Stroke' },
+        cirrhosis: { x: 190, y: 250, r: 40, color: '#F39C12', label: 'Cirrhosis' },
+    };
+
+    const edges = [
+        ['hypertension', 'heart_disease'],
+        ['hypertension', 'stroke'],
+        ['heart_disease', 'stroke'],
+        ['heart_disease', 'cirrhosis'],
+    ];
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw edges (arrows)
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 2;
+    edges.forEach(([src, dst]) => {
+        const s = nodes[src];
+        const d = nodes[dst];
+        const dx = d.x - s.x;
+        const dy = d.y - s.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const nx = dx / dist;
+        const ny = dy / dist;
+        ctx.beginPath();
+        ctx.moveTo(s.x + nx * s.r, s.y + ny * s.r);
+        ctx.lineTo(d.x - nx * d.r, d.y - ny * d.r);
+        ctx.stroke();
+
+        // Arrow
+        const ax = d.x - nx * d.r;
+        const ay = d.y - ny * d.r;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax - nx * 10 - ny * 6, ay - ny * 10 + nx * 6);
+        ctx.lineTo(ax - nx * 10 + ny * 6, ay - ny * 10 - nx * 6);
+        ctx.closePath();
+        ctx.fillStyle = '#555';
+        ctx.fill();
+    });
+
+    // Draw nodes
+    Object.entries(nodes).forEach(([name, node]) => {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(node.label, node.x, node.y);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    drawNetwork();
+    // Initial prediction run
+    predictComorbidity();
+});
+</script>
+{% endblock %}

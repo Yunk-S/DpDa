@@ -5,9 +5,9 @@ import joblib
 import os
 import json
 import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-plt.rcParams['font.sans-serif'] = ['SimHei']  # For Chinese characters
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 import seaborn as sns
 import io
@@ -19,20 +19,10 @@ import time
 import logging
 import traceback
 from model_calibration import calibrate_probability
+from model_utilities import smooth_probability
+from multi_disease_model import robust_model_predict
 
-# 尝试导入概率平滑函数
-try:
-    from model_utilities import smooth_probability
-except ImportError:
-    # 如果导入失败，定义一个简单的替代函数
-    def smooth_probability(prob, method='clip', min_prob=0.01, max_prob=0.99):
-        """简单的概率平滑函数（备用版本）"""
-        if np.isscalar(prob):
-            return max(min_prob, min(max_prob, prob))
-        else:
-            return np.clip(prob, min_prob, max_prob)
-
-# 配置日志
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -44,224 +34,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # 用于session
+app.secret_key = 'your_secret_key_here'
 
-# 在请求处理前的通用处理
+# Common processing before request handling
 @app.before_request
 def before_request():
-    # 将当前日期时间传递给所有模板
+    # Pass current datetime to all templates
     g.now = datetime.now()
 
-# 添加更强大的预测函数，处理各种可能的错误
-def robust_model_predict(model, X, model_type='classification'):
-    """
-    封装模型预测，提供多种回退方案处理可能的错误
-    """
-    prediction = None
-    probabilities = None
-    error_msg = None
-    
-    # 尝试不同的预测方法
-    methods_tried = []
-    
-    # 方法1：直接使用predict
-    try:
-        methods_tried.append("standard_predict")
-        prediction = model.predict(X)[0]
-        
-        # 尝试获取概率
-        if hasattr(model, 'predict_proba'):
-            try:
-                probabilities = model.predict_proba(X)[0]
-            except:
-                probabilities = None
-    except Exception as e:
-        error_msg = f"标准预测方法失败: {str(e)}"
-        prediction = None
-    
-    # 如果标准预测失败，尝试其他方法
-    if prediction is None:
-        # 方法2：对于LightGBM模型，尝试设置categorical_feature=None
-        if hasattr(model, '_Booster') and error_msg and 'categorical_feature do not match' in str(error_msg):
-            try:
-                methods_tried.append("lightgbm_raw_score")
-                # 使用raw_score模式预测
-                raw_scores = model.predict(X, raw_score=True)
-                
-                # 对于二分类问题，转换为概率
-                if model_type == 'classification':
-                    from scipy.special import expit
-                    if isinstance(raw_scores, np.ndarray) and len(raw_scores.shape) == 1:
-                        proba = expit(raw_scores)[0]
-                        probabilities = [1-proba, proba]
-                        prediction = 1 if proba > 0.5 else 0
-                    else:
-                        proba = expit(raw_scores[0])
-                        probabilities = [1-proba, proba]
-                        prediction = 1 if proba > 0.5 else 0
-                else:
-                    # 回归问题直接使用原始分数
-                    prediction = raw_scores[0]
-                    probabilities = None
-            except Exception as e:
-                error_msg = f"{error_msg}; LightGBM raw_score方法失败: {str(e)}"
-        
-        # 方法3：使用决策函数（如果有）
-        if prediction is None and hasattr(model, 'decision_function'):
-            try:
-                methods_tried.append("decision_function")
-                decision = model.decision_function(X)
-                
-                # 转换为概率
-                from scipy.special import expit
-                if len(decision.shape) == 1:
-                    proba = expit(decision[0])
-                    probabilities = [1-proba, proba]
-                    prediction = 1 if proba > 0.5 else 0
-                else:
-                    proba = expit(decision[0])
-                    probabilities = [1-proba, proba]
-                    prediction = 1 if proba > 0.5 else 0
-            except Exception as e:
-                error_msg = f"{error_msg}; 决策函数方法失败: {str(e)}"
-        
-        # 方法4：对于LightGBM，尝试直接访问Booster并修改categorical_feature参数
-        if prediction is None and hasattr(model, '_Booster'):
-            try:
-                methods_tried.append("lightgbm_booster_direct")
-                import lightgbm as lgb
-                from copy import deepcopy
-                
-                # 创建一个新的预测器，不使用分类特征
-                try:
-                    # 尝试直接从模型获取模型文件路径
-                    if hasattr(model._Booster, 'model_file') and model._Booster.model_file:
-                        predictor = lgb.Booster(model_file=model._Booster.model_file)
-                    else:
-                        # 如果没有模型文件，尝试使用模型字符串
-                        model_str = model._Booster.model_str() if hasattr(model._Booster, 'model_str') else None
-                        if model_str:
-                            # 创建临时文件保存模型
-                            import tempfile
-                            with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as f:
-                                f.write(model_str.encode())
-                                temp_model_path = f.name
-                            predictor = lgb.Booster(model_file=temp_model_path)
-                            # 删除临时文件
-                            os.unlink(temp_model_path)
-                        else:
-                            # 如果无法获取模型，尝试方法5
-                            raise ValueError("无法获取LightGBM模型文件或模型字符串")
-                    
-                    # 使用预测器进行预测
-                    if isinstance(X, pd.DataFrame):
-                        raw_preds = predictor.predict(X.values)
-                    else:
-                        raw_preds = predictor.predict(X)
-                        
-                    if model_type == 'classification':
-                        # 二分类问题
-                        if isinstance(raw_preds, np.ndarray) and len(raw_preds.shape) == 1:
-                            prediction = 1 if raw_preds[0] > 0.5 else 0
-                            probabilities = [1-raw_preds[0], raw_preds[0]]
-                        else:
-                            prediction = 1 if raw_preds[0][1] > 0.5 else 0
-                            probabilities = raw_preds[0]
-                    else:
-                        # 回归问题
-                        prediction = raw_preds[0]
-                except Exception as e:
-                    # 如果尝试直接访问模型文件失败，尝试方法5
-                    raise ValueError(f"无法使用Booster进行预测: {str(e)}")
-            except Exception as e:
-                error_msg = f"{error_msg}; LightGBM Booster直接访问失败: {str(e)}"
-        
-        # 方法5：尝试使用模型参数创建新模型并预测
-        if prediction is None and hasattr(model, 'get_params'):
-            try:
-                methods_tried.append("recreate_model")
-                # 获取模型类型
-                model_class = model.__class__
-                
-                # 创建一个具有相同参数但没有拟合的模型
-                params = model.get_params()
-                
-                # 移除与拟合相关的参数
-                for param in ['n_estimators', 'n_jobs', 'random_state']:
-                    if param in params:
-                        params[param] = min(10, params.get(param, 10))  # 减少估计器数量加快速度
-                
-                # 创建简化模型
-                simple_model = model_class(**params)
-                
-                # 如果有训练数据，使用小样本进行训练
-                if model_type == 'classification':
-                    # 创建简单的二分类数据
-                    X_train = pd.DataFrame([[0, 0], [0, 1], [1, 0], [1, 1]], columns=['A', 'B'])
-                    y_train = np.array([0, 1, 1, 0])
-                    simple_model.fit(X_train, y_train)
-                    
-                    # 预测
-                    prediction = simple_model.predict(X)[0]
-                    if hasattr(simple_model, 'predict_proba'):
-                        probabilities = simple_model.predict_proba(X)[0]
-                else:
-                    # 创建简单的回归数据
-                    X_train = pd.DataFrame([[0], [1], [2], [3]], columns=['A'])
-                    y_train = np.array([0, 1, 2, 3])
-                    simple_model.fit(X_train, y_train)
-                    
-                    # 预测
-                    prediction = simple_model.predict(X)[0]
-            except Exception as e:
-                error_msg = f"{error_msg}; 重建模型方法失败: {str(e)}"
-    
-    # 如果所有方法都失败，返回警告
-    if prediction is None:
-        logger.warning(f"所有预测方法都失败: {error_msg}. 尝试的方法: {', '.join(methods_tried)}")
-        # 如果是分类问题，随机生成预测结果
-        if model_type == 'classification':
-            import random
-            prediction = random.randint(0, 1)
-            probabilities = [1-prediction, prediction]
-        else:
-            # 回归问题，使用平均值或中位数
-            prediction = 2.0  # 对于肝硬化，使用中间值
-    
-    # 对概率值进行平滑处理，避免极端值
-    if probabilities is not None and model_type == 'classification':
-        # 确定风险级别
-        if probabilities[1] < 0.2:
-            risk_level = 'low'
-            min_prob, max_prob = 0.02, 0.90
-        elif probabilities[1] < 0.5:
-            risk_level = 'medium'
-            min_prob, max_prob = 0.05, 0.95
-        else:
-            risk_level = 'high'
-            min_prob, max_prob = 0.10, 0.98
-            
-        # 对每个概率值应用平滑
-        smoothed_probs = []
-        for i, prob in enumerate(probabilities):
-            smoothed_prob = smooth_probability(prob, method='sigmoid_quantile', 
-                                              min_prob=min_prob, max_prob=max_prob)
-            smoothed_probs.append(smoothed_prob)
-            
-        # 归一化确保总和为1
-        total = sum(smoothed_probs)
-        if total > 0:
-            probabilities = [p/total for p in smoothed_probs]
-    
-    return prediction, probabilities, error_msg, methods_tried
-
-# 加载模型和数据
+# Load models and data
 def load_models():
     models = {}
     model_dir = 'output/models'
     model_loaded = False
-    model_types = {}  # 新增：记录每个模型的类型（lightgbm或其他）
-    
+    model_types = {}
+
     if os.path.exists(model_dir):
         for filename in os.listdir(model_dir):
             if filename.endswith('.pkl'):
@@ -270,30 +57,30 @@ def load_models():
                 try:
                     model = joblib.load(model_path)
                     models[model_name] = model
-                    # 检查模型类型，记录是否为LightGBM模型
+                    # Check model type, record whether it is a LightGBM model
                     if 'lightgbm' in str(type(model)).lower():
                         model_types[model_name] = 'lightgbm'
                     else:
                         model_types[model_name] = 'other'
-                    logger.info(f"加载模型: {model_name}")
+                    logger.info(f"Loaded model: {model_name}")
                     model_loaded = True
                 except Exception as e:
-                    logger.error(f"加载模型 {model_name} 失败: {e}")
-                    # 创建备用模型
+                    logger.error(f"Failed to load model {model_name}: {e}")
+                    # Create fallback model
                     if 'stroke' in model_name or 'heart' in model_name:
-                        logger.info(f"为 {model_name} 创建备用分类模型")
+                        logger.info(f"Creating fallback classification model for {model_name}")
                         from sklearn.ensemble import RandomForestClassifier
                         models[model_name] = RandomForestClassifier(random_state=42)
                         model_types[model_name] = 'other'
                     elif 'cirrhosis' in model_name:
-                        logger.info(f"为 {model_name} 创建备用回归模型")
+                        logger.info(f"Creating fallback regression model for {model_name}")
                         from sklearn.ensemble import RandomForestRegressor
                         models[model_name] = RandomForestRegressor(random_state=42)
-    
+
     if not model_loaded:
-        logger.warning("没有成功加载任何模型，所有预测将使用模拟数据")
-    
-    return models, model_loaded, model_types  # 返回模型类型信息
+        logger.warning("No models loaded successfully, all predictions will use simulated data")
+
+    return models, model_loaded, model_types
 
 def load_processed_data():
     data = {}
@@ -305,62 +92,62 @@ def load_processed_data():
                 data_name = filename.replace('_processed.csv', '')
                 try:
                     data[data_name] = pd.read_csv(data_path)
-                    logger.info(f"加载数据: {data_name}")
+                    logger.info(f"Loaded data: {data_name}")
                 except Exception as e:
-                    logger.error(f"加载数据 {data_name} 失败: {e}")
+                    logger.error(f"Failed to load data {data_name}: {e}")
     return data
 
-# 全局变量
+# Global variables
 try:
-    MODELS, MODELS_LOADED, MODEL_TYPES = load_models()  # 修改为接收模型类型
+    MODELS, MODELS_LOADED, MODEL_TYPES = load_models()
     DATA = load_processed_data()
 except Exception as e:
-    logger.critical(f"初始化失败: {e}")
+    logger.critical(f"Initialization failed: {e}")
     MODELS = {}
     MODELS_LOADED = False
-    MODEL_TYPES = {}  # 添加空的模型类型字典
+    MODEL_TYPES = {}
     DATA = {}
 
-# 主页路由
+# Home page route
 @app.route('/')
 def home():
-    """主页"""
+    """Home page"""
     now = datetime.now()
-    
+
     try:
-        # 确保数据和模型已加载
+        # Ensure data and models are loaded
         if 'DATA' not in globals() or len(DATA) == 0:
             load_processed_data()
-            
+
         if 'MODELS' not in globals() or len(MODELS) == 0:
             load_models()
-            
-        # 生成主页统计数据
+
+        # Generate home page statistics
         stats = {}
         for dataset_name, df in DATA.items():
             stats[dataset_name] = {
-                "样本数": len(df),
-                "特征数": len(df.columns) - 3 if 'ID' in df.columns and 'N_Days' in df.columns else len(df.columns) - 1
+                "Sample Count": len(df),
+                "Feature Count": len(df.columns) - 3 if 'ID' in df.columns and 'N_Days' in df.columns else len(df.columns) - 1
             }
-            
-            # 获取目标变量名称和正例比例
+
+            # Get target variable name and positive ratio
             if dataset_name == 'heart':
                 target = 'HeartDisease'
-                stats[dataset_name]["正例比例"] = f"{df[target].mean():.1%}"
+                stats[dataset_name]["Positive Ratio"] = f"{df[target].mean():.1%}"
             elif dataset_name == 'stroke':
                 target = 'stroke'
-                stats[dataset_name]["正例比例"] = f"{df[target].mean():.1%}"
+                stats[dataset_name]["Positive Ratio"] = f"{df[target].mean():.1%}"
             elif dataset_name == 'cirrhosis':
                 target = 'Stage'
-                # 对于回归任务，显示目标变量的平均值
-                stats[dataset_name]["平均值"] = f"{df[target].mean():.2f}"
-                
-        # 获取最佳模型信息
+                # For regression task, show mean of target variable
+                stats[dataset_name]["Mean Value"] = f"{df[target].mean():.2f}"
+
+        # Get best model info
         model_info = {}
         for model_name, model in MODELS.items():
             dataset = model_name.split('_')[0]
             metrics_path = f"output/models/{dataset}_best_baseline_model_metrics.json"
-            
+
             if os.path.exists(metrics_path):
                 try:
                     with open(metrics_path, 'r') as f:
@@ -368,91 +155,91 @@ def home():
                     model_info[dataset] = metrics
                 except:
                     model_info[dataset] = {"accuracy": "N/A"}
-        
-        # 使用标准模板
+
+        # Use standard template
         template = 'index.html'
         return render_template(template, stats=stats, model_info=model_info, now=now)
     except Exception as e:
-        logger.error(f"加载主页时出错: {e}")
-        return render_error(500, "主页加载失败", "无法加载系统主页，请稍后重试。")
+        logger.error(f"Error loading home page: {e}")
+        return render_error(500, "Home Page Load Failed", "Unable to load system home page, please try again later.")
 
-# 静态图像路由
+# Static image route
 @app.route('/static/images/<path:filename>')
 def serve_image(filename):
-    """直接提供图像文件，避免base64编码"""
+    """Serve image files directly, avoid base64 encoding"""
     try:
         return send_from_directory('static/images', filename)
     except Exception as e:
-        logger.error(f"图像加载失败 {filename}: {e}")
+        logger.error(f"Image load failed {filename}: {e}")
         return '', 404
 
-# 数据分析页面路由
+# Data analysis page route
 @app.route('/data-analysis')
 def data_analysis():
-    """数据分析页面"""
+    """Data analysis page"""
     now = datetime.now()
-    
+
     try:
-        # 确保数据已加载
+        # Ensure data is loaded
         if 'DATA' not in globals() or len(DATA) == 0:
             load_processed_data()
-            
-        # 获取图表列表
+
+        # Get chart list
         charts = {}
-        
-        # 定义图表组
+
+        # Define chart groups
         chart_groups = {
             'heart': {
-                '数据分布': [
+                'Data Distribution': [
                     'heart_target_distribution.png',
                     'heart_numeric_distributions.png',
                     'heart_correlation_matrix.png'
                 ],
-                '特征分析': [
-                    'heart_RestingBP_outliers.png', 
+                'Feature Analysis': [
+                    'heart_RestingBP_outliers.png',
                     'heart_Cholesterol_outliers.png',
                     'heart_MaxHR_outliers.png',
                     'heart_Oldpeak_outliers.png',
                     'heart_FastingBS_outliers.png'
                 ],
-                '数据可视化': [
+                'Data Visualization': [
                     'heart_pair_plot.png',
                     'gender_disease_comparison.png',
                     'disease_rate_by_age.png'
                 ]
             },
             'stroke': {
-                '数据分布': [
+                'Data Distribution': [
                     'stroke_target_distribution.png',
                     'stroke_numeric_distributions.png',
                     'stroke_correlation_matrix.png'
                 ],
-                '缺失值分析': [
+                'Missing Value Analysis': [
                     'stroke_missing_percent.png',
                     'stroke_missing_matrix.png'
                 ],
-                '特征分析': [
+                'Feature Analysis': [
                     'stroke_avg_glucose_level_outliers.png',
                     'stroke_bmi_outliers.png',
                     'stroke_hypertension_outliers.png',
                     'stroke_heart_disease_outliers.png'
                 ],
-                '数据可视化': [
+                'Data Visualization': [
                     'stroke_pair_plot.png',
                     'disease_age_comparison.png'
                 ]
             },
             'cirrhosis': {
-                '数据分布': [
+                'Data Distribution': [
                     'cirrhosis_target_distribution.png',
                     'cirrhosis_numeric_distributions.png',
                     'cirrhosis_correlation_matrix.png'
                 ],
-                '缺失值分析': [
+                'Missing Value Analysis': [
                     'cirrhosis_missing_percent.png',
                     'cirrhosis_missing_matrix.png'
                 ],
-                '特征分析': [
+                'Feature Analysis': [
                     'cirrhosis_Bilirubin_outliers.png',
                     'cirrhosis_Cholesterol_outliers.png',
                     'cirrhosis_Albumin_outliers.png',
@@ -463,13 +250,13 @@ def data_analysis():
                     'cirrhosis_Platelets_outliers.png',
                     'cirrhosis_Prothrombin_outliers.png'
                 ],
-                '数据可视化': [
+                'Data Visualization': [
                     'cirrhosis_pair_plot.png'
                 ]
             }
         }
-        
-        # 检查文件是否存在，构建图表信息
+
+        # Check if files exist, build chart info
         for dataset, groups in chart_groups.items():
             charts[dataset] = {}
             for group_name, chart_files in groups.items():
@@ -480,62 +267,62 @@ def data_analysis():
                             'file': chart_file,
                             'title': chart_file.replace('_', ' ').replace('.png', '').title()
                         })
-        
-        # 使用标准模板
+
+        # Use standard template
         template = 'data_analysis.html'
         return render_template(template, charts=charts, now=now)
     except Exception as e:
-        logger.error(f"加载数据分析页面时出错: {e}")
-        return render_error(500, "数据分析页面加载失败", "无法加载数据分析页面，请稍后重试。")
+        logger.error(f"Error loading data analysis page: {e}")
+        return render_error(500, "Data Analysis Page Load Failed", "Unable to load data analysis page, please try again later.")
 
-# 图表文件路由
+# Chart file route
 @app.route('/figures/<path:filename>')
 def serve_output_figure(filename):
-    """提供output/figures目录中的图表文件"""
+    """Serve chart files from output/figures directory"""
     try:
-        # 如果filename不是.png或.html结尾，自动添加.png后缀
+        # If filename does not end with .png or .html, automatically add .png suffix
         if not (filename.endswith('.png') or filename.endswith('.html')):
             filename = f"{filename}.png"
-            
-        # 检查文件是否存在
+
+        # Check if file exists
         file_path = os.path.join('output/figures', filename)
         if os.path.exists(file_path):
             return send_from_directory('output/figures', filename)
         else:
-            # 如果图片不存在，返回默认的图片不存在提示
+            # If image does not exist, return default image not found message
             return send_from_directory('static/images', 'image_not_found.png')
     except Exception as e:
-        logger.error(f"图表加载失败 {filename}: {e}")
+        logger.error(f"Chart load failed {filename}: {e}")
         return send_from_directory('static/images', 'image_not_found.png')
 
-# 修改这个函数，使其重用serve_output_figure函数
+# Modify this function to reuse serve_output_figure function
 @app.route('/static/figures/<path:filename>')
 def serve_static_figure(filename):
-    """提供静态图表文件"""
+    """Serve static chart files"""
     return serve_output_figure(filename)
 
-# 模型性能页面路由
+# Model performance page route
 @app.route('/model-performance')
 def model_performance():
-    """模型性能页面"""
+    """Model performance page"""
     now = datetime.now()
-    
+
     try:
-        # 确保模型已加载
+        # Ensure models are loaded
         if 'MODELS' not in globals() or len(MODELS) == 0:
             load_models()
-            
-        # 构建模型性能信息
+
+        # Build model performance info
         model_info = {}
-        
-        # 遍历所有数据集
+
+        # Iterate through all datasets
         for dataset in ['heart', 'stroke', 'cirrhosis']:
             model_info[dataset] = {
                 'performance_metrics': {},
                 'charts': []
             }
-            
-            # 加载模型指标
+
+            # Load model metrics
             metrics_path = f"output/models/{dataset}_best_baseline_model_metrics.json"
             if os.path.exists(metrics_path):
                 try:
@@ -544,15 +331,15 @@ def model_performance():
                     model_info[dataset]['performance_metrics'] = metrics
                 except:
                     model_info[dataset]['performance_metrics'] = {"accuracy": "N/A"}
-            
-            # 定义要显示的图表
+
+            # Define charts to display
             chart_files = [
                 f'{dataset}_feature_importance.png',
                 f'{dataset}_shap_importance.png',
                 f'{dataset}_shap_summary.png',
             ]
-            
-            # 如果是分类任务，添加ROC曲线和混淆矩阵
+
+            # For classification tasks, add ROC curve and confusion matrix
             if dataset in ['heart', 'stroke']:
                 chart_files.extend([
                     f'{dataset}_roc_curve.png',
@@ -561,87 +348,87 @@ def model_performance():
                     f'{dataset}_calibration_curve.png',
                     f'{dataset}_calibration_performance.png'
                 ])
-            else:  # 回归任务
+            else:  # Regression task
                 chart_files.extend([
                     f'{dataset}_pred_vs_actual.png',
                     f'{dataset}_residual_plot.png',
                     f'{dataset}_calibration_curve.png',
                     f'{dataset}_calibration_performance.png'
                 ])
-            
-            # 检查文件是否存在
+
+            # Check if files exist
             for chart_file in chart_files:
                 if os.path.exists(f'output/figures/{chart_file}'):
                     model_info[dataset]['charts'].append({
                         'file': chart_file,
                         'title': chart_file.replace('_', ' ').replace('.png', '').title()
                     })
-        
-        # 使用标准模板
+
+        # Use standard template
         template = 'model_performance.html'
         return render_template(template, model_info=model_info, now=now)
     except Exception as e:
-        logger.error(f"加载模型性能页面时出错: {e}")
-        return render_error(500, "模型性能页面加载失败", "无法加载模型性能页面，请稍后重试。")
+        logger.error(f"Error loading model performance page: {e}")
+        return render_error(500, "Model Performance Page Load Failed", "Unable to load model performance page, please try again later.")
 
-# 单一疾病预测页面路由
+# Single disease prediction page route
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
-    """单一疾病预测页面"""
+    """Single disease prediction page"""
     now = datetime.now()
-    
-    # 使用标准模板
+
+    # Use standard template
     template = 'predict.html'
-    
+
     if request.method == 'GET':
-        # 显示预测表单
+        # Display prediction form
         try:
             disease = request.args.get('disease', 'stroke')
             return render_template(template, disease=disease, now=now)
         except Exception as e:
-            logger.error(f"预测页面加载失败: {e}")
-            return render_error(500, "预测页面加载失败", "无法加载预测页面，请稍后重试。")
+            logger.error(f"Prediction page load failed: {e}")
+            return render_error(500, "Prediction Page Load Failed", "Unable to load prediction page, please try again later.")
     else:
-        # 处理预测请求
+        # Handle prediction request
         try:
             data = {}
             disease_type = request.form.get('disease_type', 'stroke')
-            
-            # 从表单中获取数据
+
+            # Get data from form
             for key in request.form:
                 if key != 'disease_type':
                     try:
-                        # 尝试转换为数值类型
+                        # Try to convert to numeric type
                         val = request.form[key]
                         data[key] = float(val) if val.replace('.', '', 1).isdigit() else val
                     except ValueError:
                         data[key] = request.form[key]
-            
-            logger.info(f"收到预测请求: disease_type={disease_type}, data={data}")
-            
-            # 获取相应的模型
+
+            logger.info(f"Received prediction request: disease_type={disease_type}, data={data}")
+
+            # Get corresponding model
             if disease_type == 'stroke':
                 model = MODELS.get('stroke_best_baseline_model')
                 if not model or not MODELS_LOADED:
-                    logger.warning("中风预测模型未加载或使用备用模型，生成模拟数据")
-                    # 生成模拟数据
+                    logger.warning("Stroke prediction model not loaded or using fallback model, generating simulated data")
+                    # Generate simulated data
                     import random
                     prediction = 1 if random.random() < 0.15 else 0
                     prob_sick = random.uniform(0.1, 0.9) if prediction == 1 else random.uniform(0.01, 0.3)
-                    
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': prediction,
                         'probability': {"0": 1.0 - prob_sick, "1": prob_sick},
-                        'note': '模型未加载，使用模拟数据'
+                        'note': 'Model not loaded, using simulated data'
                     }
                     return jsonify(result)
-                
-                # 处理数据
+
+                # Process data
                 gender_map = {'Male': 0, 'Female': 1, 'Other': 2}
-                smoking_map = {'never smoked': 0, 'formerly smoked': 1, 'smokes': 2, 'Unknown': 3, 
+                smoking_map = {'never smoked': 0, 'formerly smoked': 1, 'smokes': 2, 'Unknown': 3,
                                'never_smoked': 0, 'formerly_smoked': 1}
-                
+
                 X = pd.DataFrame({
                     'gender': [gender_map.get(str(data.get('gender', '')), 0)],
                     'age': [data.get('age', 0)],
@@ -651,41 +438,41 @@ def predict():
                     'bmi': [data.get('bmi', 0)],
                     'smoking_status': [smoking_map.get(str(data.get('smoking_status', '')), 3)]
                 })
-                
+
                 try:
-                    # 使用健壮的预测函数代替直接调用模型预测
+                    # Use robust prediction function instead of direct model prediction
                     prediction, raw_probabilities, error_msg, methods_tried = robust_model_predict(
                         model, X, model_type='classification'
                     )
-                    
+
                     if error_msg:
-                        logger.warning(f"预测时遇到问题，已尝试回退方法: {methods_tried}. 错误: {error_msg}")
-                    
-                    # 校准概率
-                    # 判断风险级别
+                        logger.warning(f"Issues encountered during prediction, fallback methods tried: {methods_tried}. Error: {error_msg}")
+
+                    # Calibrate probability
+                    # Determine risk level
                     raw_prob_sick = raw_probabilities[1]
-                    
-                    # 更精细的风险级别判断
+
+                    # More refined risk level determination
                     if raw_prob_sick > 0.4:
                         risk_level = 'high'
                     elif raw_prob_sick > 0.2:
                         risk_level = 'medium'
                     else:
                         risk_level = 'low'
-                    
-                    # 校准概率 - 对于中风预测，使用更激进的校准方法
+
+                    # Calibrate probability - for stroke prediction, use more aggressive calibration
                     calibrated_prob_sick = calibrate_probability(raw_prob_sick, method='spline', risk_level=risk_level)
-                    
-                    # 如果原始概率在中等范围但接近高风险，额外提升概率
+
+                    # If raw probability is in medium range but close to high risk, further increase probability
                     if 0.3 <= raw_prob_sick < 0.4:
                         calibrated_prob_sick = min(0.95, calibrated_prob_sick * 1.2)
-                    
+
                     calibrated_probabilities = [1.0 - calibrated_prob_sick, calibrated_prob_sick]
-                    
-                    # 更新预测结果
+
+                    # Update prediction result
                     if calibrated_prob_sick > 0.5 and prediction == 0:
-                        prediction = 1  # 如果校准后概率超过阈值，更新预测结果
-                
+                        prediction = 1
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': int(prediction),
@@ -693,43 +480,43 @@ def predict():
                         'raw_probability': {str(i): float(prob) for i, prob in enumerate(raw_probabilities)},
                         'calibrated': True
                     }
-                    
-                    # 如果使用了回退方法，添加备注
+
+                    # If fallback methods were used, add note
                     if len(methods_tried) > 1:
-                        result['methods_note'] = f"使用了{', '.join(methods_tried)}方法进行预测"
-                    
+                        result['methods_note'] = f"Used {', '.join(methods_tried)} methods for prediction"
+
                 except Exception as e:
-                    logger.error(f"中风预测计算失败: {e}")
-                    # 生成模拟数据
+                    logger.error(f"Stroke prediction calculation failed: {e}")
+                    # Generate simulated data
                     import random
                     prediction = 1 if random.random() < 0.15 else 0
                     prob_sick = random.uniform(0.1, 0.9) if prediction == 1 else random.uniform(0.01, 0.3)
-                    
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': prediction,
                         'probability': {"0": 1.0 - prob_sick, "1": prob_sick},
-                        'note': '预测计算失败，使用模拟数据'
+                        'note': 'Prediction calculation failed, using simulated data'
                 }
-                
+
             elif disease_type == 'heart':
                 model = MODELS.get('heart_best_baseline_model')
                 if not model or not MODELS_LOADED:
-                    logger.warning("心脏病预测模型未加载或使用备用模型，生成模拟数据")
-                    # 生成模拟数据
+                    logger.warning("Heart disease prediction model not loaded or using fallback model, generating simulated data")
+                    # Generate simulated data
                     import random
                     prediction = 1 if random.random() < 0.2 else 0
                     prob_sick = random.uniform(0.2, 0.9) if prediction == 1 else random.uniform(0.01, 0.4)
-                    
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': prediction,
                         'probability': {"0": 1.0 - prob_sick, "1": prob_sick},
-                        'note': '模型未加载，使用模拟数据'
+                        'note': 'Model not loaded, using simulated data'
                     }
                     return jsonify(result)
-                
-                # 处理数据
+
+                # Process data
                 X = pd.DataFrame({
                     'Age': [data.get('age', 0)],
                     'Sex': [1 if str(data.get('gender', '')) == 'Male' else 0],
@@ -743,41 +530,41 @@ def predict():
                     'Oldpeak': [data.get('oldpeak', 0)],
                     'ST_Slope': [str(data.get('st_slope', ''))]
                 })
-                
+
                 try:
-                    # 使用健壮的预测函数
+                    # Use robust prediction function
                     prediction, raw_probabilities, error_msg, methods_tried = robust_model_predict(
                         model, X, model_type='classification'
                     )
-                    
+
                     if error_msg:
-                        logger.warning(f"预测时遇到问题，已尝试回退方法: {methods_tried}. 错误: {error_msg}")
-                    
-                    # 校准概率
-                    # 判断风险级别
+                        logger.warning(f"Issues encountered during prediction, fallback methods tried: {methods_tried}. Error: {error_msg}")
+
+                    # Calibrate probability
+                    # Determine risk level
                     raw_prob_sick = raw_probabilities[1]
-                    
-                    # 更精细的风险级别判断
+
+                    # More refined risk level determination
                     if raw_prob_sick > 0.4:
                         risk_level = 'high'
                     elif raw_prob_sick > 0.2:
                         risk_level = 'medium'
                     else:
                         risk_level = 'low'
-                    
-                    # 校准概率 - 对于心脏病预测，使用更激进的校准方法
+
+                    # Calibrate probability - for heart disease prediction, use more aggressive calibration
                     calibrated_prob_sick = calibrate_probability(raw_prob_sick, method='spline', risk_level=risk_level)
-                    
-                    # 如果原始概率在中等范围但接近高风险，额外提升概率
+
+                    # If raw probability is in medium range but close to high risk, further increase probability
                     if 0.3 <= raw_prob_sick < 0.4:
                         calibrated_prob_sick = min(0.95, calibrated_prob_sick * 1.2)
-                    
+
                     calibrated_probabilities = [1.0 - calibrated_prob_sick, calibrated_prob_sick]
-                    
-                    # 更新预测结果
+
+                    # Update prediction result
                     if calibrated_prob_sick > 0.5 and prediction == 0:
-                        prediction = 1  # 如果校准后概率超过阈值，更新预测结果
-                
+                        prediction = 1
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': int(prediction),
@@ -785,42 +572,42 @@ def predict():
                         'raw_probability': {str(i): float(prob) for i, prob in enumerate(raw_probabilities)},
                         'calibrated': True
                     }
-                    
-                    # 如果使用了回退方法，添加备注
+
+                    # If fallback methods were used, add note
                     if len(methods_tried) > 1:
-                        result['methods_note'] = f"使用了{', '.join(methods_tried)}方法进行预测"
-                        
+                        result['methods_note'] = f"Used {', '.join(methods_tried)} methods for prediction"
+
                 except Exception as e:
-                    logger.error(f"心脏病预测计算失败: {e}")
-                    # 生成模拟数据
+                    logger.error(f"Heart disease prediction calculation failed: {e}")
+                    # Generate simulated data
                     import random
                     prediction = 1 if random.random() < 0.2 else 0
                     prob_sick = random.uniform(0.2, 0.9) if prediction == 1 else random.uniform(0.01, 0.4)
-                    
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': prediction,
                         'probability': {"0": 1.0 - prob_sick, "1": prob_sick},
-                        'note': '预测计算失败，使用模拟数据'
+                        'note': 'Prediction calculation failed, using simulated data'
                 }
-                
+
             elif disease_type == 'cirrhosis':
                 model = MODELS.get('cirrhosis_best_baseline_model')
                 if not model or not MODELS_LOADED:
-                    logger.warning("肝硬化预测模型未加载或使用备用模型，生成模拟数据")
-                    # 生成模拟数据
+                    logger.warning("Cirrhosis prediction model not loaded or using fallback model, generating simulated data")
+                    # Generate simulated data
                     import random
                     prediction = random.randint(1, 4)
-                    
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': float(prediction),
                         'probability': {str(i): (1.0 if i == prediction else 0.0) for i in range(1, 5)},
-                        'note': '模型未加载，使用模拟数据'
+                        'note': 'Model not loaded, using simulated data'
                     }
                     return jsonify(result)
-                
-                # 处理数据
+
+                # Process data
                 X = pd.DataFrame({
                     'Age': [data.get('age', 0)],
                     'Sex': [1 if str(data.get('gender', '')) == 'Male' else 0],
@@ -838,26 +625,26 @@ def predict():
                     'Platelets': [data.get('platelets', 0)],
                     'Prothrombin': [data.get('prothrombin', 0)]
                 })
-                
+
                 try:
-                    # 使用健壮的预测函数 - 肝硬化是回归问题
+                    # Use robust prediction function - cirrhosis is a regression problem
                     raw_prediction, _, error_msg, methods_tried = robust_model_predict(
                         model, X, model_type='regression'
                     )
-                    
+
                     if error_msg:
-                        logger.warning(f"预测时遇到问题，已尝试回退方法: {methods_tried}. 错误: {error_msg}")
-                    
-                    # 对于肝硬化，我们将分期值映射到概率
+                        logger.warning(f"Issues encountered during prediction, fallback methods tried: {methods_tried}. Error: {error_msg}")
+
+                    # For cirrhosis, map stage values to probability
                     raw_prob = min(raw_prediction / 4, 1.0)
-                    
-                    # 校准概率
+
+                    # Calibrate probability
                     risk_level = 'high' if raw_prob > 0.3 else ('medium' if raw_prob > 0.1 else 'low')
                     calibrated_prob = calibrate_probability(raw_prob, method='power', risk_level=risk_level)
-                    
-                    # 将校准后的概率映射回分期值
+
+                    # Map calibrated probability back to stage value
                     calibrated_prediction = calibrated_prob * 4
-                    
+
                     result = {
                         'disease_type': disease_type,
                         'prediction': float(calibrated_prediction),
@@ -865,116 +652,116 @@ def predict():
                         'probability': {str(i): (1.0 if round(calibrated_prediction) == i else 0.0) for i in range(1, 5)},
                         'calibrated': True
                     }
-                    
-                    # 如果使用了回退方法，添加备注
+
+                    # If fallback methods were used, add note
                     if len(methods_tried) > 1:
-                        result['methods_note'] = f"使用了{', '.join(methods_tried)}方法进行预测"
-                        
+                        result['methods_note'] = f"Used {', '.join(methods_tried)} methods for prediction"
+
                 except Exception as e:
-                    logger.error(f"肝硬化预测计算失败: {e}")
-                    # 生成模拟数据
+                    logger.error(f"Cirrhosis prediction calculation failed: {e}")
+                    # Generate simulated data
                     import random
                     prediction = random.randint(1, 4)
-                
+
                 result = {
                     'disease_type': disease_type,
                     'prediction': float(prediction),
                         'probability': {str(i): (1.0 if i == prediction else 0.0) for i in range(1, 5)},
-                        'note': '预测计算失败，使用模拟数据'
+                        'note': 'Prediction calculation failed, using simulated data'
                 }
             else:
-                logger.error(f"未知的疾病类型: {disease_type}")
-                return jsonify({'error': '不支持的疾病类型'})
-            
-            logger.info(f"预测结果: {result}")
+                logger.error(f"Unknown disease type: {disease_type}")
+                return jsonify({'error': 'Unsupported disease type'})
+
+            logger.info(f"Prediction result: {result}")
             return jsonify(result)
-            
+
         except Exception as e:
-            error_msg = f"预测失败: {e}\n{traceback.format_exc()}"
+            error_msg = f"Prediction failed: {e}\n{traceback.format_exc()}"
             logger.error(error_msg)
             return jsonify({'error': str(e)})
 
-# 多疾病联合预测路由
+# Multi-disease joint prediction route
 @app.route('/multi-predict', methods=['GET', 'POST'])
 def multi_predict():
-    """多疾病联合预测页面"""
+    """Multi-disease joint prediction page"""
     now = datetime.now()
-    
-    # 使用标准模板
+
+    # Use standard template
     template = 'multi_predict.html'
-    
+
     if request.method == 'GET':
-        # 显示预测表单页面
+        # Display prediction form page
         return render_template(template, now=now)
-    
-    # 处理POST请求 - API调用
+
+    # Handle POST request - API call
     try:
         data = {}
-        
-        # 从表单中获取数据
+
+        # Get data from form
         for key in request.form:
             if key != 'prediction_type':
                 try:
-                    # 尝试转换为数值类型
+                    # Try to convert to numeric type
                     val = request.form[key]
                     data[key] = float(val) if val.replace('.', '', 1).isdigit() else val
                 except ValueError:
                     data[key] = request.form[key]
-        
-        logger.info(f"收到多疾病预测请求: data={data}")
-        
-        # 使用多疾病预测模型进行预测
+
+        logger.info(f"Received multi-disease prediction request: data={data}")
+
+        # Use multi-disease prediction model for prediction
         try:
             from multi_disease_model import MultiDiseasePredictor
             predictor = MultiDiseasePredictor()
-            
-            # 获取预测结果（考虑疾病间的相关性）
+
+            # Get prediction results (considering correlation between diseases)
             probabilities = predictor.predict_with_correlation(data)
-            
-            # 确保所有值都是JSON可序列化的
+
+            # Ensure all values are JSON serializable
             sanitized_probabilities = {}
             for key, value in probabilities.items():
-                # 将numpy类型转换为Python原生类型
-                if hasattr(value, 'item'):  # 检查是否为numpy类型
+                # Convert numpy types to Python native types
+                if hasattr(value, 'item'):  # Check if numpy type
                     sanitized_probabilities[key] = float(value.item())
                 elif value is None or np.isnan(value):
-                    sanitized_probabilities[key] = 0.0  # 将None和NaN值替换为0
+                    sanitized_probabilities[key] = 0.0  # Replace None and NaN values with 0
                 else:
                     sanitized_probabilities[key] = float(value)
-            
+
             result = {
                 'status': 'success',
                 'probabilities': sanitized_probabilities,
-                'message': '多疾病风险预测完成'
+                'message': 'Multi-disease risk prediction completed'
             }
-            
+
         except Exception as e:
-            error_msg = f"多疾病模型加载或预测失败: {e}\n{traceback.format_exc()}"
+            error_msg = f"Multi-disease model loading or prediction failed: {e}\n{traceback.format_exc()}"
             logger.error(error_msg)
-            
-            # 如果模型失败，使用模拟数据
+
+            # If model fails, use simulated data
             import random
-            
-            # 生成随机但相对合理的单一疾病概率
+
+            # Generate random but relatively reasonable single disease probabilities
             stroke_prob = random.uniform(0.01, 0.2)
             heart_prob = random.uniform(0.02, 0.25)
             cirrhosis_prob = random.uniform(0.01, 0.15)
-            
-            # 计算疾病组合的概率
-            stroke_heart = stroke_prob * heart_prob * 1.2  # 考虑正相关性
+
+            # Calculate disease combination probabilities
+            stroke_heart = stroke_prob * heart_prob * 1.2  # Consider positive correlation
             stroke_cirrhosis = stroke_prob * cirrhosis_prob * 1.1
             heart_cirrhosis = heart_prob * cirrhosis_prob * 1.15
             all_three = stroke_heart * cirrhosis_prob * 0.9
-            
-            # 计算单独患某种疾病的概率
+
+            # Calculate probability of having a single disease
             stroke_only = stroke_prob - stroke_heart - stroke_cirrhosis + all_three
             heart_only = heart_prob - stroke_heart - heart_cirrhosis + all_three
             cirrhosis_only = cirrhosis_prob - stroke_cirrhosis - heart_cirrhosis + all_three
-            
-            # 计算健康概率
+
+            # Calculate healthy probability
             none_prob = 1 - stroke_only - heart_only - cirrhosis_only - stroke_heart - stroke_cirrhosis - heart_cirrhosis - all_three
-            
-            # 确保概率非负
+
+            # Ensure probabilities are non-negative
             probabilities = {
                 'stroke': stroke_prob,
                 'heart': heart_prob,
@@ -988,50 +775,50 @@ def multi_predict():
                 'all_three': all_three,
                 'none': max(0, none_prob)
             }
-            
+
             result = {
                 'status': 'success',
                 'probabilities': probabilities,
-                'message': '使用备用模型进行预测',
-                'note': '实际模型加载失败，使用模拟数据'
+                'message': 'Using fallback model for prediction',
+                'note': 'Actual model loading failed, using simulated data'
             }
-        
-        logger.info(f"多疾病预测结果: {result}")
+
+        logger.info(f"Multi-disease prediction result: {result}")
         return jsonify(result)
-        
+
     except Exception as e:
-        error_msg = f"多疾病预测失败: {e}\n{traceback.format_exc()}"
+        error_msg = f"Multi-disease prediction failed: {e}\n{traceback.format_exc()}"
         logger.error(error_msg)
         return jsonify({'error': str(e)})
 
-# 多疾病关联分析路由
+# Multi-disease correlation analysis route
 @app.route('/multi-disease')
 def multi_disease():
-    """多疾病关联分析页面"""
+    """Multi-disease correlation analysis page"""
     now = datetime.now()
-    
+
     try:
-        # 确保数据已加载
+        # Ensure data is loaded
         if 'DATA' not in globals() or len(DATA) == 0:
             load_processed_data()
-            
-        # 使用标准模板
+
+        # Use standard template
         template = 'multi_disease.html'
         return render_template(template, now=now)
     except Exception as e:
-        logger.error(f"加载多疾病关联分析页面时出错: {e}")
-        return render_error(500, "多疾病关联分析页面加载失败", "无法加载多疾病关联分析数据，请稍后重试。")
+        logger.error(f"Error loading multi-disease correlation analysis page: {e}")
+        return render_error(500, "Multi-Disease Correlation Analysis Page Load Failed", "Unable to load multi-disease correlation analysis data, please try again later.")
 
-# 统一错误处理
+# Unified error handling
 def render_error(code, title, message):
-    """渲染错误页面"""
+    """Render error page"""
     now = datetime.now()
     error_map = {
-        404: "页面未找到",
-        500: "服务器内部错误"
+        404: "Page Not Found",
+        500: "Internal Server Error"
     }
-    error_title = title or error_map.get(code, "未知错误")
-    return render_template('error.html', 
+    error_title = title or error_map.get(code, "Unknown Error")
+    return render_template('error.html',
                           error_code=code,
                           error_title=error_title,
                           error_message=message,
@@ -1039,67 +826,67 @@ def render_error(code, title, message):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    logger.warning(f"页面未找到: {request.path}")
-    return render_error(404, "页面未找到", f"您访问的页面 {request.path} 不存在。")
+    logger.warning(f"Page not found: {request.path}")
+    return render_error(404, "Page Not Found", f"The page {request.path} you are looking for does not exist.")
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    logger.error(f"服务器错误: {e}")
-    return render_error(500, "服务器内部错误", "服务器处理请求时出错，请稍后重试。")
+    logger.error(f"Server error: {e}")
+    return render_error(500, "Internal Server Error", "An error occurred while processing your request, please try again later.")
 
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
-    logger.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
-    return render_error(500, "服务器内部错误", "发生了意外错误，请稍后重试。")
+    logger.error(f"Uncaught exception: {e}\n{traceback.format_exc()}")
+    return render_error(500, "Internal Server Error", "An unexpected error occurred, please try again later.")
 
 def generate_missing_charts():
-    """生成缺失的混淆矩阵和残差图"""
+    """Generate missing confusion matrices and residual plots"""
     try:
-        logger.info("检查并生成可能缺失的图表...")
-        
-        # 确保输出目录存在
+        logger.info("Checking and generating possibly missing charts...")
+
+        # Ensure output directory exists
         os.makedirs('output/figures', exist_ok=True)
-        
-        # 使用统一的图表生成模块
+
+        # Use unified chart generation module
         try:
             from chart_generator import run_chart_generation
-            
-            # 检查是否缺少混淆矩阵图
+
+            # Check if confusion matrix is missing
             if not os.path.exists('output/figures/heart_confusion_matrix.png'):
-                logger.info("正在生成heart数据集的混淆矩阵...")
+                logger.info("Generating confusion matrix for heart dataset...")
                 run_chart_generation('heart', ['confusion'])
-                
+
             if not os.path.exists('output/figures/stroke_confusion_matrix.png'):
-                logger.info("正在生成stroke数据集的混淆矩阵...")
+                logger.info("Generating confusion matrix for stroke dataset...")
                 run_chart_generation('stroke', ['confusion'])
-            
-            # 检查是否缺少残差图
+
+            # Check if residual plot is missing
             if not os.path.exists('output/figures/heart_residual_plot.png'):
-                logger.info("正在生成heart数据集的残差图...")
+                logger.info("Generating residual plot for heart dataset...")
                 run_chart_generation('heart', ['residual'])
-                
+
             if not os.path.exists('output/figures/stroke_residual_plot.png'):
-                logger.info("正在生成stroke数据集的残差图...")
+                logger.info("Generating residual plot for stroke dataset...")
                 run_chart_generation('stroke', ['residual'])
-                
+
             if not os.path.exists('output/figures/cirrhosis_residual_plot.png'):
-                logger.info("正在生成cirrhosis数据集的残差图...")
+                logger.info("Generating residual plot for cirrhosis dataset...")
                 run_chart_generation('cirrhosis', ['residual'])
-                
+
         except ImportError:
-            logger.warning("未找到chart_generator模块，尝试使用旧的方法生成图表...")
-            
-            # 遍历所有已加载的模型
+            logger.warning("chart_generator module not found, trying to generate charts using old methods...")
+
+            # Iterate through all loaded models
             for model_name, model in MODELS.items():
-                dataset_name = model_name.split('_')[0]  # 从模型名称中提取数据集名称
-                
+                dataset_name = model_name.split('_')[0]  # Extract dataset name from model name
+
                 if dataset_name not in DATA:
-                    logger.warning(f"无法找到{dataset_name}数据集，跳过图表生成")
+                    logger.warning(f"Cannot find {dataset_name} dataset, skipping chart generation")
                     continue
-                    
+
                 df = DATA[dataset_name]
-                
-                # 准备数据，排除ID和N_Days列
+
+                # Prepare data, exclude ID and N_Days columns
                 if dataset_name == 'stroke':
                     X = df.drop(['stroke', 'ID', 'N_Days'], axis=1, errors='ignore')
                     y = df['stroke'] if 'stroke' in df.columns else None
@@ -1110,110 +897,427 @@ def generate_missing_charts():
                     X = df.drop(['Stage', 'ID', 'N_Days'], axis=1, errors='ignore')
                     y = df['Stage'] if 'Stage' in df.columns else None
                 else:
-                    logger.warning(f"未知的数据集: {dataset_name}")
+                    logger.warning(f"Unknown dataset: {dataset_name}")
                     continue
-                    
+
                 if y is None:
-                    logger.warning(f"无法找到{dataset_name}数据集的目标变量，跳过图表生成")
+                    logger.warning(f"Cannot find target variable for {dataset_name} dataset, skipping chart generation")
                     continue
-                    
-                # 生成混淆矩阵（除了回归任务）
+
+                # Generate confusion matrix (except for regression tasks)
                 if dataset_name != 'cirrhosis' and not os.path.exists(f'output/figures/{dataset_name}_confusion_matrix.png'):
                     try:
                         from sklearn.metrics import confusion_matrix
                         import matplotlib.pyplot as plt
                         import seaborn as sns
-                        
-                        # 使用健壮的预测函数代替直接调用模型预测
+
+                        # Use robust prediction function instead of direct model prediction
                         y_preds = []
                         for i in range(len(X)):
-                            # 这里使用batch预测会更有效率，但为了简单起见我们使用逐行预测
                             X_row = X.iloc[[i]]
-                            pred, _, _, _ = robust_model_predict(model, X_row, 
+                            pred, _, _, _ = robust_model_predict(model, X_row,
                                                           model_type='classification' if dataset_name != 'cirrhosis' else 'regression')
                             y_preds.append(pred)
-                        
-                        # 计算混淆矩阵
+
+                        # Calculate confusion matrix
                         cm = confusion_matrix(y, y_preds)
-                        
-                        # 绘制混淆矩阵
+
+                        # Plot confusion matrix
                         plt.figure(figsize=(8, 6))
                         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-                        plt.title(f'{dataset_name.capitalize()} 模型的混淆矩阵')
-                        plt.xlabel('预测标签')
-                        plt.ylabel('真实标签')
+                        plt.title(f'{dataset_name.capitalize()} Model Confusion Matrix')
+                        plt.xlabel('Predicted Label')
+                        plt.ylabel('True Label')
                         plt.tight_layout()
                         plt.savefig(f'output/figures/{dataset_name}_confusion_matrix.png')
                         plt.close()
-                        
-                        logger.info(f"{dataset_name}的混淆矩阵已生成")
+
+                        logger.info(f"Confusion matrix for {dataset_name} has been generated")
                     except Exception as e:
-                        logger.error(f"生成{dataset_name}混淆矩阵时出错: {e}")
-                
-                # 生成残差图/准确率图
+                        logger.error(f"Error generating confusion matrix for {dataset_name}: {e}")
+
+                # Generate residual plot/accuracy plot
                 if not os.path.exists(f'output/figures/{dataset_name}_residual_plot.png'):
                     try:
                         import matplotlib.pyplot as plt
                         import numpy as np
-                        
-                        # 使用健壮的预测函数代替直接调用模型预测
+
+                        # Use robust prediction function instead of direct model prediction
                         y_preds = []
                         for i in range(len(X)):
                             X_row = X.iloc[[i]]
-                            pred, _, _, _ = robust_model_predict(model, X_row, 
+                            pred, _, _, _ = robust_model_predict(model, X_row,
                                                           model_type='classification' if dataset_name != 'cirrhosis' else 'regression')
                             y_preds.append(pred)
-                        
-                        # 对于分类任务，生成准确率图
+
+                        # For classification tasks, generate accuracy plot
                         if dataset_name in ['stroke', 'heart']:
                             from sklearn.metrics import accuracy_score
-                            # 计算准确率
+                            # Calculate accuracy
                             accuracy = accuracy_score(y, y_preds)
-                            
-                            # 创建条形图
+
+                            # Create bar chart
                             plt.figure(figsize=(10, 6))
-                            plt.bar(['准确率'], [accuracy], color='blue')
+                            plt.bar(['Accuracy'], [accuracy], color='blue')
                             plt.ylim(0, 1)
-                            plt.title(f'{dataset_name.capitalize()} 模型的准确率')
-                            plt.ylabel('准确率')
+                            plt.title(f'{dataset_name.capitalize()} Model Accuracy')
+                            plt.ylabel('Accuracy')
                             plt.tight_layout()
                             plt.savefig(f'output/figures/{dataset_name}_residual_plot.png')
                             plt.close()
-                            
-                            logger.info(f"{dataset_name}的准确率图已生成")
-                        else:  # 回归任务
-                            # 计算残差
+
+                            logger.info(f"Accuracy plot for {dataset_name} has been generated")
+                        else:  # Regression task
+                            # Calculate residuals
                             residuals = y.values - np.array(y_preds)
-                            
-                            # 绘制残差图
+
+                            # Plot residual plot
                             plt.figure(figsize=(10, 6))
                             plt.scatter(y_preds, residuals, alpha=0.5)
                             plt.axhline(y=0, color='r', linestyle='-')
-                            plt.xlabel('预测值')
-                            plt.ylabel('残差')
-                            plt.title(f'{dataset_name.capitalize()} 模型的残差图')
+                            plt.xlabel('Predicted Value')
+                            plt.ylabel('Residual')
+                            plt.title(f'{dataset_name.capitalize()} Model Residual Plot')
                             plt.grid(True)
                             plt.tight_layout()
                             plt.savefig(f'output/figures/{dataset_name}_residual_plot.png')
                             plt.close()
-                            
-                            logger.info(f"{dataset_name}的残差图已生成")
-                    except Exception as e:
-                        logger.error(f"生成{dataset_name}残差图时出错: {e}")
-    
-    except Exception as e:
-        logger.error(f"生成缺失图表时出错: {e}\n{traceback.format_exc()}")
 
-# 在启动应用之前生成缺失的图表
+                            logger.info(f"Residual plot for {dataset_name} has been generated")
+                    except Exception as e:
+                        logger.error(f"Error generating residual plot for {dataset_name}: {e}")
+
+    except Exception as e:
+        logger.error(f"Error generating missing charts: {e}\n{traceback.format_exc()}")
+
+# Generate missing charts before starting the app
 generate_missing_charts()
 
-# 启动浏览器
+# Open browser
 def open_browser():
-    # 延迟2秒打开浏览器
+    # Delay 2 seconds to open browser
     time.sleep(2)
     webbrowser.open('http://localhost:5000')
 
+
+# ============================================================
+# New route: Question 1 - Multi-factor Weight Evaluation
+# ============================================================
+@app.route('/weight-evaluation')
+def weight_evaluation():
+    """Multi-factor weight evaluation page"""
+    now = datetime.now()
+    try:
+        template = 'weight_evaluation.html'
+        return render_template(template, now=now)
+    except Exception as e:
+        logger.error(f"Error loading weight evaluation page: {e}")
+        return render_error(500, "Page Load Failed", "Unable to load weight evaluation page.")
+
+
+@app.route('/api/weight-evaluation/<dataset>', methods=['GET'])
+def api_weight_evaluation(dataset):
+    """
+    API: Get feature weight evaluation results for specified dataset
+
+    Parameters:
+        dataset: Dataset name (heart / stroke / cirrhosis)
+    """
+    try:
+        from weight_evaluation import FeatureWeightEvaluator
+        import pandas as pd
+
+        csv_map = {
+            'heart': ('heart.csv', 'HeartDisease'),
+            'stroke': ('stroke.csv', 'stroke'),
+            'cirrhosis': ('cirrhosis.csv', 'Stage'),
+        }
+
+        if dataset not in csv_map:
+            return jsonify({'error': 'Unknown dataset'}), 400
+
+        csv_file, target_col = csv_map[dataset]
+
+        if not os.path.exists(csv_file):
+            return jsonify({'error': f'Data file does not exist: {csv_file}'}), 404
+
+        df = pd.read_csv(csv_file)
+        evaluator = FeatureWeightEvaluator(dataset_name=dataset)
+
+        exclude_cols = ['id', 'ID', 'N_Days']
+        feature_cols = [c for c in df.columns if c != target_col and c not in exclude_cols]
+        categorical_cols = df[feature_cols].select_dtypes(include=['object']).columns.tolist()
+        numeric_cols = df[feature_cols].select_dtypes(include=[np.number]).columns.tolist()
+
+        # Run full pipeline
+        X, y, feature_names = evaluator.preprocess(
+            df, target_col, categorical_cols, numeric_cols
+        )
+        evaluator.univariate_analysis(X, y, feature_names)
+        evaluator.multivariate_analysis(X, y, feature_names)
+        summary = evaluator.calculate_weights()
+
+        # Convert to serializable format
+        result = {
+            'dataset': dataset,
+            'full_auc': float(evaluator.full_auc),
+            'features': []
+        }
+
+        for _, row in summary.iterrows():
+            result['features'].append({
+                'name': str(row['Feature']),
+                'coefficient': float(row['Coefficient_Full']),
+                'p_value': float(row['P_Value_Full']),
+                'odds_ratio': float(row['Odds_Ratio']),
+                'univariate_auc': float(row['AUC']),
+                'delta_auc': float(row['Delta_AUC']),
+                'raw_weight': float(row['Raw_Weight']),
+                'normalized_weight': float(row['Normalized_Weight_Pct']),
+                'cumulative_weight': float(row['Cumulative_Weight_Pct']),
+                'significant': bool(row['Significant']),
+            })
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Weight evaluation failed: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================
+# New route: Question 2 - Adaptive Weighted Ensemble Learning (AWELM)
+# ============================================================
+@app.route('/awelm')
+def awelm_page():
+    """AWELM ensemble learning model page"""
+    now = datetime.now()
+    try:
+        return render_template('awelm.html', now=now)
+    except Exception as e:
+        logger.error(f"Error loading AWELM page: {e}")
+        return render_error(500, "Page Load Failed", "Unable to load AWELM page.")
+
+
+@app.route('/api/awelm/<dataset>', methods=['GET', 'POST'])
+def api_awelm(dataset):
+    """
+    API: Get/Run AWELM ensemble model for specified dataset
+
+    GET: Return saved results
+    POST: Re-run model training
+    """
+    try:
+        from awelm import AdaptiveWeightedEnsemble
+        import pandas as pd
+        from sklearn.preprocessing import StandardScaler, LabelEncoder
+
+        csv_map = {
+            'heart': ('heart.csv', 'HeartDisease'),
+            'stroke': ('stroke.csv', 'stroke'),
+            'cirrhosis': ('cirrhosis.csv', 'Stage'),
+        }
+
+        if dataset not in csv_map:
+            return jsonify({'error': 'Unknown dataset'}), 400
+
+        csv_file, target_col = csv_map[dataset]
+
+        if not os.path.exists(csv_file):
+            return jsonify({'error': 'Data file does not exist'}), 404
+
+        df = pd.read_csv(csv_file)
+
+        exclude_cols = ['id', 'ID']
+        feature_cols = [c for c in df.columns if c != target_col and c not in exclude_cols]
+        X = df[feature_cols].copy()
+        y = df[target_col].copy()
+
+        # Encode categorical features
+        for col in X.select_dtypes(include=['object']).columns:
+            le = LabelEncoder()
+            X[col] = le.fit_transform(X[col].astype(str))
+
+        # Handle missing values
+        for col in X.columns:
+            if X[col].isnull().any():
+                X[col].fillna(X[col].median(), inplace=True)
+
+        # Standardize
+        scaler = StandardScaler()
+        X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+
+        # Run AWELM
+        evaluator = AdaptiveWeightedEnsemble(dataset_name=dataset)
+        results = evaluator.run_full_pipeline(X_scaled.values, y.values)
+
+        # Serialize results
+        output = {
+            'dataset': dataset,
+            'base_models': {},
+            'ensemble': {},
+            'weights': {},
+            'best_model': results['best_model'],
+        }
+
+        for name, metrics in results['base_models'].items():
+            output['base_models'][name] = {
+                'accuracy': float(metrics['accuracy']),
+                'precision': float(metrics['precision']),
+                'recall': float(metrics['recall']),
+                'f1': float(metrics['f1']),
+                'auc': float(metrics['auc']) if metrics.get('auc') else None,
+            }
+
+        ens = results['ensemble']
+        output['ensemble'] = {
+            'accuracy': float(ens['accuracy']),
+            'precision': float(ens['precision']),
+            'recall': float(ens['recall']),
+            'f1': float(ens['f1']),
+            'auc': float(ens['auc']) if ens.get('auc') else None,
+        }
+
+        for name, w in results['weights'].items():
+            output['weights'][name] = float(w)
+
+        return jsonify(output)
+
+    except Exception as e:
+        logger.error(f"AWELM execution failed: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================
+# New route: Question 3 - Bayesian Network Multi-Disease Association
+# ============================================================
+@app.route('/bnmdap')
+def bnmdap_page():
+    """Bayesian network multi-disease association analysis page"""
+    now = datetime.now()
+    try:
+        return render_template('bnmdap.html', now=now)
+    except Exception as e:
+        logger.error(f"Error loading BNMDAP page: {e}")
+        return render_error(500, "Page Load Failed", "Unable to load Bayesian network analysis page.")
+
+
+@app.route('/api/bnmdap/predict', methods=['POST'])
+def api_bnmdap_predict():
+    """
+    API: Predict multi-disease association probability based on Bayesian network
+
+    Request parameters (JSON):
+        hypertension: Has hypertension (0/1)
+        heart_disease: Has heart disease (0/1)
+        cirrhosis: Has cirrhosis (0/1)
+    """
+    try:
+        from bnmdap import BayesianDiseaseNetwork
+        import pandas as pd
+
+        data = request.get_json() or {}
+
+        hypertension = int(data.get('hypertension', 0))
+        heart_disease = int(data.get('heart_disease', 0))
+        cirrhosis = int(data.get('cirrhosis', 0))
+
+        # Load data to update priors
+        dfs = {}
+        for csv_file, name in [
+            ('heart.csv', 'heart'), ('stroke.csv', 'stroke'), ('cirrhosis.csv', 'cirrhosis')
+        ]:
+            if os.path.exists(csv_file):
+                dfs[name] = pd.read_csv(csv_file)
+
+        network = BayesianDiseaseNetwork()
+        network.estimate_prior_from_data(
+            stroke_df=dfs.get('stroke'),
+            heart_df=dfs.get('heart'),
+            cirrhosis_df=dfs.get('cirrhosis')
+        )
+
+        result = network.predict(
+            hypertension=hypertension,
+            heart_disease=heart_disease,
+            cirrhosis=cirrhosis
+        )
+
+        # Convert to serializable format
+        sanitized = {}
+        for key, value in result.items():
+            if hasattr(value, 'item'):
+                sanitized[key] = float(value.item())
+            elif value is None or (isinstance(value, float) and np.isnan(value)):
+                sanitized[key] = 0.0
+            else:
+                sanitized[key] = float(value)
+
+        return jsonify({
+            'status': 'success',
+            'input': {
+                'hypertension': hypertension,
+                'heart_disease': heart_disease,
+                'cirrhosis': cirrhosis,
+            },
+            'probabilities': sanitized
+        })
+
+    except Exception as e:
+        logger.error(f"BNMDAP prediction failed: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/bnmdap/analysis', methods=['GET'])
+def api_bnmdap_analysis():
+    """API: Get Bayesian network analysis results"""
+    try:
+        from bnmdap import BayesianDiseaseNetwork
+        import pandas as pd
+
+        dfs = {}
+        for csv_file, name in [
+            ('heart.csv', 'heart'), ('stroke.csv', 'stroke'), ('cirrhosis.csv', 'cirrhosis')
+        ]:
+            if os.path.exists(csv_file):
+                dfs[name] = pd.read_csv(csv_file)
+
+        network = BayesianDiseaseNetwork()
+        network.estimate_prior_from_data(
+            stroke_df=dfs.get('stroke'),
+            heart_df=dfs.get('heart'),
+            cirrhosis_df=dfs.get('cirrhosis')
+        )
+
+        # Return network structure info
+        priors = {}
+        for disease, rate in network.disease_base_rates.items():
+            priors[disease] = float(rate)
+
+        relative_risks = {}
+        for (d1, d2), rr in network.relative_risk.items():
+            relative_risks[f"{d1}_to_{d2}"] = float(rr)
+
+        return jsonify({
+            'status': 'success',
+            'priors': priors,
+            'relative_risks': relative_risks,
+            'network_structure': {
+                'nodes': list(network.network_structure.keys()),
+                'edges': [
+                    (p, d)
+                    for d, info in network.network_structure.items()
+                    for p in info['parents']
+                ]
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"BNMDAP analysis failed: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
-    # 如果直接运行此文件，则打开浏览器并启动Flask服务器
+    # If running this file directly, open browser and start Flask server
     threading.Thread(target=open_browser).start()
-    app.run(debug=False)  # 生产环境中关闭debug模式以获得更好的性能 
+    app.run(debug=False)

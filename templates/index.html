@@ -1,149 +1,185 @@
 {% extends "base.html" %}
 
-{% block title %}首页 - 疾病预测与大数据分析系统{% endblock %}
+{% block title %}Home - Disease Prediction and Big Data Analysis System{% endblock %}
 
 {% block content %}
-<!-- 英雄区/头部 -->
+<!-- Hero Section -->
 <section class="hero-section">
-    <h1 class="hero-title white-heading">疾病预测与大数据分析系统</h1>
-    <p class="hero-subtitle white-heading">基于机器学习和深度学习的中风、心脏病和肝硬化预测与风险评估</p>
-    <p class="hero-text white-heading">本系统使用先进的机器学习算法，对三种主要疾病进行预测和分析，帮助实现疾病的早期发现和预防。</p>
+    <h1 class="hero-title white-heading">Disease Prediction and Big Data Analysis System</h1>
+    <p class="hero-subtitle white-heading">Stroke, heart disease, and cirrhosis prediction and risk assessment based on machine learning and deep learning</p>
+    <p class="hero-text white-heading">This system uses advanced machine learning algorithms to predict and analyze three major diseases, helping achieve early disease detection and prevention.</p>
     <div class="hero-buttons">
-        <a class="btn btn-primary btn-lg floating-btn me-2" href="/predict" role="button">单一疾病预测</a>
-        <a class="btn btn-success btn-lg floating-btn" href="/multi-predict" role="button">多疾病联合预测</a>
+        <a class="btn btn-primary btn-lg floating-btn me-2" href="/predict" role="button">Single Disease Prediction</a>
+        <a class="btn btn-success btn-lg floating-btn" href="/multi-predict" role="button">Multi-Disease Prediction</a>
     </div>
 </section>
 
-<!-- 其他内容放在半透明卡片中 -->
+<!-- Content in Semi-transparent Cards -->
 <div class="container">
-    <!-- 疾病卡片 -->
+    <!-- Disease Cards -->
     <section class="content-block fade-in-section">
-        <h2 class="text-center mb-4 animated-title white-heading">三种主要疾病</h2>
+        <h2 class="text-center mb-4 animated-title white-heading">Three Major Diseases</h2>
         <div class="row">
-            <!-- 中风卡片 -->
+            <!-- Stroke Card -->
             <div class="col-md-4">
                 <div class="card h-100">
-                    <div class="card-header bg-primary text-white">中风 (Stroke)</div>
+                    <div class="card-header bg-primary text-white">Stroke</div>
                     <div class="card-body text-center">
                         <div class="disease-icon"><i class="fas fa-brain"></i></div>
-                        <h5 class="card-title">全球第二大死亡原因</h5>
-                        <p class="card-text">中风是由于大脑的血液供应突然中断或脑血管破裂导致的，约占全球总死亡人数的11%。</p>
-                        <p class="card-text"><strong>风险因素：</strong> 高血压、糖尿病、吸烟、年龄、不健康饮食等。</p>
+                        <h5 class="card-title">Second leading cause of death globally</h5>
+                        <p class="card-text">Stroke is caused by a sudden interruption or rupture of blood supply to the brain, accounting for approximately 11% of total global deaths.</p>
+                        <p class="card-text"><strong>Risk factors:</strong> Hypertension, diabetes, smoking, age, unhealthy diet, etc.</p>
                     </div>
                     <div class="card-footer">
-                        <a href="/predict?disease=stroke" class="btn btn-outline-primary">预测中风风险</a>
+                        <a href="/predict?disease=stroke" class="btn btn-outline-primary">Predict Stroke Risk</a>
                     </div>
                 </div>
             </div>
             
-            <!-- 心脏病卡片 -->
+            <!-- Heart Disease Card -->
             <div class="col-md-4">
                 <div class="card h-100">
-                    <div class="card-header bg-danger text-white">心脏病 (Heart Disease)</div>
+                    <div class="card-header bg-danger text-white">Heart Disease</div>
                     <div class="card-body text-center">
                         <div class="disease-icon"><i class="fas fa-heartbeat"></i></div>
-                        <h5 class="card-title">全球第一大死亡原因</h5>
-                        <p class="card-text">心血管疾病每年夺去1790万人的生命，占全球死亡人数的31%。</p>
-                        <p class="card-text"><strong>风险因素：</strong> 高血压、高脂血症、糖尿病、吸烟、肥胖等。</p>
+                        <h5 class="card-title">Leading cause of death globally</h5>
+                        <p class="card-text">Cardiovascular diseases claim 17.9 million lives annually, accounting for 31% of global deaths.</p>
+                        <p class="card-text"><strong>Risk factors:</strong> Hypertension, hyperlipidemia, diabetes, smoking, obesity, etc.</p>
                     </div>
                     <div class="card-footer">
-                        <a href="/predict?disease=heart" class="btn btn-outline-danger">预测心脏病风险</a>
+                        <a href="/predict?disease=heart" class="btn btn-outline-danger">Predict Heart Disease Risk</a>
                     </div>
                 </div>
             </div>
             
-            <!-- 肝硬化卡片 -->
+            <!-- Cirrhosis Card -->
             <div class="col-md-4">
                 <div class="card h-100">
-                    <div class="card-header bg-warning text-dark">肝硬化 (Cirrhosis)</div>
+                    <div class="card-header bg-warning text-dark">Cirrhosis</div>
                     <div class="card-body text-center">
                         <div class="disease-icon"><i class="fas fa-notes-medical"></i></div>
-                        <h5 class="card-title">肝病晚期表现</h5>
-                        <p class="card-text">肝硬化是由多种形式的肝病和病症引起的肝脏瘢痕形成（纤维化）的晚期。</p>
-                        <p class="card-text"><strong>风险因素：</strong> 长期酗酒、病毒性肝炎、非酒精性脂肪肝等。</p>
+                        <h5 class="card-title">Late-stage manifestation of liver disease</h5>
+                        <p class="card-text">Cirrhosis is the late stage of scarring (fibrosis) of the liver caused by various forms of liver disease and conditions.</p>
+                        <p class="card-text"><strong>Risk factors:</strong> Long-term heavy drinking, viral hepatitis, non-alcoholic fatty liver disease, etc.</p>
                     </div>
                     <div class="card-footer">
-                        <a href="/predict?disease=cirrhosis" class="btn btn-outline-warning">预测肝硬化风险</a>
+                        <a href="/predict?disease=cirrhosis" class="btn btn-outline-warning">Predict Cirrhosis Risk</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 系统功能介绍 -->
+    <!-- System Features Introduction -->
     <section class="content-block fade-in-section">
-        <h2 class="text-center mb-4 animated-title white-heading">系统功能</h2>
+        <h2 class="text-center mb-4 animated-title white-heading">System Features</h2>
         <div class="row">
-            <!-- 数据分析功能 -->
+            <!-- Data Analysis Feature -->
             <div class="col-md-6 col-lg-3 mb-4">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-chart-bar disease-icon"></i>
-                        <h5 class="card-title">数据分析</h5>
-                        <p class="card-text">对三种疾病数据进行预处理、统计分析和可视化，分析影响患病概率的因素。</p>
-                        <a href="/data-analysis" class="btn btn-primary">查看分析</a>
+                        <h5 class="card-title">Data Analysis</h5>
+                        <p class="card-text">Preprocessing, statistical analysis, and visualization of three disease datasets, analyzing factors affecting disease probability.</p>
+                        <a href="/data-analysis" class="btn btn-primary">View Analysis</a>
                     </div>
                 </div>
             </div>
             
-            <!-- 预测模型功能 -->
+            <!-- Prediction Model Feature -->
             <div class="col-md-6 col-lg-3 mb-4">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-brain disease-icon"></i>
-                        <h5 class="card-title">预测模型</h5>
-                        <p class="card-text">建立中风、心脏病和肝硬化三种疾病患病概率的高精度预测模型。</p>
-                        <a href="/model-performance" class="btn btn-primary">模型性能</a>
+                        <h5 class="card-title">Prediction Models</h5>
+                        <p class="card-text">Building high-accuracy prediction models for stroke, heart disease, and cirrhosis disease probability.</p>
+                        <a href="/model-performance" class="btn btn-primary">Model Performance</a>
                     </div>
                 </div>
             </div>
             
-            <!-- 疾病预测功能 -->
+            <!-- Disease Prediction Feature -->
             <div class="col-md-6 col-lg-3 mb-4">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-heartbeat disease-icon"></i>
-                        <h5 class="card-title">疾病预测</h5>
-                        <p class="card-text">根据用户输入的个人健康指标，预测患病风险，并给出相应的预防建议。</p>
-                        <a href="/predict" class="btn btn-primary">进行预测</a>
+                        <h5 class="card-title">Disease Prediction</h5>
+                        <p class="card-text">Predict disease risk based on user-entered personal health indicators, with corresponding prevention recommendations.</p>
+                        <a href="/predict" class="btn btn-primary">Make Prediction</a>
                     </div>
                 </div>
             </div>
             
-            <!-- 多疾病关联功能 -->
+            <!-- Multi-Disease Association Feature -->
             <div class="col-md-6 col-lg-3 mb-4">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-project-diagram disease-icon"></i>
-                        <h5 class="card-title">多疾病关联</h5>
-                        <p class="card-text">分析三种疾病之间的共病关系，评估同时患多种疾病的风险。</p>
-                        <a href="/multi-disease" class="btn btn-primary">查看关联</a>
+                        <h5 class="card-title">Multi-Disease Association</h5>
+                        <p class="card-text">Analyze comorbidity relationships between the three diseases, assessing the risk of having multiple diseases simultaneously.</p>
+                        <a href="/multi-disease" class="btn btn-primary">View Associations</a>
                     </div>
                 </div>
             </div>
             
-            <!-- 多疾病联合预测功能 -->
+            <!-- Multi-Disease Combined Prediction Feature -->
             <div class="col-md-6 col-lg-3 mb-4">
                 <div class="card h-100 border-success">
                     <div class="card-body text-center">
                         <i class="fas fa-diagnoses disease-icon text-success"></i>
-                        <h5 class="card-title">多疾病联合预测</h5>
-                        <p class="card-text">基于多疾病关联性，预测同时患有多种疾病的综合风险概率。</p>
-                        <a href="/multi-predict" class="btn btn-success">联合预测</a>
+                        <h5 class="card-title">Multi-Disease Combined Prediction</h5>
+                        <p class="card-text">Predict combined risk probability of having multiple diseases based on multi-disease associations.</p>
+                        <a href="/multi-predict" class="btn btn-success">Combined Prediction</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weight Evaluation Feature -->
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-balance-scale disease-icon text-info"></i>
+                        <h5 class="card-title">Weight Evaluation</h5>
+                        <p class="card-text">Quantify the impact of various factors on disease risk, identifying key risk factors.</p>
+                        <a href="/weight-evaluation" class="btn btn-info text-white">View Weights</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ensemble Learning Feature -->
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-layer-group disease-icon text-warning"></i>
+                        <h5 class="card-title">Ensemble Learning</h5>
+                        <p class="card-text">Build high-accuracy disease prediction models through gradient descent optimization of ensemble weights.</p>
+                        <a href="/awelm" class="btn btn-warning text-dark">Run AWELM</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bayesian Network Feature -->
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-project-diagram disease-icon" style="color:#8e44ad"></i>
+                        <h5 class="card-title">Bayesian Network</h5>
+                        <p class="card-text">Quantify comorbidity associations between diseases, predicting probability of multiple diseases occurring simultaneously.</p>
+                        <a href="/bnmdap" class="btn" style="background:#8e44ad;color:white">Comorbidity Analysis</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- 技术亮点部分 -->
+    <!-- Technical Highlights Section -->
     <section class="content-block fade-in-section">
-        <h2 class="text-center mb-4 animated-title white-heading">技术亮点</h2>
+        <h2 class="text-center mb-4 animated-title white-heading">Technical Highlights</h2>
         <div class="row">
             <div class="col-md-6 mb-4">
                 <div class="chart-container">
-                    <h4 class="text-center">深度学习模型</h4>
-                    <p>本系统不仅使用传统机器学习算法，还结合了深度神经网络和注意力机制，通过多层特征提取提高预测准确性。</p>
+                    <h4 class="text-center">Deep Learning Models</h4>
+                    <p>This system not only uses traditional machine learning algorithms but also combines deep neural networks and attention mechanisms, improving prediction accuracy through multi-layer feature extraction.</p>
                     <div class="text-center">
                         <i class="fas fa-network-wired fa-4x text-primary mb-3"></i>
                     </div>
@@ -151,8 +187,8 @@
             </div>
             <div class="col-md-6 mb-4">
                 <div class="chart-container">
-                    <h4 class="text-center">集成学习优化</h4>
-                    <p>采用多种集成技术（投票、堆叠、混合融合），结合不同模型的优势，显著提升预测性能。</p>
+                    <h4 class="text-center">Ensemble Learning Optimization</h4>
+                    <p>Using various ensemble techniques (voting, stacking, hybrid fusion), combining the strengths of different models to significantly improve prediction performance.</p>
                     <div class="text-center">
                         <i class="fas fa-layer-group fa-4x text-success mb-3"></i>
                     </div>
@@ -160,8 +196,8 @@
             </div>
             <div class="col-md-6 mb-4">
                 <div class="chart-container">
-                    <h4 class="text-center">知识蒸馏技术</h4>
-                    <p>通过教师-学生模型架构，将大型复杂模型的知识转移到更小的模型中，提高模型效率。</p>
+                    <h4 class="text-center">Knowledge Distillation</h4>
+                    <p>Through teacher-student model architecture, transferring knowledge from large complex models to smaller ones, improving model efficiency.</p>
                     <div class="text-center">
                         <i class="fas fa-graduation-cap fa-4x text-info mb-3"></i>
                     </div>
@@ -169,8 +205,8 @@
             </div>
             <div class="col-md-6 mb-4">
                 <div class="chart-container">
-                    <h4 class="text-center">高级特征工程</h4>
-                    <p>利用领域知识创建衍生特征，捕获复杂的非线性关系，增强模型的预测能力。</p>
+                    <h4 class="text-center">Advanced Feature Engineering</h4>
+                    <p>Using domain knowledge to create derived features, capturing complex nonlinear relationships, enhancing model prediction capability.</p>
                     <div class="text-center">
                         <i class="fas fa-cogs fa-4x text-warning mb-3"></i>
                     </div>
@@ -179,4 +215,4 @@
         </div>
     </section>
 </div>
-{% endblock %} 
+{% endblock %}

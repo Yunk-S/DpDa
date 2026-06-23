@@ -9,11 +9,11 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def load_models_and_data(dataset_name=None):
-    """加载模型和测试数据
+    """Load models and test data
     
     Args:
-        dataset_name (str, optional): 指定要加载的数据集名称，例如'stroke', 'heart', 'cirrhosis'。
-                                     如果为None，则加载所有数据集。
+        dataset_name (str, optional): Specify dataset name to load, e.g. 'stroke', 'heart', 'cirrhosis'.
+                                     If None, load all datasets.
     """
     models = {}
     model_dir = 'output/models'
@@ -21,7 +21,7 @@ def load_models_and_data(dataset_name=None):
     if os.path.exists(model_dir):
         for filename in os.listdir(model_dir):
             if filename.endswith('.pkl'):
-                # 如果指定了数据集，则只加载该数据集的模型
+                # If dataset is specified, only load models for that dataset
                 if dataset_name and not filename.startswith(dataset_name):
                     continue
                     
@@ -29,11 +29,11 @@ def load_models_and_data(dataset_name=None):
                     model_path = os.path.join(model_dir, filename)
                     model_name = filename.replace('.pkl', '')
                     models[model_name] = joblib.load(model_path)
-                    print(f"加载模型: {model_name}")
+                    print(f"Loaded model: {model_name}")
                 except Exception as e:
-                    print(f"加载模型 {model_name} 失败: {e}")
+                    print(f"Failed to load model {model_name}: {e}")
     
-    # 加载处理后的数据
+    # Load processed data
     data = {}
     data_dir = 'output/processed_data'
     
@@ -42,21 +42,21 @@ def load_models_and_data(dataset_name=None):
             if filename.endswith('.csv'):
                 data_name = filename.replace('_processed.csv', '')
                 
-                # 如果指定了数据集，则只加载该数据集
+                # If dataset is specified, only load that dataset
                 if dataset_name and data_name != dataset_name:
                     continue
                     
                 data_path = os.path.join(data_dir, filename)
                 try:
                     data[data_name] = pd.read_csv(data_path)
-                    print(f"加载数据: {data_name}")
+                    print(f"Loaded data: {data_name}")
                 except Exception as e:
-                    print(f"加载数据 {data_name} 失败: {e}")
+                    print(f"Failed to load data {data_name}: {e}")
     
     return models, data
 
 def prepare_test_data(data):
-    """准备测试数据"""
+    """Prepare test data"""
     test_datasets = {}
     
     for name, df in data.items():
@@ -70,10 +70,10 @@ def prepare_test_data(data):
             features = df.drop(['ID', 'N_Days', 'Stage'], axis=1, errors='ignore')
             target = df['Stage']
         
-        # 只保留数值型特征
+        # Only keep numeric features
         features = features.select_dtypes(include=['float64', 'int64']).copy()
         
-        # 分割测试集（为了简单，这里我们使用整个数据集的20%作为测试集）
+        # Split test set (for simplicity, use 20% of entire dataset as test set)
         from sklearn.model_selection import train_test_split
         _, X_test, _, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
         
@@ -82,11 +82,11 @@ def prepare_test_data(data):
     return test_datasets
 
 def generate_metrics_json(models, test_datasets):
-    """生成模型评估指标JSON文件"""
-    print("\n生成模型评估指标...")
+    """Generate model evaluation metrics JSON file"""
+    print("\nGenerating model evaluation metrics...")
     
     for dataset_name, (X_test, y_test) in test_datasets.items():
-        # 查找适用于该数据集的所有模型
+        # Find all models applicable to this dataset
         dataset_models = [m for m in models.keys() if m.startswith(dataset_name)]
         
         for model_name in dataset_models:
@@ -94,10 +94,10 @@ def generate_metrics_json(models, test_datasets):
             metrics = {}
             
             try:
-                # 预测值
+                # Predictions
                 y_pred = model.predict(X_test)
                 
-                # 分类任务
+                # Classification tasks
                 if dataset_name in ['stroke', 'heart']:
                     metrics['accuracy'] = float(accuracy_score(y_test, y_pred))
                     
@@ -110,7 +110,7 @@ def generate_metrics_json(models, test_datasets):
                         metrics['recall'] = "N/A"
                         metrics['f1'] = "N/A"
                     
-                    # AUC（只适用于二分类）
+                    # AUC (only applicable for binary classification)
                     if hasattr(model, 'predict_proba') and len(np.unique(y_test)) == 2:
                         try:
                             y_prob = model.predict_proba(X_test)[:, 1]
@@ -121,49 +121,49 @@ def generate_metrics_json(models, test_datasets):
                     else:
                         metrics['auc'] = "N/A"
                     
-                # 回归任务
+                # Regression tasks
                 else:
                     metrics['mse'] = float(mean_squared_error(y_test, y_pred))
                     metrics['rmse'] = float(np.sqrt(mean_squared_error(y_test, y_pred)))
                     metrics['r2'] = float(r2_score(y_test, y_pred))
                     
-                # 保存指标到JSON文件
+                # Save metrics to JSON file
                 with open(f'output/models/{model_name}_metrics.json', 'w') as f:
                     json.dump(metrics, f, indent=4)
                 
-                print(f"{model_name} 的评估指标已生成")
+                print(f"Evaluation metrics generated for {model_name}")
                 
             except Exception as e:
-                print(f"为{model_name}生成评估指标时出错: {e}")
+                print(f"Error generating evaluation metrics for {model_name}: {e}")
 
 def main():
-    """主函数"""
-    # 创建参数解析器
-    parser = argparse.ArgumentParser(description='生成模型评估指标')
+    """Main function"""
+    # Create argument parser
+    parser = argparse.ArgumentParser(description='Generate model evaluation metrics')
     parser.add_argument('--dataset', type=str, choices=['stroke', 'heart', 'cirrhosis'], 
-                        help='指定要处理的数据集，不指定则处理所有数据集')
+                        help='Specify dataset to process, if not specified process all datasets')
     args = parser.parse_args()
     
-    print(f"开始生成{'所有' if args.dataset is None else args.dataset}模型评估指标...")
+    print(f"Starting to generate evaluation metrics for {'all' if args.dataset is None else args.dataset} models...")
     
-    # 加载模型和数据
+    # Load models and data
     models, data = load_models_and_data(dataset_name=args.dataset)
     
     if not models:
-        print(f"未找到{'任何' if args.dataset is None else args.dataset}模型!")
+        print(f"No {'any' if args.dataset is None else args.dataset} models found!")
         return
         
     if not data:
-        print(f"未找到{'任何' if args.dataset is None else args.dataset}数据!")
+        print(f"No {'any' if args.dataset is None else args.dataset} data found!")
         return
     
-    # 准备测试数据
+    # Prepare test data
     test_datasets = prepare_test_data(data)
     
-    # 生成模型评估指标JSON
+    # Generate model evaluation metrics JSON
     generate_metrics_json(models, test_datasets)
     
-    print(f"\n{'所有' if args.dataset is None else args.dataset}模型评估指标生成完成！")
+    print(f"\nEvaluation metrics generation for {'all' if args.dataset is None else args.dataset} models complete!")
 
 if __name__ == "__main__":
-    main() 
+    main()

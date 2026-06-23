@@ -26,31 +26,31 @@ import warnings
 warnings.filterwarnings('ignore')
 
 class DNN(nn.Module):
-    """简单的深度神经网络模型"""
+    """Simple deep neural network model"""
     def __init__(self, input_dim, hidden_dims=[128, 64, 32], output_dim=1, dropout_rate=0.3):
         super(DNN, self).__init__()
         
         self.layers = nn.ModuleList()
-        self.is_regression = False  # 默认为分类任务
+        self.is_regression = False  # Default to classification task
         
-        # 输入层到第一个隐藏层
+        # Input layer to first hidden layer
         self.layers.append(nn.Linear(input_dim, hidden_dims[0]))
         self.layers.append(nn.ReLU())
         self.layers.append(nn.BatchNorm1d(hidden_dims[0]))
         self.layers.append(nn.Dropout(dropout_rate))
         
-        # 隐藏层
+        # Hidden layers
         for i in range(len(hidden_dims)-1):
             self.layers.append(nn.Linear(hidden_dims[i], hidden_dims[i+1]))
             self.layers.append(nn.ReLU())
             self.layers.append(nn.BatchNorm1d(hidden_dims[i+1]))
             self.layers.append(nn.Dropout(dropout_rate))
         
-        # 输出层
+        # Output layer
         self.output_layer = nn.Linear(hidden_dims[-1], output_dim)
         self.sigmoid = nn.Sigmoid()
         
-        # 如果output_dim不是1，则为多分类问题，不使用sigmoid
+        # If output_dim is not 1, this is a multi-class problem, do not use sigmoid
         if output_dim != 1:
             self.is_regression = True
         
@@ -60,27 +60,27 @@ class DNN(nn.Module):
         
         x = self.output_layer(x)
         
-        # 只对二分类问题使用sigmoid激活函数
+        # Only use sigmoid activation for binary classification
         if self.output_layer.out_features == 1 and not self.is_regression:
             x = self.sigmoid(x)
             
         return x
 
 class AttentionDNN(nn.Module):
-    """带注意力机制的深度神经网络模型"""
+    """Deep neural network model with attention mechanism"""
     def __init__(self, input_dim, hidden_dims=[128, 64, 32], output_dim=1, dropout_rate=0.3):
         super(AttentionDNN, self).__init__()
         
         self.feature_layers = nn.ModuleList()
-        self.is_regression = False  # 默认为分类任务
+        self.is_regression = False  # Default to classification task
         
-        # 特征提取层
+        # Feature extraction layers
         self.feature_layers.append(nn.Linear(input_dim, hidden_dims[0]))
         self.feature_layers.append(nn.ReLU())
         self.feature_layers.append(nn.BatchNorm1d(hidden_dims[0]))
         self.feature_layers.append(nn.Dropout(dropout_rate))
         
-        # 注意力机制
+        # Attention mechanism
         self.attention = nn.Sequential(
             nn.Linear(hidden_dims[0], hidden_dims[0] // 2),
             nn.ReLU(),
@@ -88,7 +88,7 @@ class AttentionDNN(nn.Module):
             nn.Sigmoid()
         )
         
-        # 隐藏层
+        # Hidden layers
         self.hidden_layers = nn.ModuleList()
         for i in range(len(hidden_dims)-1):
             self.hidden_layers.append(nn.Linear(hidden_dims[i], hidden_dims[i+1]))
@@ -96,33 +96,33 @@ class AttentionDNN(nn.Module):
             self.hidden_layers.append(nn.BatchNorm1d(hidden_dims[i+1]))
             self.hidden_layers.append(nn.Dropout(dropout_rate))
         
-        # 输出层
+        # Output layer
         self.output_layer = nn.Linear(hidden_dims[-1], output_dim)
         self.sigmoid = nn.Sigmoid()
         
-        # 如果output_dim不是1，则为多分类问题，不使用sigmoid
+        # If output_dim is not 1, this is a multi-class problem, do not use sigmoid
         if output_dim != 1:
             self.is_regression = True
         
     def forward(self, x):
-        # 特征提取
+        # Feature extraction
         for layer in self.feature_layers:
             x = layer(x)
         
-        # 注意力权重
+        # Attention weights
         attention_weights = self.attention(x)
         
-        # 应用注意力权重
+        # Apply attention weights
         x = x * attention_weights
         
-        # 通过隐藏层
+        # Pass through hidden layers
         for layer in self.hidden_layers:
             x = layer(x)
         
-        # 输出层
+        # Output layer
         x = self.output_layer(x)
         
-        # 只对二分类问题使用sigmoid激活函数
+        # Only use sigmoid activation for binary classification
         if self.output_layer.out_features == 1 and not self.is_regression:
             x = self.sigmoid(x)
             
@@ -130,7 +130,7 @@ class AttentionDNN(nn.Module):
 
 class ModelTrainer:
     def __init__(self, data_splits=None):
-        """初始化模型训练类"""
+        """Initialize the model training class"""
         self.models = {}
         self.best_models = {}
         self.model_results = {}
@@ -138,45 +138,45 @@ class ModelTrainer:
         self.shap_values = {}
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-        # 存储深度学习模型
+        # Store deep learning models
         self.dl_models = {}
         self.teacher_models = {}
         self.student_models = {}
         
-        # 存储集成模型
+        # Store ensemble models
         self.ensemble_models = {}
         
-        # 存储混合模型
+        # Store blended models
         self.blended_models = {}
         
-        # 存储类权重
+        # Store class weights
         self.class_weights = {}
         
-        # 存储数据分割
+        # Store data splits
         self.data_splits = data_splits if data_splits else {}
         
-        # 创建输出目录
+        # Create output directories
         os.makedirs('output/models', exist_ok=True)
         os.makedirs('output/figures', exist_ok=True)
         
     def load_processed_data(self, stroke_path='output/processed_data/stroke_processed.csv',
                            heart_path='output/processed_data/heart_processed.csv',
                            cirrhosis_path='output/processed_data/cirrhosis_processed.csv'):
-        """加载处理后的数据"""
+        """Load processed data"""
         self.stroke_data = pd.read_csv(stroke_path)
         self.heart_data = pd.read_csv(heart_path)
         self.cirrhosis_data = pd.read_csv(cirrhosis_path)
         
-        # 准备训练数据
-        # 中风数据集
+        # Prepare training data
+        # Stroke dataset
         stroke_features = self.stroke_data.drop(['id', 'stroke'], axis=1, errors='ignore')
         stroke_target = self.stroke_data['stroke']
         
-        # 心脏病数据集
+        # Heart disease dataset
         heart_features = self.heart_data.drop(['HeartDisease'], axis=1, errors='ignore')
         heart_target = self.heart_data['HeartDisease']
         
-        # 肝硬化数据集
+        # Cirrhosis dataset
         cirrhosis_features = self.cirrhosis_data.drop(['ID', 'N_Days', 'Stage'], axis=1, errors='ignore')
         cirrhosis_target = self.cirrhosis_data['Stage']
         
@@ -186,27 +186,27 @@ class ModelTrainer:
             'cirrhosis': (cirrhosis_features, cirrhosis_target)
         }
         
-        print("处理后的数据加载完成！")
+        print("Processed data loaded successfully!")
         return self.datasets
     
     def split_data(self, test_size=0.2, random_state=42):
-        """将数据拆分为训练集和测试集"""
+        """Split data into training and testing sets"""
         self.train_test_data = {}
         
         for name, (features, target) in self.datasets.items():
-            # 移除非数值列
+            # Remove non-numeric columns
             features = features.select_dtypes(include=['float64', 'int64'])
             
-            # 检查是否可以使用分层采样
+            # Check if stratified sampling can be used
             use_stratify = True
-            if name == 'cirrhosis':  # 对于肝硬化数据集特殊处理
-                # 检查每个类别的样本数量
+            if name == 'cirrhosis':  # Special handling for cirrhosis dataset
+                # Check sample count for each class
                 value_counts = pd.Series(target).value_counts()
-                if value_counts.min() < 2:  # 如果最小类别数量小于2，不能使用分层采样
+                if value_counts.min() < 2:  # If minimum class count is less than 2, stratified sampling cannot be used
                     use_stratify = False
-                    print(f"警告: {name} 数据集中有类别样本数量过少，不使用分层采样")
+                    print(f"Warning: {name} dataset has a class with too few samples, not using stratified sampling")
             
-            # 拆分数据
+            # Split data
             if use_stratify:
                 X_train, X_test, y_train, y_test = train_test_split(
                     features, target, test_size=test_size, random_state=random_state, stratify=target
@@ -217,54 +217,54 @@ class ModelTrainer:
                 )
             
             self.train_test_data[name] = (X_train, X_test, y_train, y_test)
-            print(f"{name} 数据集拆分完成: 训练集 {X_train.shape[0]} 样本, 测试集 {X_test.shape[0]} 样本")
+            print(f"{name} dataset split complete: {X_train.shape[0]} training samples, {X_test.shape[0]} test samples")
         
         return self.train_test_data
     
     def handle_imbalanced_data(self, method='smote'):
-        """处理不平衡数据"""
-        self.class_weights = {}  # 初始化类别权重字典
+        """Handle imbalanced data"""
+        self.class_weights = {}  # Initialize class weights dictionary
         
         for name, (X_train, X_test, y_train, y_test) in self.train_test_data.items():
-            # 判断是否为回归任务
+            # Determine if it's a regression task
             is_regression = False
-            if name == 'cirrhosis':  # 肝硬化数据集的Stage列是连续值，应该视为回归任务
+            if name == 'cirrhosis':  # Cirrhosis dataset's Stage column is continuous, should be treated as regression
                 is_regression = True
                 
-            # 对于分类任务，检查是否存在类别不平衡
+            # For classification tasks, check for class imbalance
             unique_counts = np.unique(y_train, return_counts=True)
             class_ratio = min(unique_counts[1]) / max(unique_counts[1])
             
-            if class_ratio < 0.5:  # 如果小类别样本数少于大类别的一半，认为存在不平衡
-                print(f"{name} 数据集存在类别不平衡, 应用 {method} 方法处理...")
+            if class_ratio < 0.5:  # If small class has less than half of large class samples, consider it imbalanced
+                print(f"{name} dataset has class imbalance, applying {method} method...")
                 
                 if method == 'smote':
-                    # 应用SMOTE过采样
+                    # Apply SMOTE oversampling
                     smote = SMOTE(random_state=42)
                     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
                     
-                    # 更新训练数据
+                    # Update training data
                     self.train_test_data[name] = (X_train_resampled, X_test, y_train_resampled, y_test)
                     
-                    # 输出重采样后的类别分布
+                    # Print resampled class distribution
                     unique_counts_after = np.unique(y_train_resampled, return_counts=True)
-                    print(f"  重采样前: {dict(zip(unique_counts[0], unique_counts[1]))}")
-                    print(f"  重采样后: {dict(zip(unique_counts_after[0], unique_counts_after[1]))}")
+                    print(f"  Before resampling: {dict(zip(unique_counts[0], unique_counts[1]))}")
+                    print(f"  After resampling: {dict(zip(unique_counts_after[0], unique_counts_after[1]))}")
                     
                 elif method == 'class_weight':
-                    # 计算类别权重（后面训练模型时使用）
+                    # Calculate class weights (used when training models later)
                     counts = np.bincount(y_train)
                     class_weight = {i: max(counts) / counts[i] for i in range(len(counts))}
                     self.class_weights[name] = class_weight
-                    print(f"  应用类别权重: {class_weight}")
+                    print(f"  Applied class weights: {class_weight}")
             else:
-                print(f"{name} 数据集类别分布较为平衡，无需特殊处理")
+                print(f"{name} dataset class distribution is relatively balanced, no special treatment needed")
         
         return self.train_test_data
     
     def train_baseline_models(self):
-        """训练并评估所有模型，并找出表现最好的模型"""
-        # 基线模型列表 - 分类模型
+        """Train and evaluate all models, finding the best performing ones"""
+        # Baseline model list - Classification models
         self.baseline_models = {
             'LogisticRegression': LogisticRegression(max_iter=1000, random_state=42),
             'DecisionTree': DecisionTreeClassifier(random_state=42),
@@ -275,7 +275,7 @@ class ModelTrainer:
             'CatBoost': CatBoostClassifier(random_state=42, verbose=0)
         }
         
-        # 回归模型列表 - 用于肝硬化数据集
+        # Regression model list - For cirrhosis dataset
         self.regression_models = {
             'LinearRegression': LinearRegression(),
             'Ridge': Ridge(alpha=1.0),
@@ -292,18 +292,18 @@ class ModelTrainer:
         results = {}
         best_models = {}
         
-        # 对每个数据集
+        # For each dataset
         for dataset_name, (X_train, X_test, y_train, y_test) in self.data_splits.items():
-            print(f"\n训练 {dataset_name} 数据集的基线模型...")
+            print(f"\nTraining baseline models for {dataset_name} dataset...")
             dataset_scores = {}
             
-            # 判断是回归任务还是分类任务
+            # Determine if it's regression or classification task
             is_regression = False
-            if dataset_name == 'cirrhosis':  # 肝硬化数据集的Stage是连续值
+            if dataset_name == 'cirrhosis':  # Cirrhosis dataset's Stage is continuous
                 is_regression = True
             
             if not is_regression:
-                # 分类任务
+                # Classification task
                 for model_name, model in self.baseline_models.items():
                     try:
                         cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
@@ -313,9 +313,9 @@ class ModelTrainer:
                         accuracy = accuracy_score(y_test, y_pred)
                         f1 = f1_score(y_test, y_pred, average='weighted')
                         
-                        print(f"  训练 {model_name}...")
-                        print(f"    CV 准确率: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
-                        print(f"    测试集准确率: {accuracy:.4f}, F1分数: {f1:.4f}")
+                        print(f"  Training {model_name}...")
+                        print(f"    CV Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
+                        print(f"    Test Accuracy: {accuracy:.4f}, F1 Score: {f1:.4f}")
                         
                         dataset_scores[model_name] = {
                             'model': model,
@@ -324,16 +324,16 @@ class ModelTrainer:
                             'test_f1': f1
                         }
                     except Exception as e:
-                        print(f"  训练 {model_name} 时出错: {e}")
+                        print(f"  Error training {model_name}: {e}")
             else:
-                # 回归任务
+                # Regression task
                 for model_name, model in self.regression_models.items():
                     try:
-                        # 使用KFold进行交叉验证
+                        # Use KFold for cross-validation
                         kf = KFold(n_splits=5, shuffle=True, random_state=42)
                         cv_scores = []
                         
-                        # 手动进行交叉验证计算MSE
+                        # Manually perform cross-validation to calculate MSE
                         for train_idx, val_idx in kf.split(X_train):
                             X_train_cv, X_val_cv = X_train.iloc[train_idx], X_train.iloc[val_idx]
                             y_train_cv, y_val_cv = y_train.iloc[train_idx], y_train.iloc[val_idx]
@@ -346,7 +346,7 @@ class ModelTrainer:
                         cv_mse = np.mean(cv_scores)
                         cv_std = np.std(cv_scores)
                         
-                        # 在完整训练集上训练模型
+                        # Train model on full training set
                         model.fit(X_train, y_train)
                         y_pred = model.predict(X_test)
                         
@@ -354,9 +354,9 @@ class ModelTrainer:
                         mae = mean_absolute_error(y_test, y_pred)
                         r2 = r2_score(y_test, y_pred)
                         
-                        print(f"  训练 {model_name}...")
-                        print(f"    CV MSE: {cv_mse:.4f} ± {cv_std:.4f}")
-                        print(f"    测试集 MSE: {mse:.4f}, MAE: {mae:.4f}, R²: {r2:.4f}")
+                        print(f"  Training {model_name}...")
+                        print(f"    CV MSE: {cv_mse:.4f} +/- {cv_std:.4f}")
+                        print(f"    Test MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
                         
                         dataset_scores[model_name] = {
                             'model': model,
@@ -366,43 +366,43 @@ class ModelTrainer:
                             'test_r2': r2
                         }
                     except Exception as e:
-                        print(f"  训练 {model_name} 时出错: {e}")
+                        print(f"  Error training {model_name}: {e}")
             
-            # 选择最佳模型
+            # Select best model
             if dataset_scores:
                 if not is_regression:
-                    # 分类任务使用F1分数
+                    # Classification task uses F1 score
                     best_model_name = max(dataset_scores, key=lambda k: dataset_scores[k]['test_f1'])
-                    print(f"  {dataset_name} 数据集的最佳基线模型: {best_model_name}")
+                    print(f"  Best baseline model for {dataset_name} dataset: {best_model_name}")
                     best_models[dataset_name] = dataset_scores[best_model_name]['model']
                 else:
-                    # 回归任务使用R²分数
+                    # Regression task uses R2 score
                     best_model_name = max(dataset_scores, key=lambda k: dataset_scores[k]['test_r2'])
-                    print(f"  {dataset_name} 数据集的最佳基线模型: {best_model_name}")
+                    print(f"  Best baseline model for {dataset_name} dataset: {best_model_name}")
                     best_models[dataset_name] = dataset_scores[best_model_name]['model']
             else:
-                print(f"  没有成功训练任何模型用于 {dataset_name} 数据集")
+                print(f"  No models successfully trained for {dataset_name} dataset")
             
             results[dataset_name] = dataset_scores
         
         self.baseline_results = results
         self.best_baseline_models = best_models
         
-        # 保存最佳基线模型
+        # Save best baseline models
         for dataset_name, model in best_models.items():
             joblib.dump(model, f'output/models/{dataset_name}_best_baseline_model.pkl')
         
         return best_models
     
     def optimize_best_models(self, cv=5):
-        """优化最佳模型的超参数"""
+        """Optimize hyperparameters of best models"""
         for name, best_model_info in self.best_models.items():
-            print(f"\n优化 {name} 数据集的 {best_model_info['name']} 模型...")
+            print(f"\nOptimizing {best_model_info['name']} model for {name} dataset...")
             
             X_train, X_test, y_train, y_test = self.train_test_data[name]
             model_name = best_model_info['name']
             
-            # 根据模型类型定义参数网格
+            # Define parameter grid based on model type
             if model_name == 'LogisticRegression':
                 param_grid = {
                     'C': [0.01, 0.1, 1, 10, 100],
@@ -455,10 +455,10 @@ class ModelTrainer:
                     'l2_leaf_reg': [1, 3, 5, 7]
                 }
             else:
-                print(f"  没有为 {model_name} 定义参数网格，跳过优化")
+                print(f"  No parameter grid defined for {model_name}, skipping optimization")
                 continue
             
-            # 创建网格搜索对象
+            # Create grid search object
             grid_search = GridSearchCV(
                 estimator=best_model_info['model'],
                 param_grid=param_grid,
@@ -468,48 +468,48 @@ class ModelTrainer:
                 verbose=1
             )
             
-            # 执行网格搜索
+            # Perform grid search
             try:
                 grid_search.fit(X_train, y_train)
                 
-                # 获取最佳模型
+                # Get best model
                 best_model = grid_search.best_estimator_
                 best_params = grid_search.best_params_
                 
-                print(f"  最佳参数: {best_params}")
-                print(f"  CV 得分: {grid_search.best_score_:.4f}")
+                print(f"  Best parameters: {best_params}")
+                print(f"  CV Score: {grid_search.best_score_:.4f}")
                 
-                # 在测试集上评估最佳模型
+                # Evaluate best model on test set
                 y_pred = best_model.predict(X_test)
                 
-                # 计算评估指标
+                # Calculate evaluation metrics
                 accuracy = accuracy_score(y_test, y_pred)
                 
-                if len(np.unique(y_test)) == 2:  # 二分类问题
+                if len(np.unique(y_test)) == 2:  # Binary classification
                     precision = precision_score(y_test, y_pred)
                     recall = recall_score(y_test, y_pred)
                     f1 = f1_score(y_test, y_pred)
                     
-                    # 计算ROC AUC
+                    # Calculate ROC AUC
                     try:
                         y_prob = best_model.predict_proba(X_test)[:, 1]
                         auc_score = roc_auc_score(y_test, y_prob)
                     except:
                         auc_score = None
-                else:  # 多分类问题
+                else:  # Multi-class classification
                     precision = precision_score(y_test, y_pred, average='weighted')
                     recall = recall_score(y_test, y_pred, average='weighted')
                     f1 = f1_score(y_test, y_pred, average='weighted')
                     auc_score = None
                 
-                print(f"  测试集准确率: {accuracy:.4f}")
-                print(f"  测试集精确率: {precision:.4f}")
-                print(f"  测试集召回率: {recall:.4f}")
-                print(f"  测试集F1分数: {f1:.4f}")
+                print(f"  Test Accuracy: {accuracy:.4f}")
+                print(f"  Test Precision: {precision:.4f}")
+                print(f"  Test Recall: {recall:.4f}")
+                print(f"  Test F1 Score: {f1:.4f}")
                 if auc_score:
-                    print(f"  测试集AUC: {auc_score:.4f}")
+                    print(f"  Test AUC: {auc_score:.4f}")
                 
-                # 更新最佳模型
+                # Update best model
                 self.best_models[name]['model'] = best_model
                 self.best_models[name]['params'] = best_params
                 self.best_models[name]['performance'] = {
@@ -520,143 +520,143 @@ class ModelTrainer:
                     'auc': auc_score
                 }
                 
-                # 保存模型
+                # Save model
                 joblib.dump(best_model, f'output/models/{name}_{model_name}_optimized.pkl')
-                print(f"  优化后的模型已保存为 output/models/{name}_{model_name}_optimized.pkl")
+                print(f"  Optimized model saved to output/models/{name}_{model_name}_optimized.pkl")
                 
             except Exception as e:
-                print(f"  优化 {model_name} 时出错: {e}")
+                print(f"  Error optimizing {model_name}: {e}")
         
         return self.best_models
     
     def evaluate_and_visualize_models(self):
-        """评估最佳模型并可视化结果"""
+        """Evaluate best models and visualize results"""
         for name, best_model_info in self.best_models.items():
-            print(f"\n评估 {name} 数据集的 {best_model_info['name']} 模型...")
+            print(f"\nEvaluating {best_model_info['name']} model for {name} dataset...")
             
             X_train, X_test, y_train, y_test = self.train_test_data[name]
             model = best_model_info['model']
             
-            # 预测测试集
+            # Predict on test set
             y_pred = model.predict(X_test)
             
-            # 混淆矩阵
+            # Confusion matrix
             cm = confusion_matrix(y_test, y_pred)
             plt.figure(figsize=(8, 6))
             sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-            plt.title(f'{name.capitalize()} {best_model_info["name"]} 混淆矩阵')
-            plt.xlabel('预测标签')
-            plt.ylabel('真实标签')
+            plt.title(f'{name.capitalize()} {best_model_info["name"]} Confusion Matrix')
+            plt.xlabel('Predicted Label')
+            plt.ylabel('True Label')
             plt.tight_layout()
             plt.savefig(f'output/figures/{name}_confusion_matrix.png')
             plt.close()
             
-            # 分类报告
+            # Classification report
             report = classification_report(y_test, y_pred)
-            print(f"  分类报告:\n{report}")
+            print(f"  Classification Report:\n{report}")
             
-            # ROC曲线（仅适用于二分类）
+            # ROC curve (only for binary classification)
             if len(np.unique(y_test)) == 2:
                 try:
-                    # 获取预测概率
+                    # Get prediction probabilities
                     y_prob = model.predict_proba(X_test)[:, 1]
                     
-                    # 计算ROC曲线
+                    # Calculate ROC curve
                     fpr, tpr, thresholds = roc_curve(y_test, y_prob)
                     roc_auc = auc(fpr, tpr)
                     
-                    # 绘制ROC曲线
+                    # Plot ROC curve
                     plt.figure(figsize=(8, 6))
                     plt.plot(fpr, tpr, color='darkorange', lw=2, 
-                             label=f'ROC曲线 (AUC = {roc_auc:.4f})')
+                             label=f'ROC Curve (AUC = {roc_auc:.4f})')
                     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
                     plt.xlim([0.0, 1.0])
                     plt.ylim([0.0, 1.05])
-                    plt.xlabel('假正例率')
-                    plt.ylabel('真正例率')
-                    plt.title(f'{name.capitalize()} {best_model_info["name"]} ROC曲线')
+                    plt.xlabel('False Positive Rate')
+                    plt.ylabel('True Positive Rate')
+                    plt.title(f'{name.capitalize()} {best_model_info["name"]} ROC Curve')
                     plt.legend(loc='lower right')
                     plt.savefig(f'output/figures/{name}_roc_curve.png')
                     plt.close()
                     
                 except Exception as e:
-                    print(f"  绘制ROC曲线时出错: {e}")
+                    print(f"  Error plotting ROC curve: {e}")
             
-            # 特征重要性（如果模型支持）
+            # Feature importance (if supported by model)
             try:
-                # 获取特征重要性
+                # Get feature importance
                 if hasattr(model, 'feature_importances_'):
                     importances = model.feature_importances_
                     feature_names = X_train.columns
                     
-                    # 排序
+                    # Sort
                     indices = np.argsort(importances)[::-1]
                     
-                    # 绘制特征重要性
+                    # Plot feature importance
                     plt.figure(figsize=(10, 6))
-                    plt.title(f'{name.capitalize()} {best_model_info["name"]} 特征重要性')
+                    plt.title(f'{name.capitalize()} {best_model_info["name"]} Feature Importance')
                     plt.bar(range(len(indices)), importances[indices], align='center')
                     plt.xticks(range(len(indices)), [feature_names[i] for i in indices], rotation=90)
                     plt.tight_layout()
                     plt.savefig(f'output/figures/{name}_feature_importance.png')
                     plt.close()
                     
-                    # 保存特征重要性
+                    # Save feature importance
                     self.feature_importances[name] = {
                         'importance': importances,
                         'names': feature_names
                     }
                     
-                    # SHAP值分析
+                    # SHAP value analysis
                     try:
                         explainer = shap.TreeExplainer(model)
                         shap_values = explainer.shap_values(X_test)
                         
-                        # 保存SHAP值
+                        # Save SHAP values
                         self.shap_values[name] = {
                             'values': shap_values,
                             'data': X_test
                         }
                         
-                        # 绘制SHAP摘要图
+                        # Plot SHAP summary
                         plt.figure(figsize=(10, 8))
-                        if isinstance(shap_values, list):  # 多分类的情况
+                        if isinstance(shap_values, list):  # Multi-class case
                             shap.summary_plot(shap_values[1], X_test, show=False)
-                        else:  # 二分类的情况
+                        else:  # Binary classification case
                             shap.summary_plot(shap_values, X_test, show=False)
-                        plt.title(f'{name.capitalize()} {best_model_info["name"]} SHAP值')
+                        plt.title(f'{name.capitalize()} {best_model_info["name"]} SHAP Values')
                         plt.tight_layout()
                         plt.savefig(f'output/figures/{name}_shap_summary.png')
                         plt.close()
                         
                     except Exception as e:
-                        print(f"  SHAP分析时出错: {e}")
+                        print(f"  Error in SHAP analysis: {e}")
                 
             except Exception as e:
-                print(f"  分析特征重要性时出错: {e}")
+                print(f"  Error analyzing feature importance: {e}")
         
         return self.feature_importances, self.shap_values
     
     def train_deep_learning_models(self, epochs=100, batch_size=32, patience=10):
-        """训练深度学习模型"""
-        print("\n开始训练深度学习模型...")
+        """Train deep learning models"""
+        print("\nStarting deep learning model training...")
         
-        # 创建模型结构
+        # Create model structures
         for dataset_name, (X_train, X_test, y_train, y_test) in self.data_splits.items():
-            print(f"\n训练 {dataset_name} 数据集的深度学习模型...")
+            print(f"\nTraining deep learning models for {dataset_name} dataset...")
             
-            # 确定任务类型
+            # Determine task type
             is_regression = False
-            if dataset_name == 'cirrhosis':  # 肝硬化数据集是回归任务
+            if dataset_name == 'cirrhosis':  # Cirrhosis dataset is a regression task
                 is_regression = True
             
-            # 准备数据 - 确保所有数据都是数值类型
+            # Prepare data - ensure all data is numeric type
             try:
-                # 尝试直接转换
+                # Try direct conversion
                 X_train_tensor = torch.FloatTensor(X_train.values)
                 X_test_tensor = torch.FloatTensor(X_test.values)
             except (TypeError, ValueError):
-                # 如果失败，尝试先转换为数值类型
+                # If fails, try converting to numeric type first
                 X_train = X_train.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).copy()
                 X_test = X_test.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).copy()
                 X_train_tensor = torch.FloatTensor(X_train.values)
@@ -665,24 +665,24 @@ class ModelTrainer:
             y_train_tensor = torch.FloatTensor(y_train.values)
             y_test_tensor = torch.FloatTensor(y_test.values)
             
-            # 重塑标签为列向量
+            # Reshape labels to column vector
             y_train_tensor = y_train_tensor.reshape(-1, 1)
             y_test_tensor = y_test_tensor.reshape(-1, 1)
             
-            # 创建DataLoader
+            # Create DataLoader
             train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
             
-            # 创建模型
+            # Create model
             input_dim = X_train.shape[1]
             
             if not is_regression:
-                # 分类模型
+                # Classification model
                 dnn_model = DNN(input_dim=input_dim).to(self.device)
                 attention_model = AttentionDNN(input_dim=input_dim).to(self.device)
                 criterion = nn.BCELoss()
             else:
-                # 回归模型 - 设置is_regression=True
+                # Regression model - set is_regression=True
                 dnn_model = DNN(input_dim=input_dim)
                 dnn_model.is_regression = True
                 dnn_model = dnn_model.to(self.device)
@@ -693,11 +693,11 @@ class ModelTrainer:
                 
                 criterion = nn.MSELoss()
             
-            # 优化器
+            # Optimizer
             dnn_optimizer = optim.Adam(dnn_model.parameters(), lr=0.001)
             attention_optimizer = optim.Adam(attention_model.parameters(), lr=0.001)
             
-            # 训练模型
+            # Train model
             best_dnn_loss = float('inf')
             best_att_loss = float('inf')
             dnn_patience_counter = 0
@@ -713,7 +713,7 @@ class ModelTrainer:
                 for batch_X, batch_y in train_loader:
                     batch_X, batch_y = batch_X.to(self.device), batch_y.to(self.device)
                     
-                    # 训练DNN
+                    # Train DNN
                     dnn_optimizer.zero_grad()
                     dnn_outputs = dnn_model(batch_X)
                     dnn_loss = criterion(dnn_outputs, batch_y)
@@ -721,7 +721,7 @@ class ModelTrainer:
                     dnn_optimizer.step()
                     dnn_epoch_loss += dnn_loss.item()
                     
-                    # 训练Attention DNN
+                    # Train Attention DNN
                     attention_optimizer.zero_grad()
                     att_outputs = attention_model(batch_X)
                     att_loss = criterion(att_outputs, batch_y)
@@ -732,11 +732,11 @@ class ModelTrainer:
                 dnn_epoch_loss /= len(train_loader)
                 att_epoch_loss /= len(train_loader)
                 
-                # 打印训练进度
+                # Print training progress
                 if epoch % 10 == 0:
                     print(f"  Epoch {epoch}/{epochs}, DNN Loss: {dnn_epoch_loss:.4f}, Attention Loss: {att_epoch_loss:.4f}")
                 
-                # 早停
+                # Early stopping
                 if dnn_epoch_loss < best_dnn_loss:
                     best_dnn_loss = dnn_epoch_loss
                     dnn_patience_counter = 0
@@ -750,10 +750,10 @@ class ModelTrainer:
                     att_patience_counter += 1
                 
                 if dnn_patience_counter >= patience and att_patience_counter >= patience:
-                    print(f"  提前停止训练，没有改进: {patience} epochs")
+                    print(f"  Early stopping training, no improvement: {patience} epochs")
                     break
             
-            # 评估模型
+            # Evaluate model
             dnn_model.eval()
             attention_model.eval()
             
@@ -766,7 +766,7 @@ class ModelTrainer:
                 y_test_np = y_test.values
                 
                 if not is_regression:
-                    # 分类任务评估
+                    # Classification task evaluation
                     dnn_predictions = (dnn_preds > 0.5).astype(int).flatten()
                     att_predictions = (att_preds > 0.5).astype(int).flatten()
                     
@@ -776,10 +776,10 @@ class ModelTrainer:
                     dnn_f1 = f1_score(y_test_np, dnn_predictions, average='weighted')
                     att_f1 = f1_score(y_test_np, att_predictions, average='weighted')
                     
-                    print(f"  DNN 准确率: {dnn_accuracy:.4f}, F1: {dnn_f1:.4f}")
-                    print(f"  Attention DNN 准确率: {att_accuracy:.4f}, F1: {att_f1:.4f}")
+                    print(f"  DNN Accuracy: {dnn_accuracy:.4f}, F1: {dnn_f1:.4f}")
+                    print(f"  Attention DNN Accuracy: {att_accuracy:.4f}, F1: {att_f1:.4f}")
                     
-                    # 尝试计算AUC（如果是二分类）
+                    # Try to calculate AUC (for binary classification)
                     try:
                         dnn_auc = roc_auc_score(y_test_np, dnn_preds)
                         att_auc = roc_auc_score(y_test_np, att_preds)
@@ -788,15 +788,15 @@ class ModelTrainer:
                     except:
                         pass
                     
-                    # 选择表现更好的模型作为教师
+                    # Select better performing model as teacher
                     if att_f1 > dnn_f1:
                         self.teacher_models[dataset_name] = attention_model
-                        print(f"  选择 Attention DNN 作为 {dataset_name} 数据集的教师模型")
+                        print(f"  Selected Attention DNN as teacher model for {dataset_name} dataset")
                     else:
                         self.teacher_models[dataset_name] = dnn_model
-                        print(f"  选择 DNN 作为 {dataset_name} 数据集的教师模型")
+                        print(f"  Selected DNN as teacher model for {dataset_name} dataset")
                 else:
-                    # 回归任务评估
+                    # Regression task evaluation
                     dnn_preds = dnn_preds.flatten()
                     att_preds = att_preds.flatten()
                     
@@ -809,45 +809,45 @@ class ModelTrainer:
                     dnn_r2 = r2_score(y_test_np, dnn_preds)
                     att_r2 = r2_score(y_test_np, att_preds)
                     
-                    print(f"  DNN MSE: {dnn_mse:.4f}, MAE: {dnn_mae:.4f}, R²: {dnn_r2:.4f}")
-                    print(f"  Attention DNN MSE: {att_mse:.4f}, MAE: {att_mae:.4f}, R²: {att_r2:.4f}")
+                    print(f"  DNN MSE: {dnn_mse:.4f}, MAE: {dnn_mae:.4f}, R2: {dnn_r2:.4f}")
+                    print(f"  Attention DNN MSE: {att_mse:.4f}, MAE: {att_mae:.4f}, R2: {att_r2:.4f}")
                     
-                    # 选择表现更好的模型作为教师 (使用R²)
+                    # Select better performing model as teacher (using R2)
                     if att_r2 > dnn_r2:
                         self.teacher_models[dataset_name] = attention_model
-                        print(f"  选择 Attention DNN 作为 {dataset_name} 数据集的教师模型")
+                        print(f"  Selected Attention DNN as teacher model for {dataset_name} dataset")
                     else:
                         self.teacher_models[dataset_name] = dnn_model
-                        print(f"  选择 DNN 作为 {dataset_name} 数据集的教师模型")
+                        print(f"  Selected DNN as teacher model for {dataset_name} dataset")
             
-            # 保存两个模型
+            # Save both models
             self.dl_models[dataset_name] = {
                 'dnn': dnn_model,
                 'attention_dnn': attention_model
             }
         
-        print("\n深度学习模型训练完成!")
+        print("\nDeep learning model training complete!")
         return self.teacher_models
     
     def train_student_models_with_distillation(self, epochs=50, batch_size=32, temperature=3.0, alpha=0.5):
-        """使用知识蒸馏训练更小的学生模型"""
+        """Train smaller student models using knowledge distillation"""
         for dataset_name, teacher_model in self.teacher_models.items():
-            print(f"\n为 {dataset_name} 数据集进行知识蒸馏...")
+            print(f"\nPerforming knowledge distillation for {dataset_name} dataset...")
             
             X_train, X_test, y_train, y_test = self.data_splits[dataset_name]
             
-            # 确定任务类型
+            # Determine task type
             is_regression = False
-            if dataset_name == 'cirrhosis':  # 肝硬化数据集是回归任务
+            if dataset_name == 'cirrhosis':  # Cirrhosis dataset is a regression task
                 is_regression = True
             
-            # 准备数据 - 确保所有数据都是数值类型
+            # Prepare data - ensure all data is numeric type
             try:
-                # 尝试直接转换
+                # Try direct conversion
                 X_train_tensor = torch.FloatTensor(X_train.values)
                 X_test_tensor = torch.FloatTensor(X_test.values)
             except (TypeError, ValueError):
-                # 如果失败，尝试先转换为数值类型
+                # If fails, try converting to numeric type first
                 X_train = X_train.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).copy()
                 X_test = X_test.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).copy()
                 X_train_tensor = torch.FloatTensor(X_train.values)
@@ -856,33 +856,33 @@ class ModelTrainer:
             y_train_tensor = torch.FloatTensor(y_train.values)
             y_test_tensor = torch.FloatTensor(y_test.values)
             
-            # 重塑标签为列向量
+            # Reshape labels to column vector
             y_train_tensor = y_train_tensor.reshape(-1, 1)
             y_test_tensor = y_test_tensor.reshape(-1, 1)
             
-            # 创建学生模型 - 较小的网络
+            # Create student model - smaller network
             input_dim = X_train.shape[1]
             
             if not is_regression:
-                # 分类任务
+                # Classification task
                 y_train_tensor = y_train_tensor.reshape(-1, 1)
                 student_model = DNN(input_dim=input_dim, hidden_dims=[64, 32], output_dim=1).to(self.device)
                 
-                # 获取教师模型的软标签
+                # Get soft labels from teacher model
                 teacher_model.eval()
                 with torch.no_grad():
                     soft_targets = teacher_model(X_train_tensor.to(self.device))
                 
-                # 创建DataLoader
+                # Create DataLoader
                 train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor, soft_targets.cpu())
                 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
                 
-                # 优化器和损失函数
+                # Optimizer and loss functions
                 optimizer = optim.Adam(student_model.parameters(), lr=0.001)
                 hard_loss_fn = nn.BCELoss()
-                soft_loss_fn = nn.MSELoss()  # 用于软标签
+                soft_loss_fn = nn.MSELoss()  # For soft labels
                 
-                # 训练学生模型
+                # Train student model
                 for epoch in range(1, epochs + 1):
                     student_model.train()
                     epoch_loss = 0.0
@@ -895,13 +895,13 @@ class ModelTrainer:
                         optimizer.zero_grad()
                         outputs = student_model(batch_X)
                         
-                        # 计算硬标签损失
+                        # Calculate hard label loss
                         hard_loss = hard_loss_fn(outputs, batch_y_hard)
                         
-                        # 计算软标签损失
+                        # Calculate soft label loss
                         soft_loss = soft_loss_fn(outputs, batch_y_soft)
                         
-                        # 总损失
+                        # Total loss
                         loss = alpha * hard_loss + (1 - alpha) * soft_loss
                         loss.backward()
                         optimizer.step()
@@ -912,7 +912,7 @@ class ModelTrainer:
                     if (epoch % 10 == 0) or (epoch == 1):
                         print(f"  Epoch {epoch}/{epochs}, Loss: {epoch_loss:.4f}")
                 
-                # 评估学生模型
+                # Evaluate student model
                 student_model.eval()
                 with torch.no_grad():
                     outputs = student_model(X_test_tensor.to(self.device))
@@ -924,7 +924,7 @@ class ModelTrainer:
                     accuracy = accuracy_score(y_test_np, predictions)
                     f1 = f1_score(y_test_np, predictions, average='weighted')
                     
-                    print(f"  学生模型性能 - 准确率: {accuracy:.4f}, F1: {f1:.4f}")
+                    print(f"  Student model performance - Accuracy: {accuracy:.4f}, F1: {f1:.4f}")
                     
                     try:
                         auc = roc_auc_score(y_test_np, probs)
@@ -932,27 +932,27 @@ class ModelTrainer:
                     except:
                         pass
             else:
-                # 回归任务
+                # Regression task
                 y_train_tensor = y_train_tensor.reshape(-1, 1)
                 student_model = DNN(input_dim=input_dim, hidden_dims=[64, 32], output_dim=1)
-                student_model.is_regression = True  # 设置为回归模型
+                student_model.is_regression = True  # Set as regression model
                 student_model = student_model.to(self.device)
                 
-                # 获取教师模型的软标签
+                # Get soft labels from teacher model
                 teacher_model.eval()
                 with torch.no_grad():
                     soft_targets = teacher_model(X_train_tensor.to(self.device))
                 
-                # 创建DataLoader
+                # Create DataLoader
                 train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor, soft_targets.cpu())
                 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
                 
-                # 优化器和损失函数
+                # Optimizer and loss functions
                 optimizer = optim.Adam(student_model.parameters(), lr=0.001)
-                hard_loss_fn = nn.MSELoss()  # 回归任务使用MSE
-                soft_loss_fn = nn.MSELoss()  # 对软标签也使用MSE
+                hard_loss_fn = nn.MSELoss()  # Use MSE for regression
+                soft_loss_fn = nn.MSELoss()  # Also use MSE for soft labels
                 
-                # 训练学生模型
+                # Train student model
                 for epoch in range(1, epochs + 1):
                     student_model.train()
                     epoch_loss = 0.0
@@ -965,13 +965,13 @@ class ModelTrainer:
                         optimizer.zero_grad()
                         outputs = student_model(batch_X)
                         
-                        # 计算硬标签损失
+                        # Calculate hard label loss
                         hard_loss = hard_loss_fn(outputs, batch_y_hard)
                         
-                        # 计算软标签损失
+                        # Calculate soft label loss
                         soft_loss = soft_loss_fn(outputs, batch_y_soft)
                         
-                        # 总损失
+                        # Total loss
                         loss = alpha * hard_loss + (1 - alpha) * soft_loss
                         loss.backward()
                         optimizer.step()
@@ -982,7 +982,7 @@ class ModelTrainer:
                     if (epoch % 10 == 0) or (epoch == 1):
                         print(f"  Epoch {epoch}/{epochs}, Loss: {epoch_loss:.4f}")
                 
-                # 评估学生模型 - 使用回归指标
+                # Evaluate student model - using regression metrics
                 student_model.eval()
                 with torch.no_grad():
                     outputs = student_model(X_test_tensor.to(self.device))
@@ -994,63 +994,63 @@ class ModelTrainer:
                     mae = mean_absolute_error(y_test_np, predictions)
                     r2 = r2_score(y_test_np, predictions)
                     
-                    print(f"  学生模型性能 - MSE: {mse:.4f}, MAE: {mae:.4f}, R²: {r2:.4f}")
+                    print(f"  Student model performance - MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
             
-            # 保存学生模型
+            # Save student model
             self.student_models[dataset_name] = student_model
         
         return self.student_models
     
     def train_ensemble_models(self):
-        """训练集成模型，整合各个单一模型的预测能力"""
+        """Train ensemble models, integrating predictions from individual models"""
         for dataset_name in self.data_splits.keys():
-            print(f"\n为 {dataset_name} 数据集训练集成模型...")
+            print(f"\nTraining ensemble models for {dataset_name} dataset...")
             
             X_train, X_test, y_train, y_test = self.data_splits[dataset_name]
             
-            # 确定任务类型
+            # Determine task type
             is_regression = False
-            if dataset_name == 'cirrhosis':  # 肝硬化数据集是回归任务
+            if dataset_name == 'cirrhosis':  # Cirrhosis dataset is a regression task
                 is_regression = True
             
-            # 获取该数据集的基线模型
+            # Get baseline models for this dataset
             if dataset_name not in self.baseline_results:
-                print(f"  没有可用于 {dataset_name} 数据集的基线模型，跳过集成模型训练")
+                print(f"  No baseline models available for {dataset_name} dataset, skipping ensemble model training")
                 continue
             
             if not is_regression:
-                # 分类任务 - 投票与堆叠分类器
+                # Classification task - Voting and Stacking classifiers
                 model_results = self.baseline_results[dataset_name]
                 
-                # 选择表现较好的前3个模型
+                # Select top 3 best performing models
                 top_models = sorted(model_results.keys(), 
                                 key=lambda k: model_results[k]['test_f1'] if 'test_f1' in model_results[k] else 0, 
                                 reverse=True)[:3]
                 
                 estimators = [(name, model_results[name]['model']) for name in top_models]
                 
-                print("  训练投票集成模型...")
+                print("  Training voting ensemble model...")
                 voting_clf = VotingClassifier(estimators=estimators, voting='soft')
                 voting_clf.fit(X_train, y_train)
                 
-                print("  训练堆叠集成模型...")
+                print("  Training stacking ensemble model...")
                 meta_clf = LGBMClassifier()
                 stacking_clf = StackingClassifier(estimators=estimators, final_estimator=meta_clf)
                 stacking_clf.fit(X_train, y_train)
                 
-                # 评估投票分类器
+                # Evaluate voting classifier
                 voting_preds = voting_clf.predict(X_test)
                 voting_acc = accuracy_score(y_test, voting_preds)
                 voting_f1 = f1_score(y_test, voting_preds, average='weighted')
-                print(f"  投票集成模型 - 准确率: {voting_acc:.4f}, F1: {voting_f1:.4f}")
+                print(f"  Voting ensemble model - Accuracy: {voting_acc:.4f}, F1: {voting_f1:.4f}")
                 
-                # 评估堆叠分类器
+                # Evaluate stacking classifier
                 stacking_preds = stacking_clf.predict(X_test)
                 stacking_acc = accuracy_score(y_test, stacking_preds)
                 stacking_f1 = f1_score(y_test, stacking_preds, average='weighted')
-                print(f"  堆叠集成模型 - 准确率: {stacking_acc:.4f}, F1: {stacking_f1:.4f}")
+                print(f"  Stacking ensemble model - Accuracy: {stacking_acc:.4f}, F1: {stacking_f1:.4f}")
                 
-                # 尝试计算AUC（如果是二分类）
+                # Try to calculate AUC (for binary classification)
                 try:
                     voting_probs = voting_clf.predict_proba(X_test)[:, 1]
                     stacking_probs = stacking_clf.predict_proba(X_test)[:, 1]
@@ -1058,12 +1058,12 @@ class ModelTrainer:
                     voting_auc = roc_auc_score(y_test, voting_probs)
                     stacking_auc = roc_auc_score(y_test, stacking_probs)
                     
-                    print(f"  投票集成模型 - AUC: {voting_auc:.4f}")
-                    print(f"  堆叠集成模型 - AUC: {stacking_auc:.4f}")
+                    print(f"  Voting ensemble model - AUC: {voting_auc:.4f}")
+                    print(f"  Stacking ensemble model - AUC: {stacking_auc:.4f}")
                 except:
                     pass
                 
-                # 选择最佳集成模型
+                # Select best ensemble model
                 if stacking_f1 > voting_f1:
                     best_ensemble = stacking_clf
                     best_type = "stacking"
@@ -1072,42 +1072,42 @@ class ModelTrainer:
                     best_type = "voting"
                     
                 self.ensemble_models[dataset_name] = best_ensemble
-                print(f"  {dataset_name} 数据集的最佳模型: {best_type} 集成")
+                print(f"  Best model for {dataset_name} dataset: {best_type} ensemble")
             else:
-                # 回归任务 - 使用投票回归器和堆叠回归器
+                # Regression task - Using VotingRegressor and StackingRegressor
                 model_results = self.baseline_results[dataset_name]
                 
-                # 选择表现较好的前3个回归模型
+                # Select top 3 best performing regression models
                 top_models = sorted(model_results.keys(), 
                                 key=lambda k: model_results[k]['test_r2'] if 'test_r2' in model_results[k] else 0, 
                                 reverse=True)[:3]
                 
                 estimators = [(name, model_results[name]['model']) for name in top_models]
                 
-                print("  训练投票回归集成模型...")
+                print("  Training voting regression ensemble model...")
                 voting_reg = VotingRegressor(estimators=estimators)
                 voting_reg.fit(X_train, y_train)
                 
-                print("  训练堆叠回归集成模型...")
+                print("  Training stacking regression ensemble model...")
                 meta_reg = LGBMRegressor()
                 stacking_reg = StackingRegressor(estimators=estimators, final_estimator=meta_reg)
                 stacking_reg.fit(X_train, y_train)
                 
-                # 评估投票回归器
+                # Evaluate voting regressor
                 voting_preds = voting_reg.predict(X_test)
                 voting_mse = mean_squared_error(y_test, voting_preds)
                 voting_mae = mean_absolute_error(y_test, voting_preds)
                 voting_r2 = r2_score(y_test, voting_preds)
-                print(f"  投票回归集成模型 - MSE: {voting_mse:.4f}, MAE: {voting_mae:.4f}, R²: {voting_r2:.4f}")
+                print(f"  Voting regression ensemble model - MSE: {voting_mse:.4f}, MAE: {voting_mae:.4f}, R2: {voting_r2:.4f}")
                 
-                # 评估堆叠回归器
+                # Evaluate stacking regressor
                 stacking_preds = stacking_reg.predict(X_test)
                 stacking_mse = mean_squared_error(y_test, stacking_preds)
                 stacking_mae = mean_absolute_error(y_test, stacking_preds)
                 stacking_r2 = r2_score(y_test, stacking_preds)
-                print(f"  堆叠回归集成模型 - MSE: {stacking_mse:.4f}, MAE: {stacking_mae:.4f}, R²: {stacking_r2:.4f}")
+                print(f"  Stacking regression ensemble model - MSE: {stacking_mse:.4f}, MAE: {stacking_mae:.4f}, R2: {stacking_r2:.4f}")
                 
-                # 选择最佳集成模型 (使用R²)
+                # Select best ensemble model (using R2)
                 if stacking_r2 > voting_r2:
                     best_ensemble = stacking_reg
                     best_type = "stacking"
@@ -1116,135 +1116,135 @@ class ModelTrainer:
                     best_type = "voting"
                     
                 self.ensemble_models[dataset_name] = best_ensemble
-                print(f"  {dataset_name} 数据集的最佳模型: {best_type} 集成")
+                print(f"  Best model for {dataset_name} dataset: {best_type} ensemble")
         
         return self.ensemble_models
     
     def build_multi_disease_model(self):
-        """构建多疾病关联模型，预测同时患有多种疾病的概率"""
-        print("\n构建多疾病关联模型...")
+        """Build multi-disease association model to predict probability of having multiple diseases simultaneously"""
+        print("\nBuilding multi-disease association model...")
         
-        # 合并数据集
-        # 为了简化示例，我们假设这里已经有了多疾病预测的特征数据
-        # 实际应用中，这部分需要根据具体数据进行特征工程
+        # Merge datasets
+        # For simplification, we assume the feature data for multi-disease prediction is already available here
+        # In practical applications, this part needs feature engineering based on specific data
         
-        # 这里我们使用一个虚拟的方法来说明多疾病预测的思路
-        print("多疾病预测需要根据实际患者数据进行建模")
-        print("由于数据集中没有同一患者的多疾病信息，我们可以采用以下方法：")
-        print("1. 构建疾病对之间的关系模型（如中风-心脏病，中风-肝硬化，心脏病-肝硬化）")
-        print("2. 利用已有疾病作为特征，预测其他疾病的可能性")
-        print("3. 计算条件概率，估计多疾病共病的概率")
+        # Here we use a virtual method to illustrate the approach for multi-disease prediction
+        print("Multi-disease prediction requires modeling based on actual patient data")
+        print("Since the datasets do not contain multi-disease information for the same patient, we can use the following methods:")
+        print("1. Build relationship models between disease pairs (e.g., stroke-heart disease, stroke-cirrhosis, heart disease-cirrhosis)")
+        print("2. Use existing diseases as features to predict the likelihood of other diseases")
+        print("3. Calculate conditional probabilities to estimate multi-disease comorbidity probability")
         
-        # 示例：中风和心脏病的关联（stroke数据集中包含heart_disease特征）
+        # Example: Association between stroke and heart disease (stroke dataset contains heart_disease feature)
         if 'heart_disease' in self.stroke_data.columns and 'stroke' in self.stroke_data.columns:
-            # 分析中风和心脏病的关系
+            # Analyze relationship between stroke and heart disease
             cross_table = pd.crosstab(
                 self.stroke_data['heart_disease'], 
                 self.stroke_data['stroke'],
                 normalize='index'
             )
             
-            print("\n心脏病与中风关系的列联表（行归一化）:")
+            print("\nContingency table for heart disease and stroke relationship (row normalized):")
             print(cross_table)
             
-            # 计算条件概率：P(中风|心脏病)
+            # Calculate conditional probability: P(stroke|heart_disease)
             prob_stroke_given_heart = cross_table.loc[1, 1]
-            print(f"患有心脏病的情况下中风的概率: {prob_stroke_given_heart:.4f}")
+            print(f"Probability of stroke given heart disease: {prob_stroke_given_heart:.4f}")
             
-            # 可视化
+            # Visualization
             plt.figure(figsize=(8, 6))
             cross_table.plot(kind='bar', stacked=True)
-            plt.title('心脏病与中风的关系')
-            plt.xlabel('是否患有心脏病')
-            plt.ylabel('比例')
-            plt.xticks([0, 1], ['无心脏病', '有心脏病'])
-            plt.legend(['无中风', '有中风'])
+            plt.title('Relationship between Heart Disease and Stroke')
+            plt.xlabel('Has Heart Disease')
+            plt.ylabel('Proportion')
+            plt.xticks([0, 1], ['No Heart Disease', 'Has Heart Disease'])
+            plt.legend(['No Stroke', 'Has Stroke'])
             plt.tight_layout()
             plt.savefig('output/figures/heart_stroke_relationship.png')
             plt.close()
             
-            # 构建多疾病风险评估模型的方法说明
-            print("\n构建多疾病风险评估模型的方法：")
-            print("1. 贝叶斯网络：建立疾病之间的概率依赖关系")
-            print("2. 多标签分类：同时预测多个疾病标签")
-            print("3. 级联预测：先预测一种疾病，然后将该预测结果作为特征预测其他疾病")
-            print("4. 共享表示学习：为多个疾病预测任务学习共享特征表示")
+            # Methods for building multi-disease risk assessment model
+            print("\nMethods for building multi-disease risk assessment model:")
+            print("1. Bayesian Network: Establish probabilistic dependencies between diseases")
+            print("2. Multi-label Classification: Predict multiple disease labels simultaneously")
+            print("3. Cascade Prediction: First predict one disease, then use that prediction as a feature to predict other diseases")
+            print("4. Shared Representation Learning: Learn shared feature representations for multiple disease prediction tasks")
             
-            print("\n由于现有数据限制，我们可以通过以下方式估计多疾病共病的概率：")
-            print("- P(疾病A和疾病B) = P(疾病A) * P(疾病B|疾病A)")
-            print("- P(疾病A、B和C) = P(疾病A) * P(疾病B|疾病A) * P(疾病C|疾病A,疾病B)")
+            print("\nDue to data limitations, we can estimate multi-disease comorbidity probability as follows:")
+            print("- P(Disease A and Disease B) = P(Disease A) * P(Disease B|Disease A)")
+            print("- P(Disease A, B, and C) = P(Disease A) * P(Disease B|Disease A) * P(Disease C|Disease A, Disease B)")
             
         else:
-            print("数据集中没有足够的信息来分析多疾病关系")
+            print("Insufficient information in datasets to analyze multi-disease relationships")
         
         return None
     
     def run_full_model_pipeline(self):
-        """运行完整的模型训练流程"""
-        # 1. 训练基线模型
+        """Run complete model training pipeline"""
+        # 1. Train baseline models
         self.train_baseline_models()
         
-        # 2. 训练深度学习模型
+        # 2. Train deep learning models
         self.train_deep_learning_models()
         
-        # 3. 训练学生模型（知识蒸馏）
+        # 3. Train student models (knowledge distillation)
         self.train_student_models_with_distillation()
         
-        # 4. 训练集成模型
+        # 4. Train ensemble models
         self.train_ensemble_models()
         
-        # 5. 创建混合模型
+        # 5. Create blended models
         # self.create_blended_models()
         
         return self.ensemble_models
         
 def create_blended_models(self):
-    """创建混合模型，结合机器学习和深度学习模型的预测"""
-    print("\n创建混合模型...")
+    """Create blended models combining predictions from machine learning and deep learning models"""
+    print("\nCreating blended models...")
     
     for dataset_name, (X_train, X_test, y_train, y_test) in self.data_splits.items():
-        print(f"\n为 {dataset_name} 数据集创建混合模型...")
+        print(f"\nCreating blended models for {dataset_name} dataset...")
         
-        # 确定任务类型
+        # Determine task type
         is_regression = False
-        if dataset_name == 'cirrhosis':  # 肝硬化数据集是回归任务
+        if dataset_name == 'cirrhosis':  # Cirrhosis dataset is a regression task
             is_regression = True
         
-        # 检查是否有可用的集成模型
+        # Check if ensemble model is available
         if dataset_name not in self.ensemble_models:
-            print(f"  没有可用于 {dataset_name} 数据集的集成模型，跳过混合模型创建")
+            print(f"  No ensemble model available for {dataset_name} dataset, skipping blended model creation")
             continue
             
-        # 检查是否有可用的深度学习模型
+        # Check if deep learning model is available
         if dataset_name not in self.teacher_models:
-            print(f"  没有可用于 {dataset_name} 数据集的深度学习模型，跳过混合模型创建")
+            print(f"  No deep learning model available for {dataset_name} dataset, skipping blended model creation")
             continue
         
         ensemble_model = self.ensemble_models[dataset_name]
         dl_model = self.teacher_models[dataset_name]
         
         if not is_regression:
-            # 分类任务 - 混合预测
-            # 机器学习模型预测
+            # Classification task - Blended prediction
+            # Machine learning model prediction
             ml_probs = ensemble_model.predict_proba(X_test)[:, 1]
             
-            # 深度学习模型预测
+            # Deep learning model prediction
             dl_model.eval()
             with torch.no_grad():
                 dl_probs = dl_model(torch.FloatTensor(X_test.values).to(self.device)).cpu().numpy().flatten()
             
-            # 混合预测 (简单平均)
+            # Blended prediction (simple average)
             blend_probs = (ml_probs + dl_probs) / 2
             blend_preds = (blend_probs > 0.5).astype(int)
             
-            # 评估混合模型
+            # Evaluate blended model
             blend_accuracy = accuracy_score(y_test, blend_preds)
             blend_f1 = f1_score(y_test, blend_preds, average='weighted')
             blend_auc = roc_auc_score(y_test, blend_probs)
             
-            print(f"  混合模型性能 - 准确率: {blend_accuracy:.4f}, F1: {blend_f1:.4f}, AUC: {blend_auc:.4f}")
+            print(f"  Blended model performance - Accuracy: {blend_accuracy:.4f}, F1: {blend_f1:.4f}, AUC: {blend_auc:.4f}")
             
-            # 与单独模型比较
+            # Compare with individual models
             ml_preds = (ml_probs > 0.5).astype(int)
             dl_preds = (dl_probs > 0.5).astype(int)
             
@@ -1256,19 +1256,19 @@ def create_blended_models(self):
             dl_f1 = f1_score(y_test, dl_preds, average='weighted')
             dl_auc = roc_auc_score(y_test, dl_probs)
             
-            print(f"  机器学习模型 - 准确率: {ml_accuracy:.4f}, F1: {ml_f1:.4f}, AUC: {ml_auc:.4f}")
-            print(f"  深度学习模型 - 准确率: {dl_accuracy:.4f}, F1: {dl_f1:.4f}, AUC: {dl_auc:.4f}")
+            print(f"  Machine learning model - Accuracy: {ml_accuracy:.4f}, F1: {ml_f1:.4f}, AUC: {ml_auc:.4f}")
+            print(f"  Deep learning model - Accuracy: {dl_accuracy:.4f}, F1: {dl_f1:.4f}, AUC: {dl_auc:.4f}")
             
-            # 选择最佳模型（基于F1分数）
+            # Select best model (based on F1 score)
             if blend_f1 > ml_f1 and blend_f1 > dl_f1:
-                best_name = "混合模型"
+                best_name = "Blended Model"
             elif ml_f1 > dl_f1:
-                best_name = "机器学习模型"
+                best_name = "Machine Learning Model"
             else:
-                best_name = "深度学习模型"
-            print(f"  {dataset_name} 数据集的最佳模型: {best_name}")
+                best_name = "Deep Learning Model"
+            print(f"  Best model for {dataset_name} dataset: {best_name}")
             
-            # 保存混合模型信息
+            # Save blended model info
             self.blended_models[dataset_name] = {
                 'ml_model': ensemble_model,
                 'dl_model': dl_model,
@@ -1279,26 +1279,26 @@ def create_blended_models(self):
                 }
             }
         else:
-            # 回归任务 - 混合预测
-            # 机器学习模型预测
+            # Regression task - Blended prediction
+            # Machine learning model prediction
             ml_preds = ensemble_model.predict(X_test)
             
-            # 深度学习模型预测
+            # Deep learning model prediction
             dl_model.eval()
             with torch.no_grad():
                 dl_preds = dl_model(torch.FloatTensor(X_test.values).to(self.device)).cpu().numpy().flatten()
             
-            # 混合预测 (简单平均)
+            # Blended prediction (simple average)
             blend_preds = (ml_preds + dl_preds) / 2
             
-            # 评估混合模型
+            # Evaluate blended model
             blend_mse = mean_squared_error(y_test, blend_preds)
             blend_mae = mean_absolute_error(y_test, blend_preds)
             blend_r2 = r2_score(y_test, blend_preds)
             
-            print(f"  混合模型性能 - MSE: {blend_mse:.4f}, MAE: {blend_mae:.4f}, R²: {blend_r2:.4f}")
+            print(f"  Blended model performance - MSE: {blend_mse:.4f}, MAE: {blend_mae:.4f}, R2: {blend_r2:.4f}")
             
-            # 与单独模型比较
+            # Compare with individual models
             ml_mse = mean_squared_error(y_test, ml_preds)
             ml_mae = mean_absolute_error(y_test, ml_preds)
             ml_r2 = r2_score(y_test, ml_preds)
@@ -1307,19 +1307,19 @@ def create_blended_models(self):
             dl_mae = mean_absolute_error(y_test, dl_preds)
             dl_r2 = r2_score(y_test, dl_preds)
             
-            print(f"  机器学习模型 - MSE: {ml_mse:.4f}, MAE: {ml_mae:.4f}, R²: {ml_r2:.4f}")
-            print(f"  深度学习模型 - MSE: {dl_mse:.4f}, MAE: {dl_mae:.4f}, R²: {dl_r2:.4f}")
+            print(f"  Machine learning model - MSE: {ml_mse:.4f}, MAE: {ml_mae:.4f}, R2: {ml_r2:.4f}")
+            print(f"  Deep learning model - MSE: {dl_mse:.4f}, MAE: {dl_mae:.4f}, R2: {dl_r2:.4f}")
             
-            # 选择最佳模型（基于R²分数）
+            # Select best model (based on R2 score)
             if blend_r2 > ml_r2 and blend_r2 > dl_r2:
-                best_name = "混合模型"
+                best_name = "Blended Model"
             elif ml_r2 > dl_r2:
-                best_name = "机器学习模型"
+                best_name = "Machine Learning Model"
             else:
-                best_name = "深度学习模型"
-            print(f"  {dataset_name} 数据集的最佳模型: {best_name}")
+                best_name = "Deep Learning Model"
+            print(f"  Best model for {dataset_name} dataset: {best_name}")
             
-            # 保存混合模型信息
+            # Save blended model info
             self.blended_models[dataset_name] = {
                 'ml_model': ensemble_model,
                 'dl_model': dl_model,
@@ -1334,4 +1334,4 @@ def create_blended_models(self):
 
 if __name__ == "__main__":
     trainer = ModelTrainer()
-    trainer.run_full_model_pipeline() 
+    trainer.run_full_model_pipeline()
