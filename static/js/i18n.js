@@ -543,20 +543,14 @@ Object.assign(window.I18N.en, {
 
   function translateText(text) {
     if (!text || !dict) return null;
-    // Direct full match first (most common case for short UI strings)
-    if (dict[text] !== undefined) return dict[text];
-    // Greedy longest-match for substrings (e.g. "中风预测" inside larger text)
-    // Sort keys by length desc
-    const keys = Object.keys(dict);
-    let result = text;
-    let changed = false;
+    // Longest-match-first: sort keys by length desc so "整个句子" beats "短句"
+    const keys = Object.keys(dict).sort((a, b) => b.length - a.length);
     for (const key of keys) {
-      if (key.length >= 2 && result.indexOf(key) !== -1) {
-        result = result.split(key).join(dict[key]);
-        changed = true;
+      if (text.indexOf(key) !== -1) {
+        text = text.split(key).join(dict[key]);
       }
     }
-    return changed ? result : null;
+    return text;
   }
 
   function walkAndTranslate(root) {
