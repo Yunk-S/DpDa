@@ -1071,13 +1071,13 @@
             <div class="col-lg-6" data-aos="fade-left" data-aos-delay="300">
                 <div class="hero-visual" style="min-height: 400px;">
                     <div class="floating-card fc-1">
-                        <div class="fc-icon" style="background:rgba(239,68,68,0.12); color:var(--accent-red);">
+                        <div class="fc-icon" style="background:rgba(59,130,246,0.12); color:var(--accent-blue);">
                             <i class="fas fa-brain"></i>
                         </div>
                         <div class="fc-title">中风风险评估</div>
                         <div class="fc-desc">基于多维度健康指标</div>
                         <div class="fc-metric">
-                            <span class="fc-metric-value" style="color:var(--accent-red)">92%</span>
+                            <span class="fc-metric-value" style="color:var(--accent-blue)">92%</span>
                             <span class="fc-metric-label">预测准确率</span>
                         </div>
                     </div>
@@ -1340,59 +1340,31 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script src="/static/js/i18n.js"></script>
     <script>
-        // =====================================================================
-        // Internationalization (i18n) System
-        // =====================================================================
-        const I18N = {
-            zh: {
-                nav_home: '首页', nav_data: '数据分析', nav_perf: '模型性能',
-                nav_disease: '疾病预测', nav_single: '单病种预测',
-                nav_single_sub: '单疾病风险评估', nav_multi: '多病种联合预测',
-                nav_multi_sub: '多种疾病关联预测', nav_corr: '疾病关联分析',
-                nav_corr_sub: '多疾病相关性分析', nav_core: '核心模型',
-                nav_weight: '多因素权重评估', nav_weight_sub: '特征权重量化分析',
-                nav_awelm: '自适应集成学习', nav_awelm_sub: 'AWELM 加权融合',
-                nav_bnmdap: '贝叶斯网络', nav_bnmdap_sub: '多疾病联合概率',
-                footer_title: 'DpDa - 疾病预测与大数据分析系统',
-                footer_sub: '基于机器学习的疾病预测与风险评估平台',
-                footer_copy: '2026 &copy; DpDa Project | Powered by Flask & Machine Learning',
-            },
-            en: {
-                nav_home: 'Home', nav_data: 'Data Analysis', nav_perf: 'Model Performance',
-                nav_disease: 'Disease Prediction', nav_single: 'Single Disease',
-                nav_single_sub: 'Single disease risk assessment', nav_multi: 'Multi-Disease',
-                nav_multi_sub: 'Multi-disease joint prediction', nav_corr: 'Correlation Analysis',
-                nav_corr_sub: 'Multi-disease correlation analysis', nav_core: 'Core Models',
-                nav_weight: 'Weight Evaluation', nav_weight_sub: 'Feature weight analysis',
-                nav_awelm: 'Adaptive Ensemble', nav_awelm_sub: 'AWELM weighted fusion',
-                nav_bnmdap: 'Bayesian Network', nav_bnmdap_sub: 'Multi-disease probability',
-                footer_title: 'DpDa - Disease Prediction & Big Data Analysis',
-                footer_sub: 'ML-based disease risk prediction & assessment platform',
-                footer_copy: '2026 &copy; DpDa Project | Powered by Flask & Machine Learning',
-            }
-        };
-
-        let currentLang = localStorage.getItem('dpda_lang') || 'zh';
+        // Default language: English
+        let currentLang = localStorage.getItem('dpda_lang') || 'en';
 
         function toggleLang() {
-            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
             localStorage.setItem('dpda_lang', currentLang);
             applyLang();
         }
 
         function applyLang() {
-            document.getElementById('langLabel').textContent = currentLang === 'zh' ? 'EN' : '中';
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (I18N[currentLang] && I18N[currentLang][key]) {
-                    el.textContent = I18N[currentLang][key];
-                }
+            const label = document.getElementById('langLabel');
+            if (label) label.textContent = currentLang === 'en' ? '中' : 'EN';
+            document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
+            // Reset any explicitly marked elements to their Chinese source
+            document.querySelectorAll('[data-i18n-zh]').forEach(el => {
+                el.textContent = el.getAttribute('data-i18n-zh');
             });
-            document.documentElement.lang = currentLang;
+            // Auto-translate DOM via dictionary when switching to English
+            if (currentLang === 'en' && window.dpdaTranslate) {
+                window.dpdaTranslate(document.body);
+            }
         }
 
-        // Apply language on load
         document.addEventListener('DOMContentLoaded', () => {
             applyLang();
         });
