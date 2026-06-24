@@ -65,6 +65,7 @@ app.log
 *.gif
 *.bmp
 !output/models/*.pkl
+!output/inference_models/*.pkl
 !output/figures/*.png
 !output/figures/*.jpg
 !output/figures/*.jpeg

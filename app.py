@@ -21,6 +21,7 @@ import traceback
 from model_calibration import calibrate_probability
 from model_utilities import smooth_probability
 from multi_disease_model import robust_model_predict
+from inference_predictor import load_inference_models, predict_with_inference
 
 # Limit OpenBLAS/threading to reduce memory usage
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
@@ -29,6 +30,7 @@ os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['NUMEXPR_NUM_THREADS'] = '1'
 
 CHECKPOINT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', 'checkpoints')
+INFERENCE_MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', 'inference_models')
 
 # Configure logging
 logging.basicConfig(
@@ -109,12 +111,15 @@ def load_processed_data():
 try:
     MODELS, MODELS_LOADED, MODEL_TYPES = load_models()
     DATA = load_processed_data()
+    INFERENCE_MODELS = load_inference_models(INFERENCE_MODEL_DIR)
+    logger.info(f"Loaded inference models: {list(INFERENCE_MODELS.keys())}")
 except Exception as e:
     logger.critical(f"Initialization failed: {e}")
     MODELS = {}
     MODELS_LOADED = False
     MODEL_TYPES = {}
     DATA = {}
+    INFERENCE_MODELS = {}
 
 # Home page route
 @app.route('/')
@@ -414,7 +419,56 @@ def predict():
 
             logger.info(f"Received prediction request: disease_type={disease_type}, data={data}")
 
-            # Get corresponding model
+            # Use new inference bundle pipeline (handles feature alignment properly)
+            if disease_type in ('stroke', 'heart', 'cirrhosis'):
+                inference_result = predict_with_inference(INFERENCE_MODELS, disease_type, data)
+
+                if inference_result.get('probability') is not None:
+                    raw_prob_sick = inference_result['probability']
+
+                    # Risk-level based calibration
+                    if raw_prob_sick > 0.4:
+                        risk_level = 'high'
+                    elif raw_prob_sick > 0.2:
+                        risk_level = 'medium'
+                    else:
+                        risk_level = 'low'
+
+                    if disease_type == 'stroke':
+                        calibrated_prob_sick = calibrate_probability(raw_prob_sick, method='spline', risk_level=risk_level)
+                        if 0.3 <= raw_prob_sick < 0.4:
+                            calibrated_prob_sick = min(0.95, calibrated_prob_sick * 1.2)
+                    elif disease_type == 'heart':
+                        calibrated_prob_sick = calibrate_probability(raw_prob_sick, method='spline', risk_level=risk_level)
+                        if 0.3 <= raw_prob_sick < 0.4:
+                            calibrated_prob_sick = min(0.95, calibrated_prob_sick * 1.2)
+                    else:
+                        calibrated_prob_sick = calibrate_probability(raw_prob_sick, method='power', risk_level=risk_level)
+
+                    calibrated_probabilities = [1.0 - calibrated_prob_sick, calibrated_prob_sick]
+
+                    prediction = int(calibrated_prob_sick > 0.5)
+
+                    result = {
+                        'disease_type': disease_type,
+                        'prediction': int(prediction),
+                        'probability': {str(i): float(prob) for i, prob in enumerate(calibrated_probabilities)},
+                        'raw_probability': {"0": 1.0 - raw_prob_sick, "1": raw_prob_sick},
+                        'calibrated': True,
+                        'method': 'inference_bundle',
+                        'model_metrics': inference_result.get('metrics', {}),
+                    }
+                    return jsonify(result)
+                else:
+                    logger.error(f"Inference prediction failed for {disease_type}: {inference_result.get('error')}")
+                    return jsonify({
+                        'disease_type': disease_type,
+                        'prediction': 0,
+                        'probability': {"0": 0.95, "1": 0.05},
+                        'note': f'Prediction failed: {inference_result.get("error")}',
+                    }), 500
+
+            # Fall back to legacy models for backward compatibility
             if disease_type == 'stroke':
                 model = MODELS.get('stroke_best_baseline_model')
                 if not model or not MODELS_LOADED:

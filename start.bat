@@ -21,6 +21,17 @@ if %errorlevel% neq 0 (
     pip install -r requirements.txt
 )
 
+REM Train inference models on first launch (if missing)
+if not exist "output\inference_models\stroke_model.pkl" (
+    echo Training inference models (one-time)...
+    python train_inference_models.py
+    if %errorlevel% neq 0 (
+        echo [ERROR] Failed to train inference models
+        pause
+        exit
+    )
+)
+
 echo.
 echo ========================================
 echo     Starting server...
