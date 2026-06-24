@@ -306,7 +306,7 @@ function loadWeights(ds) {
         return;
     }
 
-    fetch(`/api/weight-evaluation/${ds}`)
+    fetch(`/api/weight_evaluation/${ds}`)
         .then(r => r.json())
         .then(data => {
             if (data.error) {

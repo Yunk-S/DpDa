@@ -1,36 +1,11 @@
-# 基础依赖
-numpy>=1.19.2
+# DpDa Vercel Deployment - Minimal Dependencies
+# Only packages needed for serverless prediction + checkpoint serving
+numpy>=1.21.0
 pandas>=1.3.0
+scikit-learn>=1.0.0
+scipy>=1.7.0
 matplotlib>=3.4.0
 seaborn>=0.11.0
-
-# 机器学习与数据处理
-scikit-learn==1.3.0  # 固定版本以确保模型兼容性
-xgboost>=1.5.0
-lightgbm>=3.3.0
-catboost>=1.0.0
-imbalanced-learn>=0.8.0
-missingno>=0.4.2
-
-# 深度学习
-torch>=1.10.0
-torchvision>=0.11.0
-keras>=2.6.0
-
-# 可解释性与可视化
-shap>=0.40.0
-plotly>=5.5.0
-tensorflow>=2.6.0  # SHAP依赖
-
-# 模型校准
-scikit-learn-intelex>=2021.5.0  # 加速校准计算
-netcal>=1.3.0  # 网络校准工具
-calibration>=0.1.0  # 概率校准工具
-
-# Web应用
+joblib>=1.0.0
 flask>=2.0.0
 werkzeug>=2.0.0
-
-# 其他工具
-joblib>=1.0.0
-tqdm>=4.62.0 

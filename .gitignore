@@ -66,7 +66,9 @@ app.log
 *.bmp
 !output/models/*.pkl
 !output/inference_models/*.pkl
+!output/checkpoints/*.json
 !output/figures/*.png
+!output/figures/*.html
 !output/figures/*.jpg
 !output/figures/*.jpeg
 !output/figures/*.gif
@@ -77,3 +79,7 @@ app.log
 !templates/*.html
 !templates/**/*.html
 !static/**/*.html
+!public/
+
+# Vercel build
+public/__pycache__/

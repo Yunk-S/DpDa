@@ -1,0 +1,10 @@
+{
+  "buildCommand": "echo 'No build step needed - static + serverless'",
+  "outputDirectory": "public",
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/static/(.*)", "headers": {"Cache-Control": "public, max-age=31536000, immutable"}, "dest": "/static/$1" },
+    { "src": "/output/(.*)", "headers": {"Cache-Control": "public, max-age=86400"}, "dest": "/output/$1" },
+    { "src": "/.*", "dest": "/index" }
+  ]
+}
