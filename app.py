@@ -1052,15 +1052,18 @@ def generate_missing_charts():
     except Exception as e:
         logger.error(f"Error generating missing charts: {e}\n{traceback.format_exc()}")
 
-# Generate missing charts before starting the app (silently skip on failure)
-try:
-    generate_missing_charts()
-except Exception:
-    pass  # chart generation is non-critical for server startup
+# Generate missing charts in a background thread (never blocks server startup)
+def _run_chart_gen():
+    try:
+        generate_missing_charts()
+    except Exception:
+        pass  # chart generation is non-critical for server startup
+
+threading.Thread(target=_run_chart_gen, daemon=True).start()
 
 # Open browser
 def open_browser():
-    # Delay 2 seconds to open browser
+    # Wait for server to be ready, then open browser
     time.sleep(2)
     webbrowser.open('http://localhost:5000')
 
