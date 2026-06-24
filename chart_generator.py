@@ -263,7 +263,7 @@ def generate_confusion_matrices(models, test_datasets):
             logger.info(f"Confusion matrix generated for {dataset_name}")
 
         except Exception as e:
-            logger.error(f"Error generating confusion matrix for {dataset_name}: {e}\n{traceback.format_exc()}")
+            logger.warning(f"Skipped confusion matrix for {dataset_name}: {e}")
 
 def generate_residual_plots(models, test_datasets):
     """Generate residual plots"""
@@ -349,7 +349,7 @@ def generate_residual_plots(models, test_datasets):
                 logger.info(f"Residual plots generated for {dataset_name}")
 
         except Exception as e:
-            logger.error(f"Error generating residual plots for {dataset_name}: {e}\n{traceback.format_exc()}")
+            logger.warning(f"Skipped residual plots for {dataset_name}: {e}")
 
 def generate_metrics_json(models, test_datasets):
     """Generate model evaluation metrics JSON files"""
@@ -398,7 +398,7 @@ def generate_metrics_json(models, test_datasets):
                 logger.info(f"Evaluation metrics generated for {model_name}")
 
             except Exception as e:
-                logger.error(f"Error generating evaluation metrics for {model_name}: {e}\n{traceback.format_exc()}")
+                logger.warning(f"Skipped metrics for {model_name}: {e}")
 
 def generate_shap_visualizations(models, test_datasets):
     """Generate SHAP value visualizations"""
@@ -469,7 +469,7 @@ def generate_shap_visualizations(models, test_datasets):
                     logger.info(f"SHAP value visualization (KernelExplainer) generated for {dataset_name}")
 
             except Exception as e:
-                logger.error(f"Error generating SHAP value visualization for {dataset_name}: {e}\n{traceback.format_exc()}")
+                logger.warning(f"Skipped SHAP visualization for {dataset_name}: {e}")
 
     except ImportError:
         logger.warning("SHAP library not installed, skipping SHAP value visualization")

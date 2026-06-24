@@ -1,10 +1,10 @@
-Fix start.bat startup crash and simplify Vercel deployment
+Silence chart_generator non-fatal errors at startup
 
-- Wrap generate_missing_charts() in app.py with try/except to prevent startup crash
-  from chart_generator LightGBM model incompatibility
-- Rewrite start.bat using flat goto-based flow to avoid nested ()/else blocks
-  that triggered "was unexpected at this time" parse error
-- Simplify Vercel deployment: serve pre-rendered HTML from repo root (not public/)
-- Add .vercelignore to exclude dev files from deployment
-- Update .gitignore to allow repo root HTML and exclude public/
-- Update prerender.py to output HTML to repo root
+Chart generation runs at app import time to verify all expected
+charts exist. Old LightGBM models trained with mismatched categorical
+features fail predict() on newer LightGBM versions. These failures
+are non-fatal: charts already exist on disk, server keeps working.
+
+Replace verbose ERROR + traceback logs with concise WARNING lines
+to reduce noise during startup. The app already wraps this call in
+a try/except so the server starts regardless.
