@@ -1052,8 +1052,11 @@ def generate_missing_charts():
     except Exception as e:
         logger.error(f"Error generating missing charts: {e}\n{traceback.format_exc()}")
 
-# Generate missing charts before starting the app
-generate_missing_charts()
+# Generate missing charts before starting the app (wrapped in try/except to never block startup)
+try:
+    generate_missing_charts()
+except Exception as _e:
+    logger.warning(f"Skipped chart generation (non-fatal): {_e}")
 
 # Open browser
 def open_browser():

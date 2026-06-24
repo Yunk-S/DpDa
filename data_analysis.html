@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分析 - DpDa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    
+<style>
+    .page-hero {
+        padding: 60px 0 40px;
+        text-align: center;
+    }
+
+    .dataset-tabs {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+    }
+
+    .dataset-tab {
+        padding: 10px 24px;
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .dataset-tab.active {
+        background: rgba(0, 212, 255, 0.1);
+        border-color: var(--accent-cyan);
+        color: var(--accent-cyan);
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 20px;
+    }
+
+    .chart-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .chart-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-glow);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+    }
+
+    .chart-card-title {
+        padding: 16px 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .chart-card-body {
+        padding: 12px;
+        background: rgba(0,0,0,0.15);
+    }
+
+    .chart-card-body img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+    }
+
+    .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 24px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-glow);
+    }
+
+    .stat-number {
+        font-size: 2.4rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 8px;
+    }
+
+    .stat-label {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+</style>
+
+    <style>
+        :root {
+            --bg-primary: #070b14;
+            --bg-secondary: #0d1424;
+            --bg-card: rgba(13, 20, 36, 0.85);
+            --bg-glass: rgba(13, 20, 36, 0.6);
+            --accent-cyan: #00d4ff;
+            --accent-purple: #a855f7;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-pink: #ec4899;
+            --text-primary: #f0f4f8;
+            --text-secondary: #8b9dc3;
+            --text-muted: #4a5568;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-glow: rgba(0, 212, 255, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%; height: 200%;
+            top: -50%; left: -50%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04) 0%, transparent 60%);
+            animation: bgRotate 30s linear infinite;
+        }
+
+        @keyframes bgRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Grid pattern overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background-image:
+                linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* Navbar */
+        .navbar-main {
+            background: rgba(7, 11, 20, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0 2rem;
+            height: 70px;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-main.scrolled {
+            background: rgba(7, 11, 20, 0.95);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-brand .brand-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--bg-primary);
+            -webkit-text-fill-color: var(--bg-primary);
+        }
+
+        .nav-link-main {
+            color: var(--text-secondary) !important;
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 8px 16px !important;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .nav-link-main:hover, .nav-link-main.active {
+            color: var(--text-primary) !important;
+        }
+
+        .nav-link-main.active {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .nav-link-main.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 2px;
+        }
+
+        /* Model dropdown */
+        .model-dropdown .dropdown-menu {
+            background: rgba(13, 20, 36, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 12px;
+            min-width: 260px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin-top: 8px !important;
+        }
+
+        .model-dropdown .dropdown-item {
+            color: var(--text-secondary);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .model-dropdown .dropdown-item:hover, .model-dropdown .dropdown-item:focus {
+            background: rgba(0, 212, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .model-dropdown .dropdown-item .item-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .model-dropdown .dropdown-divider {
+            border-color: var(--border-subtle);
+            margin: 8px 0;
+        }
+
+        /* Page content */
+        .page-content {
+            padding-top: 70px;
+            min-height: 100vh;
+        }
+
+        /* Section titles */
+        .section-title {
+            font-weight: 800;
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Cards */
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+
+        .glass-card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            border-radius: 12px;
+            padding: 12px 28px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--bg-primary);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.5);
+            color: var(--bg-primary);
+        }
+
+        .btn-outline-glow {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--accent-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-glow:hover {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        /* Stats pills */
+        .stat-pill {
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 100px;
+            padding: 6px 16px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.875rem;
+        }
+
+        .data-table thead th {
+            background: rgba(0, 212, 255, 0.05);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        .data-table tbody td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(0, 212, 255, 0.03);
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badges */
+        .badge-stat {
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-high { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .badge-medium { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
+        .badge-low { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(7, 11, 20, 0.92);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-ring {
+            width: 56px; height: 56px;
+            border: 3px solid rgba(0, 212, 255, 0.1);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.4); }
+
+        /* Chart containers */
+        .chart-container {
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .chart-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Tabs */
+        .nav-tabs-dark {
+            border-bottom: 1px solid var(--border-subtle);
+            gap: 8px;
+        }
+
+        .nav-tabs-dark .nav-link {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tabs-dark .nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .nav-tabs-dark .nav-link.active {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(168, 85, 247, 0.15));
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        /* Input styling */
+        .form-control-dark {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-control-dark:focus {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            outline: none;
+        }
+
+        .form-select-dark {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-size: 0.88rem;
+        }
+
+        .form-select-dark:focus {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            outline: none;
+        }
+
+        .form-label-dark {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        /* Floating particles */
+        .floating-particle {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-main { padding: 0 1rem; }
+            .glass-card { padding: 20px; }
+            .section-title { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- Floating Particles -->
+    <div id="particles"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-main fixed-top" id="mainNav">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <span class="brand-icon"><i class="fas fa-dna"></i></span>
+                DpDa
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarContent" style="color: var(--text-secondary)">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-main " href="/">
+                            <i class="fas fa-home me-1"></i> <span data-i18n="nav_home">首页</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-main active" href="/data-analysis">
+                            <i class="fas fa-chart-bar me-1"></i> <span data-i18n="nav_data">数据分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-main " href="/model-performance">
+                            <i class="fas fa-trophy me-1"></i> <span data-i18n="nav_perf">模型性能</span>
+                        </a>
+                    </li>
+                    <li class="nav-item model-dropdown dropdown">
+                        <a class="nav-link nav-link-main dropdown-toggle "
+                           href="#" id="modelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-brain me-1"></i> <span data-i18n="nav_disease">疾病预测</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="modelDropdown">
+                            <li>
+                                <a class="dropdown-item" href="/predict">
+                                    <span class="item-icon" style="background:rgba(0,212,255,0.12); color:var(--accent-cyan)">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav_single">单病种预测</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav_single_sub">单疾病风险评估</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/multi-predict">
+                                    <span class="item-icon" style="background:rgba(168,85,247,0.12); color:var(--accent-purple)">
+                                        <i class="fas fa-layer-group"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav_multi">多病种联合预测</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav_multi_sub">多种疾病关联预测</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <div class="dropdown-divider"></div>
+                            <li>
+                                <a class="dropdown-item" href="/multi-disease">
+                                    <span class="item-icon" style="background:rgba(59,130,246,0.12); color:var(--accent-blue)">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav_corr">疾病关联分析</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav_corr_sub">多疾病相关性分析</small>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item model-dropdown dropdown">
+                        <a class="nav-link nav-link-main dropdown-toggle "
+                           href="#" id="coreModelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-magic me-1"></i> <span data-i18n="nav.core_models">核心模型</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="coreModelDropdown">
+                            <li>
+                                <a class="dropdown-item" href="/weight-evaluation">
+                                    <span class="item-icon" style="background:rgba(16,185,129,0.12); color:var(--accent-green)">
+                                        <i class="fas fa-balance-scale"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav.weight_eval">多因素权重评估</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav.weight_eval_sub">特征权重量化分析</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/awelm">
+                                    <span class="item-icon" style="background:rgba(245,158,11,0.12); color:var(--accent-yellow)">
+                                        <i class="fas fa-layer-group"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav.awelm">自适应集成学习</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav.awelm_sub">AWELM 加权融合</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/bnmdap">
+                                    <span class="item-icon" style="background:rgba(236,72,153,0.12); color:var(--accent-pink)">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav.bnmdap">贝叶斯网络</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav.bnmdap_sub">多疾病联合概率</small>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Language Switcher -->
+                    <li class="nav-item" style="margin-left:8px;">
+                        <button class="btn btn-sm" id="langSwitch" onclick="toggleLang()"
+                                style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-secondary); border-radius:10px; padding:6px 14px; font-size:0.8rem; font-weight:600; cursor:pointer;">
+                            <i class="fas fa-globe me-1"></i><span id="langLabel">EN</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="page-content">
+        
+<section class="page-hero">
+    <div class="container">
+        <div class="hero-badge" style="margin: 0 auto 16px;">
+            <i class="fas fa-chart-bar"></i> 数据可视化
+        </div>
+        <h1 class="section-title" style="font-size:2.2rem;" data-aos="fade-up">数据分析与探索</h1>
+        <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
+            缺失值分析、异常值检测、特征分布、相关性矩阵 — 深入理解数据特征
+        </p>
+    </div>
+</section>
+
+<section style="padding: 20px 0 60px;">
+    <div class="container">
+        <!-- Dataset Tabs -->
+        <div class="dataset-tabs" data-aos="fade-up">
+            <button class="dataset-tab active" onclick="switchDataset('heart')">
+                <i class="fas fa-heart me-1"></i> 心脏病
+            </button>
+            <button class="dataset-tab" onclick="switchDataset('stroke')">
+                <i class="fas fa-brain me-1"></i> 中风
+            </button>
+            <button class="dataset-tab" onclick="switchDataset('cirrhosis')">
+                <i class="fas fa-liver me-1"></i> 肝硬化
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-4 mb-5" id="statsRow" data-aos="fade-up" data-aos-delay="100">
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:var(--accent-cyan);" id="statSamples">--</div>
+                    <div class="stat-label">样本数量</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:var(--accent-purple);" id="statFeatures">--</div>
+                    <div class="stat-label">特征数量</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:var(--accent-green);" id="statMissing">--</div>
+                    <div class="stat-label">缺失值 (%)</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:var(--accent-yellow);" id="statTarget">--</div>
+                    <div class="stat-label">正例比例</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid" id="chartGrid"></div>
+    </div>
+</section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer style="background: rgba(7,11,20,0.9); border-top: 1px solid var(--border-subtle); padding: 32px 0; margin-top: 80px;">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div style="font-weight:700; font-size:1.1rem; margin-bottom:4px; background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;" data-i18n="footer_title">
+                        DpDa - 疾病预测与大数据分析系统
+                    </div>
+                    <div style="color:var(--text-muted); font-size:0.82rem;" data-i18n="footer_sub">
+                        基于机器学习的疾病预测与风险评估平台
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <div style="color:var(--text-muted); font-size:0.82rem;" data-i18n="footer_copy">
+                        2026 &copy; DpDa Project | Powered by Flask & Machine Learning
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script>
+        // =====================================================================
+        // Internationalization (i18n) System
+        // =====================================================================
+        const I18N = {
+            zh: {
+                nav_home: '首页', nav_data: '数据分析', nav_perf: '模型性能',
+                nav_disease: '疾病预测', nav_single: '单病种预测',
+                nav_single_sub: '单疾病风险评估', nav_multi: '多病种联合预测',
+                nav_multi_sub: '多种疾病关联预测', nav_corr: '疾病关联分析',
+                nav_corr_sub: '多疾病相关性分析', nav_core: '核心模型',
+                nav_weight: '多因素权重评估', nav_weight_sub: '特征权重量化分析',
+                nav_awelm: '自适应集成学习', nav_awelm_sub: 'AWELM 加权融合',
+                nav_bnmdap: '贝叶斯网络', nav_bnmdap_sub: '多疾病联合概率',
+                footer_title: 'DpDa - 疾病预测与大数据分析系统',
+                footer_sub: '基于机器学习的疾病预测与风险评估平台',
+                footer_copy: '2026 &copy; DpDa Project | Powered by Flask & Machine Learning',
+            },
+            en: {
+                nav_home: 'Home', nav_data: 'Data Analysis', nav_perf: 'Model Performance',
+                nav_disease: 'Disease Prediction', nav_single: 'Single Disease',
+                nav_single_sub: 'Single disease risk assessment', nav_multi: 'Multi-Disease',
+                nav_multi_sub: 'Multi-disease joint prediction', nav_corr: 'Correlation Analysis',
+                nav_corr_sub: 'Multi-disease correlation analysis', nav_core: 'Core Models',
+                nav_weight: 'Weight Evaluation', nav_weight_sub: 'Feature weight analysis',
+                nav_awelm: 'Adaptive Ensemble', nav_awelm_sub: 'AWELM weighted fusion',
+                nav_bnmdap: 'Bayesian Network', nav_bnmdap_sub: 'Multi-disease probability',
+                footer_title: 'DpDa - Disease Prediction & Big Data Analysis',
+                footer_sub: 'ML-based disease risk prediction & assessment platform',
+                footer_copy: '2026 &copy; DpDa Project | Powered by Flask & Machine Learning',
+            }
+        };
+
+        let currentLang = localStorage.getItem('dpda_lang') || 'zh';
+
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('dpda_lang', currentLang);
+            applyLang();
+        }
+
+        function applyLang() {
+            document.getElementById('langLabel').textContent = currentLang === 'zh' ? 'EN' : '中';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (I18N[currentLang] && I18N[currentLang][key]) {
+                    el.textContent = I18N[currentLang][key];
+                }
+            });
+            document.documentElement.lang = currentLang;
+        }
+
+        // Apply language on load
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLang();
+        });
+
+        // =====================================================================
+        // AOS Animations
+        // =====================================================================
+        AOS.init({ duration: 800, easing: 'ease-out-cubic', once: true });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('mainNav');
+            if (window.scrollY > 20) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Floating particles
+        function createParticle() {
+            const p = document.createElement('div');
+            p.className = 'floating-particle';
+            const size = Math.random() * 4 + 1;
+            const colors = ['rgba(0,212,255,', 'rgba(168,85,247,', 'rgba(59,130,246,'];
+            p.style.cssText = `
+                width: ${size}px; height: ${size}px;
+                left: ${Math.random() * 100}vw;
+                background: ${colors[Math.floor(Math.random()*colors.length)]}0.4);
+                animation-duration: ${Math.random() * 10 + 10}s;
+                animation-delay: ${Math.random() * 5}s;
+            `;
+            document.getElementById('particles').appendChild(p);
+            setTimeout(() => p.remove(), 20000);
+        }
+        setInterval(createParticle, 2000);
+        for (let i = 0; i < 10; i++) createParticle();
+    </script>
+    
+<script>
+const CHART_GROUPS = {
+    heart: {
+        '目标分布 & 特征': [
+            { name: 'heart_target_distribution.png', title: '目标变量分布' },
+            { name: 'heart_numeric_distributions.png', title: '数值特征分布' },
+            { name: 'heart_correlation_matrix.png', title: '相关性矩阵' },
+        ],
+        '异常值分析': [
+            { name: 'heart_RestingBP_outliers.png', title: '静息血压异常值' },
+            { name: 'heart_Cholesterol_outliers.png', title: '胆固醇异常值' },
+            { name: 'heart_MaxHR_outliers.png', title: '最大心率异常值' },
+            { name: 'heart_Oldpeak_outliers.png', title: 'ST段偏移异常值' },
+            { name: 'heart_FastingBS_outliers.png', title: '空腹血糖异常值' },
+        ],
+        '交互分析': [
+            { name: 'heart_pair_plot.png', title: '特征配对图' },
+            { name: 'gender_disease_comparison.png', title: '性别疾病对比' },
+            { name: 'disease_rate_by_age.png', title: '年龄与发病率' },
+        ]
+    },
+    stroke: {
+        '目标分布 & 特征': [
+            { name: 'stroke_target_distribution.png', title: '目标变量分布' },
+            { name: 'stroke_numeric_distributions.png', title: '数值特征分布' },
+            { name: 'stroke_correlation_matrix.png', title: '相关性矩阵' },
+        ],
+        '缺失值分析': [
+            { name: 'stroke_missing_percent.png', title: '缺失值比例' },
+            { name: 'stroke_missing_matrix.png', title: '缺失值矩阵' },
+        ],
+        '异常值分析': [
+            { name: 'stroke_avg_glucose_level_outliers.png', title: '血糖异常值' },
+            { name: 'stroke_bmi_outliers.png', title: 'BMI异常值' },
+            { name: 'stroke_hypertension_outliers.png', title: '高血压分布' },
+            { name: 'stroke_heart_disease_outliers.png', title: '心脏病分布' },
+        ],
+        '交互分析': [
+            { name: 'stroke_pair_plot.png', title: '特征配对图' },
+        ]
+    },
+    cirrhosis: {
+        '目标分布 & 特征': [
+            { name: 'cirrhosis_target_distribution.png', title: '目标变量分布' },
+            { name: 'cirrhosis_numeric_distributions.png', title: '数值特征分布' },
+            { name: 'cirrhosis_correlation_matrix.png', title: '相关性矩阵' },
+        ],
+        '缺失值分析': [
+            { name: 'cirrhosis_missing_percent.png', title: '缺失值比例' },
+            { name: 'cirrhosis_missing_matrix.png', title: '缺失值矩阵' },
+        ],
+        '异常值分析': [
+            { name: 'cirrhosis_Albumin_outliers.png', title: '白蛋白异常值' },
+            { name: 'cirrhosis_Alk_Phos_outliers.png', title: '碱性磷酸酶异常值' },
+            { name: 'cirrhosis_Bilirubin_outliers.png', title: '胆红素异常值' },
+            { name: 'cirrhosis_Cholesterol_outliers.png', title: '胆固醇异常值' },
+            { name: 'cirrhosis_Copper_outliers.png', title: '铜含量异常值' },
+            { name: 'cirrhosis_Platelets_outliers.png', title: '血小板异常值' },
+            { name: 'cirrhosis_Prothrombin_outliers.png', title: '凝血酶原时间异常值' },
+            { name: 'cirrhosis_SGOT_outliers.png', title: 'SGOT异常值' },
+            { name: 'cirrhosis_Tryglicerides_outliers.png', title: '三酸甘油酯异常值' },
+        ],
+        '交互分析': [
+            { name: 'cirrhosis_pair_plot.png', title: '特征配对图' },
+        ]
+    }
+};
+
+const DATASET_STATS = {
+    heart: { samples: 918, features: 11, missing: '0.0', target: '44.9%' },
+    stroke: { samples: 5110, features: 10, missing: '3.7', target: '4.8%' },
+    cirrhosis: { samples: 418, features: 18, missing: '7.2', target: '28.2%' }
+};
+
+let currentDataset = 'heart';
+
+function switchDataset(ds) {
+    currentDataset = ds;
+    document.querySelectorAll('.dataset-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.dataset-tab[onclick="switchDataset('${ds}')"]`).classList.add('active');
+
+    const stats = DATASET_STATS[ds];
+    document.getElementById('statSamples').textContent = stats.samples.toLocaleString();
+    document.getElementById('statFeatures').textContent = stats.features;
+    document.getElementById('statMissing').textContent = stats.missing + '%';
+    document.getElementById('statTarget').textContent = stats.target;
+
+    renderCharts(ds);
+}
+
+function renderCharts(ds) {
+    const grid = document.getElementById('chartGrid');
+    grid.innerHTML = '';
+
+    const groups = CHART_GROUPS[ds];
+    if (!groups) return;
+
+    let delay = 0;
+    for (const [groupName, charts] of Object.entries(groups)) {
+        for (const chart of charts) {
+            const card = document.createElement('div');
+            card.className = 'chart-card';
+            card.setAttribute('data-aos', 'fade-up');
+            card.setAttribute('data-aos-delay', String(delay));
+            card.innerHTML = `
+                <div class="chart-card-title">
+                    <i class="fas fa-image" style="color:var(--accent-cyan)"></i>
+                    ${chart.title}
+                </div>
+                <div class="chart-card-body">
+                    <img src="/figures/${chart.name}"
+                         onerror="this.parentElement.innerHTML='<div style=\\'padding:60px 20px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-image\\' style=\\'font-size:2rem;margin-bottom:8px;display:block;opacity:0.3\\'></i>图片加载中...</div>'"
+                         alt="${chart.title}">
+                </div>
+            `;
+            grid.appendChild(card);
+            delay += 50;
+        }
+    }
+
+    AOS.refresh();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    switchDataset('heart');
+});
+</script>
+
+</body>
+</html>

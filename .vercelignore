@@ -1,0 +1,20 @@
+# Vercel ignore file - exclude files not needed in deployment
+__pycache__/
+*.pyc
+*.log
+*.md
+!README.md
+.git/
+.gitignore
+templates/
+*.csv
+output/figures/
+output/models/
+output/processed_data/
+*.bat
+*.sh
+.env
+.venv/
+venv/
+node_modules/
+*.ipynb

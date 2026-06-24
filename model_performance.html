@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型性能 - DpDa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    
+<style>
+    .page-hero { padding: 60px 0 40px; text-align: center; }
+
+    .metric-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 28px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-glow);
+    }
+
+    .metric-icon {
+        width: 48px; height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 12px;
+        font-size: 20px;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+
+    .metric-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .model-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        padding: 32px;
+        margin-bottom: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .model-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-glow);
+    }
+
+    .model-card-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .model-card-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .model-card-title {
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
+
+    .model-card-subtitle {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .performance-bar {
+        height: 8px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 6px 0 12px;
+    }
+
+    .performance-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1s ease;
+    }
+
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 0.88rem;
+    }
+
+    .metric-row:last-child { border-bottom: none; }
+
+    .chart-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .chart-card-title {
+        padding: 16px 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .chart-card-body { padding: 12px; }
+    .chart-card-body img { width: 100%; height: auto; border-radius: 12px; }
+
+    .tabs-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 24px;
+    }
+</style>
+
+    <style>
+        :root {
+            --bg-primary: #070b14;
+            --bg-secondary: #0d1424;
+            --bg-card: rgba(13, 20, 36, 0.85);
+            --bg-glass: rgba(13, 20, 36, 0.6);
+            --accent-cyan: #00d4ff;
+            --accent-purple: #a855f7;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-pink: #ec4899;
+            --text-primary: #f0f4f8;
+            --text-secondary: #8b9dc3;
+            --text-muted: #4a5568;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-glow: rgba(0, 212, 255, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%; height: 200%;
+            top: -50%; left: -50%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04) 0%, transparent 60%);
+            animation: bgRotate 30s linear infinite;
+        }
+
+        @keyframes bgRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Grid pattern overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background-image:
+                linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* Navbar */
+        .navbar-main {
+            background: rgba(7, 11, 20, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0 2rem;
+            height: 70px;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-main.scrolled {
+            background: rgba(7, 11, 20, 0.95);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-brand .brand-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--bg-primary);
+            -webkit-text-fill-color: var(--bg-primary);
+        }
+
+        .nav-link-main {
+            color: var(--text-secondary) !important;
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 8px 16px !important;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .nav-link-main:hover, .nav-link-main.active {
+            color: var(--text-primary) !important;
+        }
+
+        .nav-link-main.active {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .nav-link-main.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 2px;
+        }
+
+        /* Model dropdown */
+        .model-dropdown .dropdown-menu {
+            background: rgba(13, 20, 36, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 12px;
+            min-width: 260px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin-top: 8px !important;
+        }
+
+        .model-dropdown .dropdown-item {
+            color: var(--text-secondary);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .model-dropdown .dropdown-item:hover, .model-dropdown .dropdown-item:focus {
+            background: rgba(0, 212, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .model-dropdown .dropdown-item .item-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .model-dropdown .dropdown-divider {
+            border-color: var(--border-subtle);
+            margin: 8px 0;
+        }
+
+        /* Page content */
+        .page-content {
+            padding-top: 70px;
+            min-height: 100vh;
+        }
+
+        /* Section titles */
+        .section-title {
+            font-weight: 800;
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Cards */
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+
+        .glass-card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            border-radius: 12px;
+            padding: 12px 28px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--bg-primary);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.5);
+            color: var(--bg-primary);
+        }
+
+        .btn-outline-glow {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--accent-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-glow:hover {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        /* Stats pills */
+        .stat-pill {
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 100px;
+            padding: 6px 16px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.875rem;
+        }
+
+        .data-table thead th {
+            background: rgba(0, 212, 255, 0.05);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        .data-table tbody td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(0, 212, 255, 0.03);
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badges */
+        .badge-stat {
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-high { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .badge-medium { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
+        .badge-low { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(7, 11, 20, 0.92);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-ring {
+            width: 56px; height: 56px;
+            border: 3px solid rgba(0, 212, 255, 0.1);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.4); }
+
+        /* Chart containers */
+        .chart-container {
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .chart-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Tabs */
+        .nav-tabs-dark {
+            border-bottom: 1px solid var(--border-subtle);
+            gap: 8px;
+        }
+
+        .nav-tabs-dark .nav-link {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tabs-dark .nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .nav-tabs-dark .nav-link.active {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(168, 85, 247, 0.15));
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        /* Input styling */
+        .form-control-dark {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-control-dark:focus {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            outline: none;
+        }
+
+        .form-select-dark {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-size: 0.88rem;
+        }
+
+        .form-select-dark:focus {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            outline: none;
+        }
+
+        .form-label-dark {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        /* Floating particles */
+        .floating-particle {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-main { padding: 0 1rem; }
+            .glass-card { padding: 20px; }
+            .section-title { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- Floating Particles -->
+    <div id="particles"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-main fixed-top" id="mainNav">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <span class="brand-icon"><i class="fas fa-dna"></i></span>
+                DpDa
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarContent" style="color: var(--text-secondary)">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-main " href="/">
+                            <i class="fas fa-home me-1"></i> <span data-i18n="nav_home">首页</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-main " href="/data-analysis">
+                            <i class="fas fa-chart-bar me-1"></i> <span data-i18n="nav_data">数据分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-main active" href="/model-performance">
+                            <i class="fas fa-trophy me-1"></i> <span data-i18n="nav_perf">模型性能</span>
+                        </a>
+                    </li>
+                    <li class="nav-item model-dropdown dropdown">
+                        <a class="nav-link nav-link-main dropdown-toggle "
+                           href="#" id="modelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-brain me-1"></i> <span data-i18n="nav_disease">疾病预测</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="modelDropdown">
+                            <li>
+                                <a class="dropdown-item" href="/predict">
+                                    <span class="item-icon" style="background:rgba(0,212,255,0.12); color:var(--accent-cyan)">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav_single">单病种预测</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav_single_sub">单疾病风险评估</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/multi-predict">
+                                    <span class="item-icon" style="background:rgba(168,85,247,0.12); color:var(--accent-purple)">
+                                        <i class="fas fa-layer-group"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav_multi">多病种联合预测</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav_multi_sub">多种疾病关联预测</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <div class="dropdown-divider"></div>
+                            <li>
+                                <a class="dropdown-item" href="/multi-disease">
+                                    <span class="item-icon" style="background:rgba(59,130,246,0.12); color:var(--accent-blue)">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav_corr">疾病关联分析</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav_corr_sub">多疾病相关性分析</small>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item model-dropdown dropdown">
+                        <a class="nav-link nav-link-main dropdown-toggle "
+                           href="#" id="coreModelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-magic me-1"></i> <span data-i18n="nav.core_models">核心模型</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="coreModelDropdown">
+                            <li>
+                                <a class="dropdown-item" href="/weight-evaluation">
+                                    <span class="item-icon" style="background:rgba(16,185,129,0.12); color:var(--accent-green)">
+                                        <i class="fas fa-balance-scale"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav.weight_eval">多因素权重评估</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav.weight_eval_sub">特征权重量化分析</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/awelm">
+                                    <span class="item-icon" style="background:rgba(245,158,11,0.12); color:var(--accent-yellow)">
+                                        <i class="fas fa-layer-group"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav.awelm">自适应集成学习</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav.awelm_sub">AWELM 加权融合</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/bnmdap">
+                                    <span class="item-icon" style="background:rgba(236,72,153,0.12); color:var(--accent-pink)">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </span>
+                                    <div>
+                                        <div data-i18n="nav.bnmdap">贝叶斯网络</div>
+                                        <small style="color: var(--text-muted)" data-i18n="nav.bnmdap_sub">多疾病联合概率</small>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Language Switcher -->
+                    <li class="nav-item" style="margin-left:8px;">
+                        <button class="btn btn-sm" id="langSwitch" onclick="toggleLang()"
+                                style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-secondary); border-radius:10px; padding:6px 14px; font-size:0.8rem; font-weight:600; cursor:pointer;">
+                            <i class="fas fa-globe me-1"></i><span id="langLabel">EN</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="page-content">
+        
+<section class="page-hero">
+    <div class="container">
+        <div class="hero-badge" style="margin: 0 auto 16px;">
+            <i class="fas fa-trophy"></i> 模型评估
+        </div>
+        <h1 class="section-title" style="font-size:2.2rem;" data-aos="fade-up">模型性能对比</h1>
+        <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">
+            基于多种评估指标的综合对比 — ROC曲线、PR曲线、SHAP分析、特征重要性
+        </p>
+    </div>
+</section>
+
+<section style="padding: 20px 0 60px;">
+    <div class="container">
+        <!-- Dataset Tabs -->
+        <div class="nav-tabs-dark d-flex mb-4" id="perfTabs" role="tablist" style="border-bottom:none; gap:8px; justify-content:center;" data-aos="fade-up">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pane-heart" type="button"
+                    onclick="switchPerf('heart')">
+                <i class="fas fa-heart me-1"></i> 心脏病
+            </button>
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pane-stroke" type="button"
+                    onclick="switchPerf('stroke')">
+                <i class="fas fa-brain me-1"></i> 中风
+            </button>
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pane-cirrhosis" type="button"
+                    onclick="switchPerf('cirrhosis')">
+                <i class="fas fa-liver me-1"></i> 肝硬化
+            </button>
+        </div>
+
+        <!-- Summary Metrics -->
+        <div class="row g-4 mb-5" id="summaryMetrics" data-aos="fade-up">
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background:rgba(0,212,255,0.1); color:var(--accent-cyan);">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="metric-value" style="color:var(--accent-cyan);" id="mAuc">--</div>
+                    <div class="metric-label">最佳 AUC</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background:rgba(168,85,247,0.1); color:var(--accent-purple);">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="metric-value" style="color:var(--accent-purple);" id="mAcc">--</div>
+                    <div class="metric-label">最佳准确率</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background:rgba(16,185,129,0.1); color:var(--accent-green);">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div class="metric-value" style="color:var(--accent-green);" id="mF1">--</div>
+                    <div class="metric-label">最佳 F1</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="metric-card">
+                    <div class="metric-icon" style="background:rgba(239,68,68,0.1); color:var(--accent-red);">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <div class="metric-value" style="color:var(--accent-red);" id="mRecall">--</div>
+                    <div class="metric-label">最佳召回率</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="perfTabContent">
+            <!-- Heart Tab -->
+            <div class="tab-pane fade show active" id="pane-heart" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="model-card" data-aos="fade-right">
+                            <div class="model-card-header">
+                                <div class="model-card-icon" style="background:rgba(239,68,68,0.12); color:var(--accent-red);">
+                                    <i class="fas fa-heartbeat"></i>
+                                </div>
+                                <div>
+                                    <div class="model-card-title">心脏病预测模型</div>
+                                    <div class="model-card-subtitle">Heart Disease Prediction</div>
+                                </div>
+                            </div>
+
+                            <div class="metric-row">
+                                <span style="color:var(--text-secondary)">准确率 (Accuracy)</span>
+                                <span style="font-weight:700;">88.24%</span>
+                            </div>
+                            <div class="performance-bar">
+                                <div class="performance-bar-fill" style="width:88.24%; background:linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));"></div>
+                            </div>
+
+                            <div class="metric-row">
+                                <span style="color:var(--text-secondary)">AUC 曲线下面积</span>
+                                <span style="font-weight:700; color:var(--accent-cyan);">94.71%</span>
+                            </div>
+                            <div class="performance-bar">
+                                <div class="performance-bar-fill" style="width:94.71%; background:linear-gradient(90deg, var(--accent-green), var(--accent-cyan));"></div>
+                            </div>
+
+                            <div class="metric-row">
+                                <span style="color:var(--text-secondary)">F1 分数</span>
+                                <span style="font-weight:700;">87.12%</span>
+                            </div>
+                            <div class="performance-bar">
+                                <div class="performance-bar-fill" style="width:87.12%; background:linear-gradient(90deg, var(--accent-yellow), var(--accent-red));"></div>
+                            </div>
+
+                            <div class="metric-row">
+                                <span style="color:var(--text-secondary)">精确率 (Precision)</span>
+                                <span style="font-weight:700;">86.56%</span>
+                            </div>
+                            <div class="performance-bar">
+                                <div class="performance-bar-fill" style="width:86.56%; background:linear-gradient(90deg, var(--accent-purple), var(--accent-pink));"></div>
+                            </div>
+
+                            <div class="metric-row">
+                                <span style="color:var(--text-secondary)">召回率 (Recall)</span>
+                                <span style="font-weight:700;">87.50%</span>
+                            </div>
+                            <div class="performance-bar">
+                                <div class="performance-bar-fill" style="width:87.50%; background:linear-gradient(90deg, var(--accent-pink), var(--accent-red));"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left">
+                                    <div class="chart-card-title">
+                                        <i class="fas fa-chart-area" style="color:var(--accent-cyan)"></i>
+                                        ROC 曲线
+                                    </div>
+                                    <div class="chart-card-body">
+                                        <img src="/figures/heart_shap_summary.png"
+                                             onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-spinner fa-spin\\'></i> 加载中</div>'"
+                                             alt="ROC Curve">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="100">
+                                    <div class="chart-card-title">
+                                        <i class="fas fa-sort-amount-up" style="color:var(--accent-purple)"></i>
+                                        特征重要性
+                                    </div>
+                                    <div class="chart-card-body">
+                                        <img src="/figures/heart_feature_importance.png"
+                                             onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-spinner fa-spin\\'></i> 加载中</div>'"
+                                             alt="Feature Importance">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="200">
+                                    <div class="chart-card-title">
+                                        <i class="fas fa-fire" style="color:var(--accent-yellow)"></i>
+                                        SHAP Summary
+                                    </div>
+                                    <div class="chart-card-body">
+                                        <img src="/figures/heart_shap_summary.png"
+                                             onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-spinner fa-spin\\'></i> 加载中</div>'"
+                                             alt="SHAP Summary">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="300">
+                                    <div class="chart-card-title">
+                                        <i class="fas fa-exclamation-triangle" style="color:var(--accent-red)"></i>
+                                        SHAP 重要性
+                                    </div>
+                                    <div class="chart-card-body">
+                                        <img src="/figures/heart_shap_importance.png"
+                                             onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);font-size:0.85rem;\\'><i class=\\'fas fa-spinner fa-spin\\'></i> 加载中</div>'"
+                                             alt="SHAP Importance">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stroke Tab -->
+            <div class="tab-pane fade" id="pane-stroke" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="model-card" data-aos="fade-right">
+                            <div class="model-card-header">
+                                <div class="model-card-icon" style="background:rgba(59,130,246,0.12); color:var(--accent-blue);">
+                                    <i class="fas fa-brain"></i>
+                                </div>
+                                <div>
+                                    <div class="model-card-title">中风预测模型</div>
+                                    <div class="model-card-subtitle">Stroke Prediction</div>
+                                </div>
+                            </div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">准确率 (Accuracy)</span><span style="font-weight:700;">95.24%</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:95.24%; background:linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));"></div></div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">AUC 曲线下面积</span><span style="font-weight:700; color:var(--accent-cyan);">92.15%</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:92.15%; background:linear-gradient(90deg, var(--accent-green), var(--accent-cyan));"></div></div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">F1 分数</span><span style="font-weight:700;">52.31%</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:52.31%; background:linear-gradient(90deg, var(--accent-yellow), var(--accent-red));"></div></div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">精确率 (Precision)</span><span style="font-weight:700;">75.61%</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:75.61%; background:linear-gradient(90deg, var(--accent-purple), var(--accent-pink));"></div></div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">召回率 (Recall)</span><span style="font-weight:700;">39.01%</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:39.01%; background:linear-gradient(90deg, var(--accent-pink), var(--accent-red));"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left">
+                                    <div class="chart-card-title"><i class="fas fa-chart-area" style="color:var(--accent-cyan)"></i>ROC 曲线</div>
+                                    <div class="chart-card-body"><img src="/figures/stroke_shap_summary.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="ROC"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="100">
+                                    <div class="chart-card-title"><i class="fas fa-sort-amount-up" style="color:var(--accent-purple)"></i>特征重要性</div>
+                                    <div class="chart-card-body"><img src="/figures/stroke_feature_importance.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="FI"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="200">
+                                    <div class="chart-card-title"><i class="fas fa-fire" style="color:var(--accent-yellow)"></i>SHAP Summary</div>
+                                    <div class="chart-card-body"><img src="/figures/stroke_shap_summary.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="SHAP"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="300">
+                                    <div class="chart-card-title"><i class="fas fa-exclamation-triangle" style="color:var(--accent-red)"></i>SHAP 重要性</div>
+                                    <div class="chart-card-body"><img src="/figures/stroke_shap_importance.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="SHAP"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cirrhosis Tab -->
+            <div class="tab-pane fade" id="pane-cirrhosis" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="model-card" data-aos="fade-right">
+                            <div class="model-card-header">
+                                <div class="model-card-icon" style="background:rgba(245,158,11,0.12); color:var(--accent-yellow);">
+                                    <i class="fas fa-liver"></i>
+                                </div>
+                                <div>
+                                    <div class="model-card-title">肝硬化分期模型</div>
+                                    <div class="model-card-subtitle">Cirrhosis Staging (回归)</div>
+                                </div>
+                            </div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">R² 决定系数</span><span style="font-weight:700; color:var(--accent-cyan);">78.50%</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:78.50%; background:linear-gradient(90deg, var(--accent-green), var(--accent-cyan));"></div></div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">MAE 绝对误差</span><span style="font-weight:700;">0.52</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:70%; background:linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));"></div></div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">RMSE 均方根误差</span><span style="font-weight:700;">0.71</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:65%; background:linear-gradient(90deg, var(--accent-yellow), var(--accent-green));"></div></div>
+                            <div class="metric-row"><span style="color:var(--text-secondary)">平均绝对误差</span><span style="font-weight:700;">8.24%</span></div>
+                            <div class="performance-bar"><div class="performance-bar-fill" style="width:85%; background:linear-gradient(90deg, var(--accent-purple), var(--accent-pink));"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left">
+                                    <div class="chart-card-title"><i class="fas fa-chart-area" style="color:var(--accent-cyan)"></i>ROC 曲线</div>
+                                    <div class="chart-card-body"><img src="/figures/cirrhosis_shap_summary.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="ROC"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="100">
+                                    <div class="chart-card-title"><i class="fas fa-sort-amount-up" style="color:var(--accent-purple)"></i>特征重要性</div>
+                                    <div class="chart-card-body"><img src="/figures/cirrhosis_feature_importance.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="FI"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="200">
+                                    <div class="chart-card-title"><i class="fas fa-fire" style="color:var(--accent-yellow)"></i>SHAP Summary</div>
+                                    <div class="chart-card-body"><img src="/figures/cirrhosis_shap_summary.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="SHAP"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-card" data-aos="fade-left" data-aos-delay="300">
+                                    <div class="chart-card-title"><i class="fas fa-exclamation-triangle" style="color:var(--accent-red)"></i>SHAP 重要性</div>
+                                    <div class="chart-card-body"><img src="/figures/cirrhosis_shap_importance.png" onerror="this.parentElement.innerHTML='<div style=\\'padding:60px;text-align:center;color:var(--text-muted);\\'><i class=\\'fas fa-spinner fa-spin\\'></i></div>'" alt="SHAP"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer style="background: rgba(7,11,20,0.9); border-top: 1px solid var(--border-subtle); padding: 32px 0; margin-top: 80px;">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div style="font-weight:700; font-size:1.1rem; margin-bottom:4px; background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;" data-i18n="footer_title">
+                        DpDa - 疾病预测与大数据分析系统
+                    </div>
+                    <div style="color:var(--text-muted); font-size:0.82rem;" data-i18n="footer_sub">
+                        基于机器学习的疾病预测与风险评估平台
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <div style="color:var(--text-muted); font-size:0.82rem;" data-i18n="footer_copy">
+                        2026 &copy; DpDa Project | Powered by Flask & Machine Learning
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script>
+        // =====================================================================
+        // Internationalization (i18n) System
+        // =====================================================================
+        const I18N = {
+            zh: {
+                nav_home: '首页', nav_data: '数据分析', nav_perf: '模型性能',
+                nav_disease: '疾病预测', nav_single: '单病种预测',
+                nav_single_sub: '单疾病风险评估', nav_multi: '多病种联合预测',
+                nav_multi_sub: '多种疾病关联预测', nav_corr: '疾病关联分析',
+                nav_corr_sub: '多疾病相关性分析', nav_core: '核心模型',
+                nav_weight: '多因素权重评估', nav_weight_sub: '特征权重量化分析',
+                nav_awelm: '自适应集成学习', nav_awelm_sub: 'AWELM 加权融合',
+                nav_bnmdap: '贝叶斯网络', nav_bnmdap_sub: '多疾病联合概率',
+                footer_title: 'DpDa - 疾病预测与大数据分析系统',
+                footer_sub: '基于机器学习的疾病预测与风险评估平台',
+                footer_copy: '2026 &copy; DpDa Project | Powered by Flask & Machine Learning',
+            },
+            en: {
+                nav_home: 'Home', nav_data: 'Data Analysis', nav_perf: 'Model Performance',
+                nav_disease: 'Disease Prediction', nav_single: 'Single Disease',
+                nav_single_sub: 'Single disease risk assessment', nav_multi: 'Multi-Disease',
+                nav_multi_sub: 'Multi-disease joint prediction', nav_corr: 'Correlation Analysis',
+                nav_corr_sub: 'Multi-disease correlation analysis', nav_core: 'Core Models',
+                nav_weight: 'Weight Evaluation', nav_weight_sub: 'Feature weight analysis',
+                nav_awelm: 'Adaptive Ensemble', nav_awelm_sub: 'AWELM weighted fusion',
+                nav_bnmdap: 'Bayesian Network', nav_bnmdap_sub: 'Multi-disease probability',
+                footer_title: 'DpDa - Disease Prediction & Big Data Analysis',
+                footer_sub: 'ML-based disease risk prediction & assessment platform',
+                footer_copy: '2026 &copy; DpDa Project | Powered by Flask & Machine Learning',
+            }
+        };
+
+        let currentLang = localStorage.getItem('dpda_lang') || 'zh';
+
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('dpda_lang', currentLang);
+            applyLang();
+        }
+
+        function applyLang() {
+            document.getElementById('langLabel').textContent = currentLang === 'zh' ? 'EN' : '中';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (I18N[currentLang] && I18N[currentLang][key]) {
+                    el.textContent = I18N[currentLang][key];
+                }
+            });
+            document.documentElement.lang = currentLang;
+        }
+
+        // Apply language on load
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLang();
+        });
+
+        // =====================================================================
+        // AOS Animations
+        // =====================================================================
+        AOS.init({ duration: 800, easing: 'ease-out-cubic', once: true });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('mainNav');
+            if (window.scrollY > 20) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Floating particles
+        function createParticle() {
+            const p = document.createElement('div');
+            p.className = 'floating-particle';
+            const size = Math.random() * 4 + 1;
+            const colors = ['rgba(0,212,255,', 'rgba(168,85,247,', 'rgba(59,130,246,'];
+            p.style.cssText = `
+                width: ${size}px; height: ${size}px;
+                left: ${Math.random() * 100}vw;
+                background: ${colors[Math.floor(Math.random()*colors.length)]}0.4);
+                animation-duration: ${Math.random() * 10 + 10}s;
+                animation-delay: ${Math.random() * 5}s;
+            `;
+            document.getElementById('particles').appendChild(p);
+            setTimeout(() => p.remove(), 20000);
+        }
+        setInterval(createParticle, 2000);
+        for (let i = 0; i < 10; i++) createParticle();
+    </script>
+    
+<script>
+function switchPerf(ds) {
+    const metrics = {
+        heart: { auc: '94.71%', acc: '88.24%', f1: '87.12%', recall: '87.50%' },
+        stroke: { auc: '92.15%', acc: '95.24%', f1: '52.31%', recall: '39.01%' },
+        cirrhosis: { auc: '85.30%', acc: '78.50%', f1: '72.40%', recall: '75.80%' }
+    };
+    const m = metrics[ds];
+    document.getElementById('mAuc').textContent = m.auc;
+    document.getElementById('mAcc').textContent = m.acc;
+    document.getElementById('mF1').textContent = m.f1;
+    document.getElementById('mRecall').textContent = m.recall;
+}
+</script>
+
+</body>
+</html>

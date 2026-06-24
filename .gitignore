@@ -79,7 +79,9 @@ app.log
 !templates/*.html
 !templates/**/*.html
 !static/**/*.html
-!public/
 
-# Vercel build
-public/__pycache__/
+# Pre-rendered static pages in repo root (Vercel serves them)
+!/*.html
+
+# Old public/ deployment artifacts (no longer used)
+public/

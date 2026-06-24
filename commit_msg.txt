@@ -1,0 +1,10 @@
+Fix start.bat startup crash and simplify Vercel deployment
+
+- Wrap generate_missing_charts() in app.py with try/except to prevent startup crash
+  from chart_generator LightGBM model incompatibility
+- Rewrite start.bat using flat goto-based flow to avoid nested ()/else blocks
+  that triggered "was unexpected at this time" parse error
+- Simplify Vercel deployment: serve pre-rendered HTML from repo root (not public/)
+- Add .vercelignore to exclude dev files from deployment
+- Update .gitignore to allow repo root HTML and exclude public/
+- Update prerender.py to output HTML to repo root
