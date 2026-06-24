@@ -620,9 +620,9 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-predict" id="predictBtn">
+            <button type="submit" class="btn-predict" id="predictBtn" data-i18n-key="开始预测">
                 <i class="fas fa-search"></i>
-                开始预测
+                <span class="btn-text">开始预测</span>
             </button>
         </form>
     </div>
@@ -718,13 +718,16 @@ function drawGauge(probability) {
 function showLoading() {
     const btn = document.getElementById('predictBtn');
     btn.disabled = true;
-    btn.innerHTML = '<div class="loading-ring" style="width:24px;height:24px;border-width:3px;margin:0;"></div> 分析中...';
+    const loadingText = (window.I18N && window.I18N.en && window.I18N.en['正在分析...']) ? window.I18N.en['正在分析...'] : 'Analyzing...';
+    btn.innerHTML = '<div class="loading-ring" style="width:24px;height:24px;border-width:3px;margin:0;"></div> ' + loadingText;
 }
 
 function hideLoading() {
     const btn = document.getElementById('predictBtn');
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-search"></i> 开始预测';
+    const key = btn.getAttribute('data-i18n-key') || '开始预测';
+    const btnText = (window.I18N && window.I18N.en && window.I18N.en[key]) ? window.I18N.en[key] : key;
+    btn.innerHTML = '<i class="fas fa-search"></i> ' + btnText;
 }
 
 function getAdvice(disease, prob) {
@@ -759,7 +762,7 @@ function submitPrediction(e) {
         }
     }
 
-    fetch('/api/predict', {
+    fetch('/predict', {
         method: 'POST',
         body: new URLSearchParams(data)
     })
@@ -771,20 +774,25 @@ function submitPrediction(e) {
         const prob = result.probability[1] || result.probability[result.probability.length - 1] || 0;
         const pct = Math.round(prob * 100);
 
+        const riskLabels = { high: '高风险', medium: '中等风险', low: '低风险' };
+        const riskLabelsEn = { high: 'High Risk', medium: 'Medium Risk', low: 'Low Risk' };
         const card = document.getElementById('resultCard');
         card.className = 'result-card';
+        let riskLevel = 'low';
         if (pct >= 60) {
             card.classList.add('risk-high');
             document.getElementById('resultLabel').style.color = 'var(--accent-red)';
-            document.getElementById('resultLabel').textContent = '高风险';
+            document.getElementById('resultLabel').textContent = currentLang === 'en' ? riskLabelsEn.high : riskLabels.high;
+            riskLevel = 'high';
         } else if (pct >= 30) {
             card.classList.add('risk-medium');
             document.getElementById('resultLabel').style.color = 'var(--accent-yellow)';
-            document.getElementById('resultLabel').textContent = '中等风险';
+            document.getElementById('resultLabel').textContent = currentLang === 'en' ? riskLabelsEn.medium : riskLabels.medium;
+            riskLevel = 'medium';
         } else {
             card.classList.add('risk-low');
             document.getElementById('resultLabel').style.color = 'var(--accent-green)';
-            document.getElementById('resultLabel').textContent = '低风险';
+            document.getElementById('resultLabel').textContent = currentLang === 'en' ? riskLabelsEn.low : riskLabels.low;
         }
 
         document.getElementById('resultPercentage').textContent = pct + '%';

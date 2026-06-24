@@ -657,13 +657,27 @@
             const label = document.getElementById('langLabel');
             if (label) label.textContent = currentLang === 'en' ? '中' : 'EN';
             document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
-            // Reset any explicitly marked elements to their Chinese source
-            document.querySelectorAll('[data-i18n-zh]').forEach(el => {
-                el.textContent = el.getAttribute('data-i18n-zh');
-            });
-            // Auto-translate DOM via dictionary when switching to English
-            if (currentLang === 'en' && window.dpdaTranslate) {
-                window.dpdaTranslate(document.body);
+
+            if (currentLang === 'zh') {
+                // Restore Chinese for data-i18n-key elements
+                document.querySelectorAll('[data-i18n-key]').forEach(el => {
+                    el.textContent = el.getAttribute('data-i18n-key');
+                });
+                document.querySelectorAll('[data-i18n-zh]').forEach(el => {
+                    el.textContent = el.getAttribute('data-i18n-zh');
+                });
+            } else {
+                // Translate: data-i18n-key elements
+                document.querySelectorAll('[data-i18n-key]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-key');
+                    if (window.I18N && window.I18N.en && window.I18N.en[key]) {
+                        el.textContent = window.I18N.en[key];
+                    }
+                });
+                // Translate: auto-scan text nodes
+                if (window.dpdaTranslate) {
+                    window.dpdaTranslate(document.body);
+                }
             }
         }
 

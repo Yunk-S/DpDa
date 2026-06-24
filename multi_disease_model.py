@@ -257,6 +257,7 @@ class MultiDiseasePredictor:
         self.models = {}
         self.scalers = {}
         self.calibrators = {}
+        self.inference_models = {}
         self.common_features = ['age', 'gender', 'bmi', 'smoking', 'hypertension']
         self.feature_mapping = {
             'stroke': {
@@ -286,6 +287,7 @@ class MultiDiseasePredictor:
         print(f"Model loading status: {'Success' if self.models_loaded else 'Using fallback models'}")
 
         self.init_calibrators()
+        self._load_inference_bundles()
 
     def load_models(self):
         """Load pre-trained single-disease prediction models"""
@@ -357,6 +359,20 @@ class MultiDiseasePredictor:
             if not self.calibrators[disease_type].load_calibrators(disease_type):
                 print(f"Calibrator for {disease_type} not found, will use direct calibration method")
 
+    def _load_inference_bundles(self):
+        """Load inference bundles from inference_predictor for correct feature transformation."""
+        try:
+            from inference_predictor import load_inference_models
+            model_dir = os.path.join(os.path.dirname(__file__), 'output', 'inference_models')
+            self.inference_models = load_inference_models(model_dir)
+            if self.inference_models:
+                print(f"Loaded inference bundles for multi-disease: {list(self.inference_models.keys())}")
+            else:
+                print("Warning: No inference bundles loaded in multi-disease model")
+        except Exception as e:
+            print(f"Failed to load inference bundles: {e}")
+            self.inference_models = {}
+
     def predict_multi_disease_probability(self, data):
         """
         Predict the probability of multiple diseases occurring simultaneously
@@ -389,135 +405,34 @@ class MultiDiseasePredictor:
         return multi_probs
 
     def _predict_stroke_probability(self, data):
-        """Predict stroke probability"""
-        if 'stroke' not in self.models:
-            return 0.05
-
+        """Predict stroke probability using inference bundle."""
         try:
-            gender_map = {'Male': 0, 'Female': 1, 'Other': 2}
-            smoking_map = {'never smoked': 0, 'formerly smoked': 1, 'smokes': 2, 'Unknown': 3,
-                           'never_smoked': 0, 'formerly_smoked': 1}
-
-            X = pd.DataFrame({
-                'gender': [gender_map.get(data.get('gender'), 0)],
-                'age': [float(data.get('age', 50))],
-                'hypertension': [int(data.get('hypertension', 0))],
-                'heart_disease': [int(data.get('heart_disease', 0))],
-                'avg_glucose_level': [float(data.get('avg_glucose_level', 100))],
-                'bmi': [float(data.get('bmi', 25))],
-                'smoking_status': [smoking_map.get(data.get('smoking_status'), 3)]
-            })
-
-            prediction, probabilities, error_msg, methods_tried = robust_model_predict(
-                self.models['stroke'], X, model_type='classification'
-            )
-
-            if error_msg:
-                print(f"Issues encountered during stroke prediction, fallback methods tried: {methods_tried}. Error: {error_msg}")
-
-            raw_prob = probabilities[1] if probabilities is not None else 0.05
-
-            if 'stroke' in self.calibrators and self.calibrators['stroke'].is_fitted:
-                calibrated_prob = self.calibrators['stroke'].calibrate_probability(X, self.models['stroke'], 'stroke')
-                if calibrated_prob is not None:
-                    return calibrated_prob[0]
-
-            risk_level = 'high' if raw_prob > 0.3 else ('medium' if raw_prob > 0.1 else 'low')
-
-            if risk_level == 'high':
-                return calibrate_probability(raw_prob, method='spline', risk_level='high')
-            else:
-                return calibrate_probability(raw_prob, method='logistic', risk_level=risk_level)
-
+            from inference_predictor import predict_single_disease
+            if self.inference_models.get('stroke'):
+                return predict_single_disease(self.inference_models, 'stroke', data)
         except Exception as e:
-            print(f"Stroke prediction error: {e}")
-            return 0.05
+            print(f"Stroke inference failed: {e}")
+        return 0.05
 
     def _predict_heart_probability(self, data):
-        """Predict heart disease probability"""
-        if 'heart' not in self.models:
-            return 0.05
-
+        """Predict heart disease probability using inference bundle."""
         try:
-            X = pd.DataFrame({
-                'Age': [float(data.get('age', 50))],
-                'Sex': [1 if data.get('gender') == 'Male' else 0],
-                'ChestPainType': [str(data.get('chest_pain_type', 'ATA'))],
-                'RestingBP': [float(data.get('resting_bp', 120))],
-                'Cholesterol': [float(data.get('cholesterol', 200))],
-                'FastingBS': [int(float(data.get('fasting_bs', 0)))],
-                'RestingECG': [str(data.get('resting_ecg', 'Normal'))],
-                'MaxHR': [float(data.get('max_hr', 150))],
-                'ExerciseAngina': [1 if str(data.get('exercise_angina', '')) == 'Y' else 0],
-                'Oldpeak': [float(data.get('oldpeak', 0))],
-                'ST_Slope': [str(data.get('st_slope', 'Flat'))]
-            })
-
-            prediction, probabilities, error_msg, methods_tried = robust_model_predict(
-                self.models['heart'], X, model_type='classification'
-            )
-
-            if error_msg:
-                print(f"Issues encountered during heart disease prediction, fallback methods tried: {methods_tried}. Error: {error_msg}")
-
-            raw_prob = probabilities[1] if probabilities is not None else 0.05
-
-            if 'heart' in self.calibrators and self.calibrators['heart'].is_fitted:
-                calibrated_prob = self.calibrators['heart'].calibrate_probability(X, self.models['heart'], 'heart')
-                if calibrated_prob is not None:
-                    return calibrated_prob[0]
-
-            risk_level = 'high' if raw_prob > 0.3 else ('medium' if raw_prob > 0.1 else 'low')
-            return calibrate_probability(raw_prob, method='sigmoid', risk_level=risk_level)
-
+            from inference_predictor import predict_single_disease
+            if self.inference_models.get('heart'):
+                return predict_single_disease(self.inference_models, 'heart', data)
         except Exception as e:
-            print(f"Heart disease prediction error: {e}")
-            return 0.05
+            print(f"Heart inference failed: {e}")
+        return 0.05
 
     def _predict_cirrhosis_probability(self, data):
-        """Predict cirrhosis severity and probability"""
-        if 'cirrhosis' not in self.models:
-            return 0.05
-
+        """Predict cirrhosis severity and probability using inference bundle."""
         try:
-            X = pd.DataFrame({
-                'Age': [float(data.get('age', 50)) * 365.25],
-                'Sex': [1 if data.get('gender') == 'Male' else 0],
-                'Ascites': [int(data.get('ascites', 0))],
-                'Hepatomegaly': [int(data.get('hepatomegaly', 0))],
-                'Spiders': [int(data.get('spiders', 0))],
-                'Edema': [int(data.get('edema', 0))],
-                'Bilirubin': [float(data.get('bilirubin', 1.0))],
-                'Cholesterol': [float(data.get('cholesterol', 200))],
-                'Albumin': [float(data.get('albumin', 3.5))],
-                'Copper': [float(data.get('copper', 50))],
-                'Alk_Phos': [float(data.get('alk_phos', 100))],
-                'SGOT': [float(data.get('sgot', 40))],
-                'Tryglicerides': [float(data.get('tryglicerides', 150))],
-                'Platelets': [float(data.get('platelets', 300))],
-                'Prothrombin': [float(data.get('prothrombin', 10))]
-            })
-
-            prediction, _, error_msg, methods_tried = robust_model_predict(
-                self.models['cirrhosis'], X, model_type='regression'
-            )
-
-            if error_msg:
-                print(f"Issues encountered during cirrhosis prediction, fallback methods tried: {methods_tried}. Error: {error_msg}")
-
-            raw_prob = min(max(prediction / 4, 0), 1.0)
-
-            if 'cirrhosis' in self.calibrators and self.calibrators['cirrhosis'].is_fitted:
-                calibrated_prob = self.calibrators['cirrhosis'].calibrate_probability(X, self.models['cirrhosis'], 'cirrhosis')
-                if calibrated_prob is not None:
-                    return calibrated_prob[0]
-
-            risk_level = 'high' if raw_prob > 0.3 else ('medium' if raw_prob > 0.1 else 'low')
-            return calibrate_probability(raw_prob, method='power', risk_level=risk_level)
-
+            from inference_predictor import predict_single_disease
+            if self.inference_models.get('cirrhosis'):
+                return predict_single_disease(self.inference_models, 'cirrhosis', data)
         except Exception as e:
-            print(f"Cirrhosis prediction error: {e}")
-            return 0.05
+            print(f"Cirrhosis inference failed: {e}")
+        return 0.05
 
     def predict_with_correlation(self, data):
         """

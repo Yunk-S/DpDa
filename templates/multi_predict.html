@@ -299,8 +299,8 @@
                 </div>
             </div>
 
-            <button type="submit" class="predict-btn" id="multiPredictBtn">
-                <i class="fas fa-search"></i> 开始联合预测
+            <button type="submit" class="predict-btn" id="multiPredictBtn" data-i18n-key="开始联合预测">
+                <i class="fas fa-search"></i> <span class="btn-text">开始联合预测</span>
             </button>
         </form>
 
@@ -330,7 +330,8 @@ function submitMultiPredict(e) {
     e.preventDefault();
     const btn = document.getElementById('multiPredictBtn');
     btn.disabled = true;
-    btn.innerHTML = '<div class="loading-ring" style="width:20px;height:20px;border-width:3px;display:inline-block;margin-right:8px;"></div> 预测中...';
+    const loadingText = (window.I18N && window.I18N.en && window.I18N.en['预测中...']) ? window.I18N.en['预测中...'] : 'Predicting...';
+    btn.innerHTML = '<div class="loading-ring" style="width:20px;height:20px;border-width:3px;display:inline-block;margin-right:8px;"></div> ' + loadingText;
 
     const form = document.getElementById('multiPredictForm');
     const formData = new FormData(form);
@@ -346,38 +347,47 @@ function submitMultiPredict(e) {
     .then(r => r.json())
     .then(result => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-search"></i> 开始联合预测';
+        const btnText = (btn.getAttribute('data-i18n-key') && window.I18N && window.I18N.en && window.I18N.en[btn.getAttribute('data-i18n-key')]) ? window.I18N.en[btn.getAttribute('data-i18n-key')] : '开始联合预测';
+        btn.innerHTML = '<i class="fas fa-search"></i> ' + btnText;
         if (result.error) { alert('预测失败: ' + result.error); return; }
         renderMultiResults(result.probabilities);
     })
     .catch(err => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-search"></i> 开始联合预测';
+        const btnText = (btn.getAttribute('data-i18n-key') && window.I18N && window.I18N.en && window.I18N.en[btn.getAttribute('data-i18n-key')]) ? window.I18N.en[btn.getAttribute('data-i18n-key')] : '开始联合预测';
+        btn.innerHTML = '<i class="fas fa-search"></i> ' + btnText;
         alert('预测失败: ' + err);
     });
 }
 
 function renderMultiResults(probs) {
+    const labels = currentLang === 'en' ? {
+        stroke: 'Stroke Risk', heart: 'Heart Disease Risk', cirrhosis: 'Cirrhosis Risk',
+        high: 'High', medium: 'Medium', low: 'Low', suffix: 'Risk'
+    } : {
+        stroke: '中风风险', heart: '心脏病风险', cirrhosis: '肝硬化风险',
+        high: '高', medium: '中', low: '低', suffix: '风险'
+    };
     const diseases = [
-        { key: 'stroke', label: '中风风险', color: 'var(--accent-blue)', icon: 'fa-brain' },
-        { key: 'heart', label: '心脏病风险', color: 'var(--accent-red)', icon: 'fa-heart' },
-        { key: 'cirrhosis', label: '肝硬化风险', color: 'var(--accent-yellow)', icon: 'fa-disease' },
+        { key: 'stroke', color: 'var(--accent-blue)', icon: 'fa-brain' },
+        { key: 'heart', color: 'var(--accent-red)', icon: 'fa-heart' },
+        { key: 'cirrhosis', color: 'var(--accent-yellow)', icon: 'fa-disease' },
     ];
 
     const grid = document.getElementById('multiResultGrid');
     grid.innerHTML = diseases.map(d => {
         const val = probs[d.key] || 0;
         const pct = (val * 100).toFixed(1);
-        const risk = val >= 0.5 ? '高' : val >= 0.25 ? '中' : '低';
+        const risk = val >= 0.5 ? labels.high : val >= 0.25 ? labels.medium : labels.low;
         const riskColor = val >= 0.5 ? 'var(--accent-red)' : val >= 0.25 ? 'var(--accent-yellow)' : 'var(--accent-green)';
         return `
             <div class="col-md-4">
                 <div class="disease-result">
                     <div class="disease-result-title">
                         <i class="fas ${d.icon}" style="color:${d.color}"></i>
-                        ${d.label}
+                        ${labels[d.key]}
                         <span class="badge-stat" style="background:${riskColor}22; color:${riskColor}; margin-left:auto;">
-                            ${risk}风险
+                            ${risk}${labels.suffix}
                         </span>
                     </div>
                     <div style="font-size:2.5rem; font-weight:900; color:${d.color}; line-height:1;">${pct}%</div>

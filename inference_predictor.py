@@ -214,3 +214,15 @@ def predict_with_inference(inference_models, disease, form_data):
         import traceback
         logger.error(traceback.format_exc())
         return {'probability': None, 'prediction': None, 'error': str(e)}
+
+
+def predict_single_disease(inference_models, disease, form_data):
+    """
+    Convenience wrapper: returns just the raw probability (0-1) for one disease.
+    Falls back to 0.05 on any error.
+    """
+    result = predict_with_inference(inference_models, disease, form_data)
+    prob = result.get('probability')
+    if prob is None:
+        return 0.05
+    return float(prob)
